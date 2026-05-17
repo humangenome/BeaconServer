@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Beacon.Protocol</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="MessagePackAnalyzer">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

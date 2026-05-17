@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Beacon Discussions
+    url: https://github.com/HumanGenome/Beacon/discussions
+    about: Questions, ideas, and general discussion — please use Discussions before opening an issue.
+  - name: Hosting support
+    url: https://www.survivalservers.com/support
+    about: If you bought a managed Beacon server, support requests go to your hosting provider, not here.

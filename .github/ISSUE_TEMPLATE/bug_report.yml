@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in Beacon's server, plugin, or launcher is broken
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please make sure this is about Beacon itself — not your hosting provider's panel, billing, or support.
+
+  - type: input
+    id: beacon-version
+    attributes:
+      label: Beacon version
+      placeholder: "e.g. Beacon-Server-v0.4.2 / Beacon-Client-v0.4.2"
+    validations:
+      required: true
+
+  - type: input
+    id: sn2-build
+    attributes:
+      label: Subnautica 2 build ID + exe SHA256 (if known)
+      placeholder: "e.g. build 1234567 / sha256 ab12..."
+
+  - type: input
+    id: os
+    attributes:
+      label: Server OS
+      placeholder: "e.g. Windows Server 2019, Windows 11 Pro 23H2"
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Be specific. Include exact commands, config, and any client-side actions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Attach or paste relevant log excerpts:
+        - `logs/beaconserver-YYYY-MM-DD.ndjson`
+        - `logs/plugin-YYYY-MM-DD.log`
+        - Crash dumps from `crashes/` if applicable
+      render: text
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmations
+      options:
+        - label: I've searched existing issues for a duplicate
+          required: true
+        - label: This is a Beacon bug, not a hosting-provider support issue
+          required: true

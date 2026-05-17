@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Beacon.Persistence</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
