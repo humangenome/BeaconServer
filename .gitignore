@@ -1,0 +1,74 @@
+# Build output
+bin/
+obj/
+out/
+build/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.idea/
+
+# .NET
+*.pdb
+*.dll.config
+*.publish.xml
+publish/
+.nuget/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+PublishProfiles/
+**/Properties/launchSettings.json
+
+# C++ / CMake
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+CMakeUserPresets.json
+*.obj
+*.exe
+!tools/**/*.exe
+*.lib
+*.exp
+*.pdb
+
+# vcpkg
+vcpkg_installed/
+vcpkg/
+
+# Logs / dumps
+logs/
+crashes/
+*.log
+*.dmp
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local dev
+local/
+secrets/
+*.local.json
+*.secret
+
+# Generated protocol code (regenerate from protocol/codegen)
+src/shared/Beacon.Protocol/Generated/
+src/native/Beacon.Plugin/include/Beacon/Protocol/Generated/
+
+# Codex scratch briefs (never published, never tracked)
+.codex-*
+.lkg-*/
+
+# Build artifacts and scratch
+src/native/Beacon.Plugin/build-mingw/
+__pycache__/
+tmp/
+installer/dist/
+src/tools/Beacon.FridaLoader/build-bin/
+src/tools/Beacon.FridaLoader/dist-bin/

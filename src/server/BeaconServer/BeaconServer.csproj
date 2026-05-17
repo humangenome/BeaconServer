@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BeaconServer</RootNamespace>
+    <UserSecretsId>beacon-server-dev</UserSecretsId>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Formatting.Compact" />
+    <PackageReference Include="LiteNetLib" />
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../shared/Beacon.Protocol/Beacon.Protocol.csproj" />
+    <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
+    <ProjectReference Include="../Beacon.SourceQuery/Beacon.SourceQuery.csproj" />
+    <ProjectReference Include="../Beacon.Rcon/Beacon.Rcon.csproj" />
+    <ProjectReference Include="../Beacon.Persistence/Beacon.Persistence.csproj" />
+  </ItemGroup>
+</Project>
