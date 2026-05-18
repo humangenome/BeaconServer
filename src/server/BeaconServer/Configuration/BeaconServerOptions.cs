@@ -48,4 +48,10 @@ public sealed class BeaconServerOptions
     /// reports a slot count that doesn't match what BeaconServer hands out.
     /// </summary>
     public int MaxPlayers { get; set; } = 4;
+
+    /// <summary>
+    /// Extra arguments appended to the SN2 launch command line.
+    /// Use "-nullrhi" on headless/Wine hosts to disable GPU init.
+    /// </summary>
+    public string ExtraGameArgs { get; set; } = "";
 }
