@@ -14,7 +14,11 @@ public sealed class InstanceIdentityProvider
 
     public string InstanceId => _options.InstanceId;
 
-    public string PipeName => _options.PipeName;
+    // On Linux, .NET maps pipe names to Unix domain sockets at /tmp/CoreFxPipe_{name}.
+    // A slash in the name becomes a path separator, making the socket path invalid.
+    public string PipeName => OperatingSystem.IsWindows()
+            ? _options.PipeName
+            : _options.PipeName.Replace('/', '.');
 
     public int GameplayPort => _options.GameplayPort;
     public int BeaconControlPort => _options.BeaconControlPort;
