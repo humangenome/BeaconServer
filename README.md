@@ -5,6 +5,8 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-blue.svg)](#prerequisites)
 [![Game](https://img.shields.io/badge/Game-Subnautica_2-darkgreen.svg)](https://store.steampowered.com/app/1962700/)
 
+[简体中文](README.zh.md)
+
 Open-source dedicated-server supervisor for **Subnautica 2** Beacon multiplayer. Pairs with the (closed-source) Beacon launcher to give Subnautica 2 a real IP/port dedicated server: standard Unreal listen-server transport, save snapshots and rollback, Source A2S query, Source RCON, HMAC-signed HTTP admin API, and a Lua/C++ mod surface.
 
 The Beacon **launcher** is closed-source and distributed as a binary; this **server** is fully open-source and MIT licensed. Both ship together at [HumanGenome/Beacon](https://github.com/HumanGenome/Beacon).
