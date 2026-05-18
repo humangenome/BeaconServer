@@ -110,12 +110,17 @@ public sealed class SnProcessSupervisorService : BackgroundService
         if (!File.Exists(exe))
             throw new FileNotFoundException($"SN2 binary not found at {exe}");
 
-        var args = string.Join(' ',
+        var argParts = new List<string>
+        {
             $"-USERDIR={EscapeArg(_opts.SnUserDir)}",
             "-unattended",
             $"-port={_opts.GameplayPort}",
             "-log",
-            "/Game/Maps/Awake?listen");
+            "/Game/Maps/Awake?listen"
+        };
+        if (!string.IsNullOrWhiteSpace(_opts.ExtraGameArgs))
+            argParts.Add(_opts.ExtraGameArgs);
+        var args = string.Join(' ', argParts);
 
         var psi = new ProcessStartInfo
         {
