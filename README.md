@@ -20,7 +20,9 @@ _Beacon is a community project and is not affiliated with or endorsed by the dev
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Server settings](#server-settings)
 - [Running BeaconServer](#running-beaconserver)
+- [Source query example](#source-query-example)
 - [Admin & RCON](#admin--rcon)
 - [Mods](#mods)
 - [Build from source](#build-from-source)
@@ -89,6 +91,31 @@ The `Beacon-Server-Windows-x64-v<version>.zip` artifact contains only the MIT Be
 
 ---
 
+## Server settings
+
+BeaconServer reads settings from `BeaconServer\appsettings.json` under the `Beacon` section.
+
+| Setting | Default | Purpose |
+|---|---:|---|
+| `InstanceId` | `default` | Stable name for this server instance. Also used in logs and generated defaults. |
+| `ServerName` | empty | Public name shown in Beacon and Source A2S query. Empty falls back to `Beacon - <InstanceId>`. |
+| `SnInstallRoot` | `C:\Beacon\game` | Subnautica 2 install folder containing `Subnautica2.exe`. |
+| `SnUserDir` | `C:\Beacon\userdir` | User data directory used by the hosted game process. |
+| `SaveDir` | `C:\Beacon\saves` | Beacon snapshot and save metadata directory. |
+| `GameplayPort` | `27015` | UDP port players join through Beacon. |
+| `QueryPort` | `27017` | UDP Source A2S query port for server lists and monitoring. |
+| `RconPort` | `27018` | TCP Source RCON port. RCON stays disabled when `RconPassword` is empty. |
+| `HttpPort` | `27019` | TCP admin HTTP API port. Set to `0` to disable. |
+| `RconPassword` | empty | RCON password and admin HTTP signing secret. Set this before exposing RCON or HTTP. |
+| `ServerPassword` | empty | Optional join password players enter in Beacon. |
+| `MaxPlayers` | `4` | Slot count reported to Beacon and A2S. |
+| `SnapshotsEnabled` | `true` | Enables automatic save snapshots and restore support. |
+| `PluginHeartbeatTimeoutSeconds` | `30` | Time BeaconServer waits before treating the game-side runtime as unresponsive. |
+
+Keep `GameplayPort`, `QueryPort`, `RconPort`, and `HttpPort` unique per server instance. A common layout is `27015` gameplay, `27017` query, `27018` RCON, and `27019` HTTP.
+
+---
+
 ## Running BeaconServer
 
 ```
@@ -98,6 +125,31 @@ BeaconServer.exe
 That's it — it stays in the foreground and tails its own console output. Logs are written to `logs/beaconserver-<date>.ndjson`. Players connect via the Beacon launcher to `<HostAddress>:<GameplayPort>`.
 
 To run as a Windows service, wrap it with NSSM or `sc.exe create`. The supervisor process owns the SN2 lifecycle, so a stop is graceful: it tells the in-process plugin to flush a final snapshot, then terminates the SN2 process.
+
+---
+
+## Source query example
+
+BeaconServer answers standard Source A2S queries on `QueryPort`, so existing monitoring tools can read the server name, map, player count, and player list.
+
+Quick test with Python:
+
+```powershell
+py -m pip install python-a2s
+@'
+import a2s
+
+address = ("127.0.0.1", 27017)
+info = a2s.info(address)
+players = a2s.players(address)
+
+print(f"{info.server_name} - {info.player_count}/{info.max_players} on {info.map_name}")
+for player in players:
+    print(f"{player.name} {player.duration:.0f}s")
+'@ | py -
+```
+
+The same `QueryPort` also works with generic Source/Valve query clients such as GameDig, LGSM monitors, and server browser bots.
 
 ---
 
