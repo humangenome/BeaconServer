@@ -12,7 +12,7 @@ namespace BeaconServer.Services;
 /// user-scope Engine.ini for the OSS=Null + IpNetDriver override on every
 /// launch, watches the process, restarts on unexpected exit.
 ///
-/// Crash policy: if SN2 exits within MinHealthyUptimeSeconds, treat as
+/// Crash policy: if Subnautica 2 exits within MinHealthyUptimeSeconds, treat as
 /// "boot loop" and back off exponentially. After a stable run, exit codes
 /// reset the backoff.
 /// </summary>
@@ -25,6 +25,16 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
     private const int MinHealthyUptimeSeconds = 60;
     private const int MaxBackoffSeconds = 300;
+    public const string Sn2CanonicalSaveSlot = "savegame_0";
+    private const string Sn2MapPath = "/Game/Maps/Awake";
+    private static readonly string[] Sn2SaveSlotUrlKeys =
+    [
+        "slotname",
+        "SlotName",
+        "SaveSlot",
+        "LoadGame",
+        "SaveGame",
+    ];
 
     public SnProcessSupervisorService(
         ILogger<SnProcessSupervisorService> log,
@@ -42,7 +52,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
     {
         if (string.IsNullOrEmpty(_opts.SnInstallRoot) || !OperatingSystem.IsWindows())
         {
-            _log.LogWarning("Process supervisor idle: SN2 install root not configured or not on Windows");
+            _log.LogWarning("Process supervisor idle: Subnautica 2 install root not configured or not on Windows");
             return;
         }
 
@@ -53,7 +63,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
             {
                 // Wait for any in-flight restore to finish before relaunching.
                 // The restore code holds the gate while it mutates SaveGames;
-                // launching SN2 while that's in progress would race the file
+                // launching Subnautica 2 while that's in progress would race the file
                 // copy and corrupt the world.
                 await _coordinator.WaitForNoRestoreAsync(stoppingToken).ConfigureAwait(false);
 
@@ -62,7 +72,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 var start = DateTime.UtcNow;
 
                 using var proc = LaunchGame();
-                _log.LogInformation("SN2 launched: pid={Pid}", proc.Id);
+                _log.LogInformation("Subnautica 2 launched: pid={Pid}", proc.Id);
                 while (!stoppingToken.IsCancellationRequested && !proc.HasExited)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken).ConfigureAwait(false);
@@ -71,7 +81,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 {
                     if (!proc.HasExited)
                     {
-                        _log.LogInformation("Stopping — sending Ctrl+C / Close to SN2 (pid={Pid})", proc.Id);
+                        _log.LogInformation("Stopping — sending Ctrl+C / Close to Subnautica 2 (pid={Pid})", proc.Id);
                         try { proc.CloseMainWindow(); } catch { }
                         if (!proc.WaitForExit(10_000)) proc.Kill(true);
                     }
@@ -79,7 +89,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 }
 
                 var uptime = DateTime.UtcNow - start;
-                _log.LogWarning("SN2 exited code={Code} uptime={Uptime}s", proc.ExitCode, (int)uptime.TotalSeconds);
+                _log.LogWarning("Subnautica 2 exited code={Code} uptime={Uptime}s", proc.ExitCode, (int)uptime.TotalSeconds);
 
                 if (uptime.TotalSeconds >= MinHealthyUptimeSeconds)
                 {
@@ -108,14 +118,14 @@ public sealed class SnProcessSupervisorService : BackgroundService
         var exe = Path.Combine(_opts.SnInstallRoot,
             "Subnautica2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe");
         if (!File.Exists(exe))
-            throw new FileNotFoundException($"SN2 binary not found at {exe}");
+            throw new FileNotFoundException($"Subnautica 2 binary not found at {exe}");
 
         var args = string.Join(' ',
             $"-USERDIR={EscapeArg(_opts.SnUserDir)}",
             "-unattended",
             $"-port={_opts.GameplayPort}",
             "-log",
-            "/Game/Maps/Awake?listen");
+            BuildHostTravelUrl());
 
         var psi = new ProcessStartInfo
         {
@@ -133,12 +143,12 @@ public sealed class SnProcessSupervisorService : BackgroundService
     {
         // Refuse to patch into a user directory that overlaps a vanilla SN2
         // install. This catches the case where SnUserDir was accidentally
-        // pointed at the customer's Steam/Epic SN2 root and would otherwise
+        // pointed at the customer's Steam/Epic Subnautica 2 root and would otherwise
         // overwrite their vanilla Engine.ini.
         if (LooksLikeVanillaSn2Path(_opts.SnUserDir))
         {
-            _log.LogError("Engine.ini patch refused: SnUserDir={Dir} looks like a vanilla SN2 install path. " +
-                          "Beacon's user dir must be a separate folder (e.g. C:\\sspanel\\gameservers\\subnautica2\\<id>\\UserDir).",
+            _log.LogError("Engine.ini patch refused: SnUserDir={Dir} looks like a vanilla Subnautica 2 install path. " +
+                          "Beacon's user dir must be a separate folder (e.g. C:\\Beacon\\userdir).",
                           _opts.SnUserDir);
             return;
         }
@@ -159,6 +169,23 @@ public sealed class SnProcessSupervisorService : BackgroundService
         [/Script/Engine.GameEngine]
         !NetDriverDefinitions=ClearArray
         +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="{driver}",DriverClassNameFallback="{driver}")
+
+        [/Script/EngineSettings.GameMapsSettings]
+        LocalMapOptions={BuildHostTravelOptions()}
+
+        [/Script/UWESaveSystem.UWESaveGameSubsystem]
+        slotname={Sn2CanonicalSaveSlot}
+        SlotName={Sn2CanonicalSaveSlot}
+        SaveSlot={Sn2CanonicalSaveSlot}
+        DefaultSlotName={Sn2CanonicalSaveSlot}
+        DefaultSaveSlot={Sn2CanonicalSaveSlot}
+        LoadGame={Sn2CanonicalSaveSlot}
+
+        [/Script/UWELobby.UWELobbyGameMode]
+        slotname={Sn2CanonicalSaveSlot}
+        SlotName={Sn2CanonicalSaveSlot}
+        SaveSlot={Sn2CanonicalSaveSlot}
+        LoadGame={Sn2CanonicalSaveSlot}
 
         [/Script/OnlineSubsystemUtils.IpNetDriver]
         AllowPeerConnections=false
@@ -189,12 +216,23 @@ public sealed class SnProcessSupervisorService : BackgroundService
             InstanceId = _opts.InstanceId,
             PipePath = $@"\\.\pipe\{_opts.PipeName}",
             HmacKeyHex = Convert.ToHexString(_hmac.Key),
+            ServerPassword = _opts.ServerPassword,
         };
         File.WriteAllText(configPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
         _log.LogInformation("Emitted plugin config at {Path}", configPath);
     }
 
     private static string EscapeArg(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+
+    public static string BuildHostTravelUrl(string saveSlot = Sn2CanonicalSaveSlot)
+        => Sn2MapPath + BuildHostTravelOptions(saveSlot);
+
+    public static string BuildHostTravelOptions(string saveSlot = Sn2CanonicalSaveSlot)
+    {
+        var slot = string.IsNullOrWhiteSpace(saveSlot) ? Sn2CanonicalSaveSlot : saveSlot.Trim();
+        var escapedSlot = Uri.EscapeDataString(slot);
+        return "?listen" + string.Concat(Sn2SaveSlotUrlKeys.Select(key => $"?{key}={escapedSlot}"));
+    }
 
     /// <summary>
     /// Heuristic: does this path look like a Steam / Epic / MS Store install
@@ -207,7 +245,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
         if (string.IsNullOrWhiteSpace(path)) return false;
         // Check the resolved real target too — a customer can junction
         // their Beacon user dir at C:\Beacon\userdir over a vanilla
-        // SN2 install and the literal-string check passes while the
+        // Subnautica 2 install and the literal-string check passes while the
         // Engine.ini write lands inside the vanilla folder.
         return MatchesVanillaSubstring(path)
             || MatchesVanillaSubstring(TryResolveSymlinkTarget(path));

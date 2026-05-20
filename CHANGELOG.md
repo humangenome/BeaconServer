@@ -3,6 +3,17 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.42] - 2026-05-20
+
+### Current production source
+
+- Synced BeaconServer source to the server binary shipped in Beacon 0.3.42.
+- Added current save-slot normalization, roster file watching, password-gated
+  heartbeat enforcement, configurable player count, and snapshot toggle code.
+- Clarified that the server-only zip contains MIT BeaconServer binaries only;
+  playable self-host installs should use the full Beacon bundle from the
+  umbrella Beacon release page.
+
 ## [0.2.3] - 2026-05-17
 
 ### Initial open-source release

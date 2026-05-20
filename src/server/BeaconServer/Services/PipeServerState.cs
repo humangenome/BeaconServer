@@ -30,6 +30,15 @@ public sealed class PipeServerState
 
     public int LastReportedPlayerCount { get; set; }
 
+    // Native plugin reports auth state on every heartbeat (Beacon.dll
+    // v0.2.17+). On a legacy plugin both fields stay 0 and we treat the
+    // server as not-known-bad. HeartbeatWatchdogService fail-closes only
+    // when ServerPasswordConfigured==1 && ServerPasswordHookReady==0,
+    // i.e. the plugin has explicitly told us "password required but my
+    // native gate is down". See HeartbeatMessage doc comment.
+    public int LastServerPasswordConfigured { get; set; }
+    public int LastServerPasswordHookReady { get; set; }
+
     // Cached player list shipped over the IPC PlayerListSnapshot frame.
     // SourceQueryHostedService + the launcher's HTTP /players endpoint
     // read from this. Plugin enumerates SN2's PlayerController list and

@@ -45,6 +45,7 @@ public static class Program
             builder.Services.AddHostedService<SnProcessSupervisorService>();
             builder.Services.AddHostedService<Sn2LogTailService>();
             builder.Services.AddHostedService<BeaconHttpService>();
+            builder.Services.AddHostedService<RosterFileWatcherService>();
 
             var host = builder.Build();
 
@@ -53,7 +54,7 @@ public static class Program
             Log.Information("Instance {Instance} | gameplay:{GP} query:{QP} rcon:{RP} pipe:{Pipe}",
                 opts.InstanceId, opts.GameplayPort, opts.QueryPort, opts.RconPort, opts.PipeName);
             Log.Information("Save dir: {Dir}", opts.SaveDir);
-            Log.Information("SN2 user dir: {Dir}", opts.SnUserDir);
+            Log.Information("Subnautica 2 user dir: {Dir}", opts.SnUserDir);
 
             host.Run();
             return 0;
@@ -77,14 +78,14 @@ public static class Program
         var host = Environment.MachineName;
 
         Log.Information("==========================================================");
-        Log.Information("  Beacon Server v{Version}  (open-source SN2 dedicated host)", beaconVer);
+        Log.Information("  Beacon Server v{Version}  (open-source Subnautica 2 dedicated host)", beaconVer);
         Log.Information("  https://github.com/humangenome/Beacon");
         Log.Information("  Officially supported by https://www.survivalservers.com");
         Log.Information("----------------------------------------------------------");
         Log.Information("  host:    {Host}", host);
         Log.Information("  os:      {Os}", os);
         Log.Information("  runtime: .NET {DotNet}", dotnetVer);
-        Log.Information("  sn2:     build detected from host log (see [SN2] lines)");
+        Log.Information("  sn2:     build detected from host log (see [Subnautica 2] lines)");
         Log.Information("==========================================================");
     }
 }

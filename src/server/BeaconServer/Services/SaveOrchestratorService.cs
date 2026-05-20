@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Cryptography;
 using Beacon.Persistence;
 using Beacon.Protocol;
@@ -46,8 +47,17 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
 
     public Task StartAsync(CancellationToken _)
     {
-        _log.LogInformation("Save orchestrator ready; db={Path}, save_dir={Dir}", _dbPath, _opts.SaveDir);
-        TryStartFileWatcher();
+        _log.LogInformation("Save orchestrator ready; db={Path}, save_dir={Dir}, snapshots_enabled={Enabled}",
+            _dbPath, _opts.SaveDir, _opts.SnapshotsEnabled);
+        TryNormalizeSaveSlots();
+        if (_opts.SnapshotsEnabled)
+        {
+            TryStartFileWatcher();
+        }
+        else
+        {
+            _log.LogInformation("Auto-snapshot FileSystemWatcher disabled by config (SnapshotsEnabled=false)");
+        }
         return Task.CompletedTask;
     }
 
@@ -68,7 +78,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     /// Watch SN2's SaveGames dir for auto-save writes. SN2's host process
     /// auto-saves savegame_0.sav every ~1 minute. When the file mtime
     /// changes, debounce and trigger a Beacon snapshot. This is the "Beacon
-    /// snapshots, SN2 owns the trigger" model — no save RPC needed.
+    /// snapshots, Subnautica 2 owns the trigger" model — no save RPC needed.
     /// </summary>
     private void TryStartFileWatcher()
     {
@@ -98,16 +108,47 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Subnautica 2 listen-host startup creates a fresh savegame_N.sav when multiple
+    /// slots are present and no explicit "continue slot" is supplied. Beacon
+    /// hosts one world per instance, so keep the newest slot as savegame_0.sav
+    /// and archive the rest before the game process starts.
+    /// </summary>
+    private void TryNormalizeSaveSlots()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_opts.SnUserDir))
+            {
+                _log.LogInformation("Save slot normalization skipped: SnUserDir not configured");
+                return;
+            }
+
+            var sourceDir = Path.Combine(_opts.SnUserDir, "Saved", "SaveGames");
+            if (_coordinator.IsOwnedSn2Running())
+            {
+                _log.LogInformation("Save slot normalization skipped: owned Subnautica 2 process is already running");
+                return;
+            }
+
+            SaveSlotNormalizer.Normalize(sourceDir, _log);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Save slot normalization failed; Subnautica 2 may create a new save slot on this launch");
+        }
+    }
+
     private async Task OnSaveFileChangedAsync(string path)
     {
-        // Debounce: SN2 may emit multiple write events per save (size, mtime,
+        // Debounce: Subnautica 2 may emit multiple write events per save (size, mtime,
         // last access). Only one snapshot per AutoSnapshotDebounce window.
         if (!await _autoLock.WaitAsync(0).ConfigureAwait(false)) return;
         try
         {
             var now = DateTime.UtcNow;
             if (now - _lastAutoSnapshotUtc < AutoSnapshotDebounce) return;
-            // Wait briefly for SN2 to finish its write
+            // Wait briefly for Subnautica 2 to finish its write
             await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
             var rec = await SnapshotAsync(requestedBy: "auto:filewatcher", CancellationToken.None).ConfigureAwait(false);
             if (rec is not null)
@@ -128,7 +169,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
 
     /// <summary>
     /// Trigger a snapshot. Returns the snapshot record on success, null on failure.
-    /// Invoked from RCON ("save snapshot"), the FileSystemWatcher when SN2 auto-saves,
+    /// Invoked from RCON ("save snapshot"), the FileSystemWatcher when Subnautica 2 auto-saves,
     /// or a scheduled timer.
     /// </summary>
     public async Task<SnapshotRecord?> SnapshotAsync(string requestedBy, CancellationToken ct = default)
@@ -139,10 +180,10 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         try
         {
             // If plugin is connected, request a SaveQuiesce so the game flushes
-            // in-flight state. If not connected, fall through — SN2 writes its
+            // in-flight state. If not connected, fall through — Subnautica 2 writes its
             // own savegame_0.sav atomically (temp + rename), so a snapshot taken
             // without quiesce is still self-consistent. This unblocks the
-            // FileSystemWatcher auto-snapshot path which fires when SN2 has just
+            // FileSystemWatcher auto-snapshot path which fires when Subnautica 2 has just
             // finished writing the file.
             var conn = _state.Connection;
             if (conn is not null)
@@ -163,7 +204,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
 
             var snapshotPath = Path.Combine(_opts.SaveDir, $"{snapshotId}.zip");
             var tmpPath = snapshotPath + ".tmp";
-            System.IO.Compression.ZipFile.CreateFromDirectory(sourceDir, tmpPath);
+            CreateSaveGamesZip(sourceDir, tmpPath);
             File.Move(tmpPath, snapshotPath);
 
             var size = new FileInfo(snapshotPath).Length;
@@ -214,6 +255,32 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         }
     }
 
+    private static void CreateSaveGamesZip(string sourceDir, string destinationPath)
+    {
+        using var archive = System.IO.Compression.ZipFile.Open(
+            destinationPath,
+            System.IO.Compression.ZipArchiveMode.Create);
+
+        foreach (var file in Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(sourceDir, file).Replace('\\', '/');
+            var info = new FileInfo(file);
+            if (info.Length == 0 && IsRootSaveSlotPath(relativePath))
+            {
+                continue;
+            }
+
+            archive.CreateEntryFromFile(file, relativePath, System.IO.Compression.CompressionLevel.Optimal);
+        }
+    }
+
+    private static bool IsRootSaveSlotPath(string relativePath) =>
+        System.Text.RegularExpressions.Regex.IsMatch(
+            relativePath,
+            @"^savegame_\d+\.sav$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     private static async Task<string> Sha256OfAsync(string path, CancellationToken ct)
     {
         await using var f = File.OpenRead(path);
@@ -229,7 +296,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     /// Restore a previously-taken snapshot by ID. Takes a pre-restore
     /// snapshot first (so the operation is reversible), kills SN2, wipes
     /// SaveGames, extracts the target snapshot zip, then releases the gate
-    /// so the supervisor relaunches SN2 with the restored world.
+    /// so the supervisor relaunches Subnautica 2 with the restored world.
     /// </summary>
     public async Task<bool> RestoreSnapshotAsync(string snapshotId, string requestedBy, CancellationToken ct = default)
     {
@@ -265,8 +332,8 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
 
         using var _ = await _coordinator.BeginRestoreAsync(ct).ConfigureAwait(false);
 
-        // 1. Stop SN2 first. Taking a snapshot BEFORE the kill would
-        // capture whatever state SN2 was mid-writing — which on a save
+        // 1. Stop Subnautica 2 first. Taking a snapshot BEFORE the kill would
+        // capture whatever state Subnautica 2 was mid-writing — which on a save
         // tick is half a savegame_0.sav. Kill, wait for exit, then snap.
         _coordinator.KillSn2(TimeSpan.FromSeconds(20));
 
@@ -298,6 +365,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             {
                 using var probe = System.IO.Compression.ZipFile.OpenRead(zipPath);
                 var hasSave = probe.Entries.Any(e =>
+                    e.Length > 0 &&
                     System.Text.RegularExpressions.Regex.IsMatch(
                         e.FullName, @"^savegame_\d+\.sav$",
                         System.Text.RegularExpressions.RegexOptions.IgnoreCase));
@@ -378,7 +446,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             _log.LogError(ex, "Restore failed while swapping SaveGames");
             return false;
         }
-        // gate released by `using` — supervisor will relaunch SN2 on its
+        // gate released by `using` — supervisor will relaunch Subnautica 2 on its
         // next loop iteration.
     }
 }

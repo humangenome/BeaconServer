@@ -216,6 +216,8 @@ public sealed class NamedPipeServerService : BackgroundService
                     var hb = codec.DeserializePayload<HeartbeatMessage>(payload);
                     _state.LastHeartbeatAt = DateTimeOffset.UtcNow;
                     _state.LastReportedPlayerCount = hb.InGamePlayerCount;
+                    _state.LastServerPasswordConfigured = hb.ServerPasswordConfigured;
+                    _state.LastServerPasswordHookReady = hb.ServerPasswordHookReady;
                     return connection;
                 }
 

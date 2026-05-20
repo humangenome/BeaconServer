@@ -7,13 +7,13 @@ using Microsoft.Extensions.Options;
 namespace BeaconServer.Services;
 
 /// <summary>
-/// Tails the SN2 host's UE log file (<c>{SnUserDir}/Saved/Logs/Subnautica2.log</c>),
+/// Tails the Subnautica 2 host's UE log file (<c>{SnUserDir}/Saved/Logs/Subnautica2.log</c>),
 /// filters for operator-meaningful categories, and re-emits each line
-/// through Serilog with a <c>[SN2]</c> source prefix. Joins, leaves, chat,
+/// through Serilog with a <c>[Subnautica 2]</c> source prefix. Joins, leaves, chat,
 /// errors, save events, map travels — all show up interleaved with
 /// BeaconServer's own log stream.
 ///
-/// Also looks for the SN2 build banner on the first pass and registers it
+/// Also looks for the Subnautica 2 build banner on the first pass and registers it
 /// with <see cref="BeaconVersionInfo"/> so A2S responses can publish it.
 /// </summary>
 public sealed class Sn2LogTailService : BackgroundService
@@ -26,7 +26,7 @@ public sealed class Sn2LogTailService : BackgroundService
         @"^\[[\d.\-: ]+\]\[\s*\d+\]\s*(?<cat>Log[A-Za-z]+):",
         RegexOptions.Compiled);
 
-    // SN2 log categories worth surfacing on the operator console.
+    // Subnautica 2 log categories worth surfacing on the operator console.
     // Skip FMOD, RHI, Slate, ShaderCompiler, PakFile, IoDispatcher, etc.
     private static readonly HashSet<string> InterestingCategories = new(StringComparer.Ordinal)
     {
@@ -65,11 +65,11 @@ public sealed class Sn2LogTailService : BackgroundService
     {
         if (string.IsNullOrWhiteSpace(_opts.SnUserDir))
         {
-            _log.LogInformation("[SN2] log tail idle: SnUserDir not configured");
+            _log.LogInformation("[Subnautica 2] log tail idle: SnUserDir not configured");
             return;
         }
         var logPath = Path.Combine(_opts.SnUserDir, "Saved", "Logs", "Subnautica2.log");
-        _log.LogInformation("[SN2] log tail watching {Path}", logPath);
+        _log.LogInformation("[Subnautica 2] log tail watching {Path}", logPath);
 
         while (!ct.IsCancellationRequested)
         {
@@ -95,7 +95,7 @@ public sealed class Sn2LogTailService : BackgroundService
             catch (IOException) { /* log got rotated mid-read */ }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[SN2] log tail loop error");
+                _log.LogWarning(ex, "[Subnautica 2] log tail loop error");
             }
             try { await Task.Delay(1500, ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
@@ -106,7 +106,7 @@ public sealed class Sn2LogTailService : BackgroundService
     {
         if (string.IsNullOrEmpty(line)) return;
 
-        // Capture the SN2 build banner once per run.
+        // Capture the Subnautica 2 build banner once per run.
         if (!_buildLogged)
         {
             var m = BuildRegex.Match(line);
@@ -114,7 +114,7 @@ public sealed class Sn2LogTailService : BackgroundService
             {
                 var build = m.Groups["build"].Value;
                 BeaconVersionInfo.SetSn2Build(build);
-                _log.LogInformation("[SN2] build detected: {Build}", build);
+                _log.LogInformation("[Subnautica 2] build detected: {Build}", build);
                 _buildLogged = true;
             }
         }
@@ -128,28 +128,28 @@ public sealed class Sn2LogTailService : BackgroundService
         var joinMatch = JoinRegex.Match(line);
         if (joinMatch.Success)
         {
-            _log.LogInformation("[SN2] player joined from {Addr}", joinMatch.Groups["addr"].Value);
+            _log.LogInformation("[Subnautica 2] player joined from {Addr}", joinMatch.Groups["addr"].Value);
             return;
         }
         var leaveMatch = LeaveRegex.Match(line);
         if (leaveMatch.Success)
         {
-            _log.LogInformation("[SN2] connection closed for {Addr}", leaveMatch.Groups["addr"].Value);
+            _log.LogInformation("[Subnautica 2] connection closed for {Addr}", leaveMatch.Groups["addr"].Value);
             return;
         }
         var travelMatch = TravelRegex.Match(line);
         if (travelMatch.Success)
         {
-            _log.LogInformation("[SN2] travel -> {Url}", travelMatch.Groups["url"].Value);
+            _log.LogInformation("[Subnautica 2] travel -> {Url}", travelMatch.Groups["url"].Value);
             return;
         }
 
-        // Default: pass through with [SN2] prefix and category as info.
+        // Default: pass through with [Subnautica 2] prefix and category as info.
         if (line.Contains("Error", StringComparison.OrdinalIgnoreCase))
-            _log.LogError("[SN2] {Line}", line);
+            _log.LogError("[Subnautica 2] {Line}", line);
         else if (line.Contains("Warning", StringComparison.OrdinalIgnoreCase))
-            _log.LogWarning("[SN2] {Line}", line);
+            _log.LogWarning("[Subnautica 2] {Line}", line);
         else
-            _log.LogInformation("[SN2] {Line}", line);
+            _log.LogInformation("[Subnautica 2] {Line}", line);
     }
 }

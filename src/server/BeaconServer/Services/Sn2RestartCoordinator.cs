@@ -6,18 +6,18 @@ using Microsoft.Extensions.Options;
 namespace BeaconServer.Services;
 
 /// <summary>
-/// Coordinates between operations that need to pause SN2 (snapshot restore,
+/// Coordinates between operations that need to pause Subnautica 2 (snapshot restore,
 /// world wipe, in-place upgrade) and the supervisor loop that keeps it
-/// running. A restore acquires the gate, kills SN2 if it's running, mutates
+/// running. A restore acquires the gate, kills Subnautica 2 if it's running, mutates
 /// SaveGames, then releases the gate. The supervisor waits on the gate
-/// before each relaunch so a new SN2 doesn't spawn into a half-written
+/// before each relaunch so a new Subnautica 2 doesn't spawn into a half-written
 /// world.
 ///
-/// Kill scoping: only kills SN2 instances whose executable lives under the
+/// Kill scoping: only kills Subnautica 2 instances whose executable lives under the
 /// configured <see cref="BeaconServerOptions.SnInstallRoot"/> (or, when that
 /// is empty, instances whose command line references the configured
 /// <see cref="BeaconServerOptions.SnUserDir"/>). A self-hoster running
-/// vanilla SN2 elsewhere on the same machine will not be touched.
+/// vanilla Subnautica 2 elsewhere on the same machine will not be touched.
 /// </summary>
 public sealed class Sn2RestartCoordinator
 {
@@ -50,10 +50,10 @@ public sealed class Sn2RestartCoordinator
     }
 
     /// <summary>
-    /// Kill the SN2 instances this BeaconServer owns. Scoping is strict:
+    /// Kill the Subnautica 2 instances this BeaconServer owns. Scoping is strict:
     /// only processes whose path starts with <c>SnInstallRoot</c> (when
     /// configured) or whose command line includes <c>SnUserDir</c> are
-    /// touched. Unrelated SN2 processes on the machine — e.g. a customer's
+    /// touched. Unrelated Subnautica 2 processes on the machine — e.g. a customer's
     /// vanilla Steam session running alongside their host — are left alone.
     /// </summary>
     public void KillSn2(TimeSpan waitForExit)
@@ -65,7 +65,7 @@ public sealed class Sn2RestartCoordinator
         if (installRoot is null && userDir is null)
         {
             // No anchor to scope by — refuse to fire rather than kill every
-            // SN2 on the box. This is the path Codex caught.
+            // Subnautica 2 on the box.
             _log.LogWarning("KillSn2 skipped: neither SnInstallRoot nor SnUserDir is configured");
             return;
         }
@@ -85,13 +85,13 @@ public sealed class Sn2RestartCoordinator
                         _log.LogDebug("KillSn2 skipping pid={Pid} (not under our SnInstallRoot/SnUserDir)", p.Id);
                         continue;
                     }
-                    _log.LogInformation("Restoring: killing SN2 pid={Pid} name={Name}", p.Id, name);
+                    _log.LogInformation("Restoring: killing Subnautica 2 pid={Pid} name={Name}", p.Id, name);
                     p.Kill(entireProcessTree: true);
                     p.WaitForExit((int)waitForExit.TotalMilliseconds);
                 }
                 catch (Exception ex)
                 {
-                    _log.LogWarning(ex, "Failed to kill SN2 pid={Pid}", p.Id);
+                    _log.LogWarning(ex, "Failed to kill Subnautica 2 pid={Pid}", p.Id);
                 }
                 finally
                 {
@@ -99,6 +99,40 @@ public sealed class Sn2RestartCoordinator
                 }
             }
         }
+    }
+
+    public bool IsOwnedSn2Running()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+
+        var installRoot = NormalizeForCompare(_opts.SnInstallRoot);
+        var userDir = NormalizeForCompare(_opts.SnUserDir);
+        if (installRoot is null && userDir is null)
+        {
+            return false;
+        }
+
+        foreach (var name in Sn2ProcessNames)
+        {
+            Process[] procs;
+            try { procs = Process.GetProcessesByName(name); }
+            catch { continue; }
+
+            foreach (var p in procs)
+            {
+                try
+                {
+                    if (OwnsProcess(p, installRoot, userDir)) return true;
+                }
+                catch { }
+                finally
+                {
+                    try { p.Dispose(); } catch { }
+                }
+            }
+        }
+
+        return false;
     }
 
     private static bool OwnsProcess(Process p, string? installRoot, string? userDir)

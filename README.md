@@ -5,9 +5,9 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-blue.svg)](#prerequisites)
 [![Game](https://img.shields.io/badge/Game-Subnautica_2-darkgreen.svg)](https://store.steampowered.com/app/1962700/)
 
-Open-source dedicated-server supervisor for **Subnautica 2** Beacon multiplayer. Pairs with the (closed-source) Beacon launcher to give Subnautica 2 a real IP/port dedicated server: standard Unreal listen-server transport, save snapshots and rollback, Source A2S query, Source RCON, HMAC-signed HTTP admin API, and a Lua/C++ mod surface.
+Open-source host supervisor for **Subnautica 2** Beacon multiplayer. BeaconServer is the server-side process manager and admin API, not the full Beacon product by itself. A working Beacon server also relies on the closed-source **Beacon client-side launcher** and game-side runtime shipped in the full Beacon release bundle.
 
-The Beacon **launcher** is closed-source and distributed as a binary; this **server** is fully open-source and MIT licensed. Both ship together at [HumanGenome/Beacon](https://github.com/HumanGenome/Beacon).
+Together, Beacon gives Subnautica 2 a real IP/port multiplayer server: standard Unreal listen-server transport, save snapshots and rollback, Source A2S query, Source RCON, HMAC-signed HTTP admin API, and a UE4SS mod surface. BeaconServer is fully open-source and MIT licensed; the launcher and game-side runtime are proprietary binaries distributed from [HumanGenome/Beacon](https://github.com/HumanGenome/Beacon).
 
 _Beacon is a community project and is not affiliated with or endorsed by the developers of Subnautica 2._
 
@@ -24,12 +24,16 @@ _Beacon is a community project and is not affiliated with or endorsed by the dev
 - [Admin & RCON](#admin--rcon)
 - [Mods](#mods)
 - [Build from source](#build-from-source)
+- [Component split](#component-split)
 - [License](#license)
 - [Credits](#credits)
 
 ---
 
 ## Features
+
+### Requires Beacon
+BeaconServer expects players to join with the Beacon launcher. The launcher patches the local client session and loads the client-side runtime needed to connect by IP and port. The full host bundle also includes Beacon's game-side runtime for the server process. Running the server-only zip without those runtime components is useful for source builds and tests, but it will not create a complete playable host.
 
 ### Subnautica 2 supervisor
 BeaconServer manages the Subnautica 2 game process: starts it under the right launch URL, monitors it via a named-pipe IPC channel from the in-process plugin, restarts it on crashes, and gates restarts during snapshot restores.
@@ -65,20 +69,23 @@ You do **not** need a separate .NET install — release artifacts are self-conta
 
 The easy way is managed hosting from [SurvivalServers.com](https://www.survivalservers.com/games/subnautica_2/?utm_source=github&utm_medium=readme_install&utm_campaign=beaconserver) — BeaconServer comes pre-installed and they handle ports, snapshots, and updates.
 
-To self-host:
+To self-host a playable server:
 
-1. Download `Beacon-Server-Windows-x64-<version>.zip` from the [latest release](https://github.com/HumanGenome/BeaconServer/releases/latest) (or from the umbrella [HumanGenome/Beacon](https://github.com/HumanGenome/Beacon/releases/latest)).
+1. Download `Beacon-Bundle-Windows-x64-v<version>.zip` from the [HumanGenome/Beacon latest release](https://github.com/HumanGenome/Beacon/releases/latest).
 2. Extract somewhere on the Windows machine that will host the server (e.g. `C:\Beacon\`).
-3. Open `appsettings.json` and set:
+3. Open `BeaconServer\appsettings.json` and set:
    - `Beacon:SnInstallRoot` — full path to your Subnautica 2 install (the folder with `Subnautica2.exe`)
    - `Beacon:RconPassword` — a strong password. This is also Beacon's HTTP admin key.
+   - `Beacon:ServerPassword` — optional password players must enter before joining.
    - `Beacon:GameplayPort` — the UDP port players will connect to (default `7777`)
 4. Forward / open these ports on your firewall + router:
    - `<GameplayPort>` UDP — gameplay
    - `<GameplayPort> + 2` UDP — server query (A2S)
    - `<GameplayPort> + 3` TCP — RCON (optional)
    - `<GameplayPort> + 4` TCP — admin HTTP API (optional)
-5. Run `BeaconServer.exe`. The console prints the listen address; that's what players join with the Beacon launcher.
+5. Run `BeaconServer\BeaconServer.exe`. The console prints the listen address; that's what players join with the Beacon launcher.
+
+The `Beacon-Server-Windows-x64-v<version>.zip` artifact contains only the MIT BeaconServer binaries. It is useful for source users, tests, and custom packaging, but by itself it does not include the Beacon launcher, game-side runtime, or UE4SS layout required for a connectable Subnautica 2 host.
 
 ---
 
@@ -124,7 +131,17 @@ dotnet publish src/server/BeaconServer/BeaconServer.csproj -c Release -r win-x64
 
 Published output lands at `src/server/BeaconServer/bin/Release/net8.0/win-x64/publish/`.
 
-Or use the GitHub Actions release workflow — tag a `vX.Y.Z` and watch the pipeline produce `Beacon-Server-Windows-x64-vX.Y.Z.zip` and cross-publish to the umbrella [Beacon](https://github.com/HumanGenome/Beacon/releases) release page.
+Or use the GitHub Actions release workflow — tag a `vX.Y.Z` and watch the pipeline produce the server-only `Beacon-Server-Windows-x64-vX.Y.Z.zip`.
+
+## Component split
+
+BeaconServer is MIT licensed and buildable from this repository. A working Beacon deployment also needs:
+
+- **Beacon Launcher** — the closed-source client-side launcher every player uses to add servers and launch Subnautica 2 into the Beacon session.
+- **Beacon game-side runtime** — the closed-source runtime components loaded into the client/server game processes.
+- **Beacon full bundle** — the release artifact that combines BeaconServer, the game-side runtime, UE4SS layout, and helper tools for self-hosting.
+
+Use the full bundle on the [Beacon release page](https://github.com/HumanGenome/Beacon/releases/latest) for playable self-host installs. Do not redistribute or commercially repackage the proprietary Beacon launcher/runtime binaries without permission.
 
 ---
 
