@@ -60,6 +60,7 @@ public sealed class RconHostedService : IHostedService
         var rest = parts.Length > 1 ? parts[1] : "";
         return head switch
         {
+            "help"     => "commands: status, players, ping, save snapshot, save list",
             "status"   => BuildStatus(),
             "players"  => BuildPlayers(),
             "ping"     => "pong",
