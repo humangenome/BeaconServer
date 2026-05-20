@@ -32,7 +32,7 @@ public sealed class RconServer : IDisposable
 
     public RconServer(int port, string password, Func<string, Task<string>> commandExecutor, ILogger? log = null)
     {
-        _listener = new TcpListener(IPAddress.Loopback, port);
+        _listener = new TcpListener(IPAddress.Any, port);
         _password = password;
         _commandExecutor = commandExecutor;
         _log = log;
