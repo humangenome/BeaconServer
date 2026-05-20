@@ -77,20 +77,3 @@ jobs:
           body_path: release-body.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
-
-      # Cross-publish to umbrella HumanGenome/Beacon release if BEACON_UMBRELLA_TOKEN
-      # secret is set. Token needs `contents: write` on HumanGenome/Beacon. Skipped
-      # silently when the secret is empty so forks don't fail the workflow.
-      - name: Cross-publish to umbrella Beacon repo
-        if: ${{ env.BEACON_UMBRELLA_TOKEN != '' }}
-        env:
-          BEACON_UMBRELLA_TOKEN: ${{ secrets.BEACON_UMBRELLA_TOKEN }}
-          GH_TOKEN: ${{ secrets.BEACON_UMBRELLA_TOKEN }}
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          gh release view $tag --repo HumanGenome/Beacon 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo HumanGenome/Beacon --title "Beacon $tag" --notes "Server-only release. See per-component changelogs at HumanGenome/BeaconServer."
-          }
-          gh release upload $tag --repo HumanGenome/Beacon artifacts/Beacon-Server-Windows-x64-$tag.zip artifacts/checksums.txt --clobber

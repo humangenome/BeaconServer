@@ -50,14 +50,14 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
     }
 
     private ServerInfoSnapshot BuildInfo() => new(
-        Name: $"Beacon — {_opts.InstanceId}",
+        Name: string.IsNullOrWhiteSpace(_opts.ServerName) ? $"Beacon — {_opts.InstanceId}" : _opts.ServerName.Trim(),
         Map: "Awake",
         Folder: "Beacon",
         Game: "Subnautica 2",
         SteamAppId: 1962700,                          // real Steam AppID — written as 64-bit GameID in EDF
         PlayerCount: _state.LastReportedPlayerCount,
         MaxPlayers: _opts.MaxPlayers,
-        PasswordRequired: false,
+        PasswordRequired: !string.IsNullOrEmpty(_opts.ServerPassword),
         VacSecured: false,
         Version: $"beacon-{BeaconVersionInfo.BeaconVersion}/sn2-{BeaconVersionInfo.Sn2Build}",
         GameplayPort: _opts.GameplayPort,

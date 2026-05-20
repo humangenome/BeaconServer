@@ -1,6 +1,6 @@
 # Modding Beacon
 
-Beacon supports Lua and C++ mods, both loaded through [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS). Mods run on the same UE4SS install as Beacon itself, so anything UE4SS can do you can do — hook UE5 game functions, replace assets, drive UI, talk to the server.
+Beacon supports Lua mods through [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS). Mods run on the same UE4SS install as Beacon itself, so anything UE4SS can do you can do — hook UE5 game functions, replace assets, drive UI, talk to the server.
 
 There's no walled API. A Beacon "mod" is just a UE4SS mod that happens to load alongside Beacon's own plugin.
 
@@ -9,7 +9,6 @@ There's no walled API. A Beacon "mod" is just a UE4SS mod that happens to load a
 | Folder | Loads on |
 |---|---|
 | `<install>\ue4ss\Mods\<your-mod>\` | Both the **client** (via the launcher) and the **server** (BeaconServer) |
-| `<install>\Beacon\mods\<your-mod>.dll` | Server-side C++ plugins via Beacon's host loader |
 
 On a launcher install, `<install>` is `%LOCALAPPDATA%\Beacon\`. On a server, it's the BeaconServer install root.
 
@@ -49,31 +48,7 @@ ue4ss\Mods\BeaconConnect\Scripts\main.lua
 
 ## C++ mods
 
-C++ mods are loaded by Beacon's host loader (not by UE4SS directly). They export a single entry point:
-
-```cpp
-// my_mod.cpp
-#include "BeaconHost.h"
-
-extern "C" __declspec(dllexport) void beacon_mod_init(const BeaconHostApi* api)
-{
-    api->log("[MyMod] loaded");
-}
-```
-
-Build as a Windows x64 DLL, drop it at `<install>\Beacon\mods\my_mod.dll`. Beacon's loader will pick it up at start.
-
-The `BeaconHostApi` struct exposes:
-
-- `log(const char*)` — write to the Beacon log
-- `instance_id` — unique id for this server instance (useful in multi-instance setups)
-- Future-reserved fields for event hooks (player join/leave, command dispatch)
-
-The reference loader is at `src/native/Beacon.Plugin/src/BeaconPlugin.cpp` in the repo. Read it if you need to know what the host calls and when.
-
-## Running mods on a managed host
-
-If your server is hosted by [SurvivalServers](https://www.survivalservers.com/games/subnautica_2/?utm_source=github&utm_medium=docs_mods&utm_campaign=beacon), you can upload mod folders through the panel's file manager — drop them under `ue4ss\Mods\` and restart the server.
+UE4SS C++ mods are not a stable public BeaconServer extension surface yet. Use Lua mods for now unless you are already comfortable maintaining your own UE4SS C++ mod against Subnautica 2 updates.
 
 ## Distributing your mod
 

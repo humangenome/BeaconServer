@@ -65,6 +65,41 @@ public class FrameCodecTests
     }
 
     [Fact]
+    public void Heartbeat_legacy_3_field_decodes_with_default_auth_state()
+    {
+        // Simulate a v0.2.16-or-earlier plugin sending a 3-field heartbeat
+        // (the auth state fields didn't exist yet). The codec must decode
+        // it with ServerPasswordConfigured=0 / ServerPasswordHookReady=0
+        // so the watchdog treats it as "unknown" and doesn't fail-close.
+        var codec = new FrameCodec(NewKey());
+        // Hand-build an msgpack array of 3 ints to mimic the legacy plugin.
+        var payload = new byte[] {
+            0x93,                                    // fixarray, len=3
+            0x01,                                    // unix_ms = 1 (positive fixint)
+            0x00,                                    // player_count = 0
+            0x3c,                                    // world_tick_rate = 60
+        };
+        var hb = codec.DeserializePayload<HeartbeatMessage>(payload);
+        hb.UnixMillis.Should().Be(1);
+        hb.InGamePlayerCount.Should().Be(0);
+        hb.WorldTickRate.Should().Be(60);
+        hb.ServerPasswordConfigured.Should().Be(0);
+        hb.ServerPasswordHookReady.Should().Be(0);
+    }
+
+    [Fact]
+    public void Heartbeat_full_5_field_round_trips()
+    {
+        var codec = new FrameCodec(NewKey());
+        var hb = new HeartbeatMessage(7, 2, 30, 1, 1);
+        var bytes = codec.Encode(FrameType.Heartbeat, FrameFlags.None, 1, hb);
+        var ok = codec.TryDecode(bytes, out _, out _, out _, out _, out var payload);
+        ok.Should().BeTrue();
+        var round = codec.DeserializePayload<HeartbeatMessage>(payload);
+        round.Should().Be(hb);
+    }
+
+    [Fact]
     public void Stream_of_two_frames_decodes_both()
     {
         var codec = new FrameCodec(NewKey());

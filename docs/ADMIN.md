@@ -39,7 +39,7 @@ Beacon listens on a [Source-protocol RCON](https://developer.valvesoftware.com/w
 
 ```
 > status
-instance=adminserver plugin=connected pid=8588 version=0.2.2 players=2
+instance=adminserver plugin=connected pid=8588 version=0.3.42 players=2
 
 > save snapshot
 snapshot ok: 2026-05-17T03-12-04Z (4317829 bytes, sha=a91e3f04b2c97d18)

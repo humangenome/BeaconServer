@@ -248,7 +248,7 @@ public sealed class BeaconHttpService : BackgroundService
                     {
                         name = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName,
                         connected_seconds = Math.Max(0, (nowMs - p.ConnectedAtUnixMs) / 1000),
-                        ping_ms = p.PingMs,
+                        ping_ms = p.PingMs > 0 ? p.PingMs : (int?)null,
                     }),
                 });
                 return;

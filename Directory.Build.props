@@ -8,7 +8,7 @@
     <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
     <Authors>HumanGenome</Authors>
     <Company>HumanGenome</Company>
-    <Product>Beacon</Product>
+    <Product>BeaconServer</Product>
     <Copyright>Copyright (c) 2026 HumanGenome</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/HumanGenome/BeaconServer</RepositoryUrl>
@@ -19,8 +19,8 @@
          by BeaconVersionInfo.BeaconVersion in /api/v1/info responses. Bump
          in lockstep with CHANGELOG.md's top-most [X.Y.Z] section and the
          git tag. -->
-    <Version>0.2.3</Version>
-    <AssemblyVersion>0.2.3.0</AssemblyVersion>
-    <FileVersion>0.2.3.0</FileVersion>
+    <Version>0.3.42</Version>
+    <AssemblyVersion>0.3.42.0</AssemblyVersion>
+    <FileVersion>0.3.42.0</FileVersion>
   </PropertyGroup>
 </Project>
