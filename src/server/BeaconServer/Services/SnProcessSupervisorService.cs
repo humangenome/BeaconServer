@@ -27,6 +27,13 @@ public sealed class SnProcessSupervisorService : BackgroundService
     private const int MaxBackoffSeconds = 300;
     public const string Sn2CanonicalSaveSlot = "savegame_0";
     private const string Sn2MapPath = "/Game/Maps/Awake";
+    private static readonly string[][] Sn2ExeRelativePaths =
+    [
+        ["Subnautica2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
+        ["Subnautica 2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
+        ["Subnautica2", "Content", "Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+        ["Subnautica 2", "Content", "Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+    ];
     private static readonly string[] Sn2SaveSlotUrlKeys =
     [
         "slotname",
@@ -115,8 +122,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
     private Process LaunchGame()
     {
-        var exe = Path.Combine(_opts.SnInstallRoot,
-            "Subnautica2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe");
+        var exe = ResolveSn2ExecutablePath(_opts);
         if (!File.Exists(exe))
             throw new FileNotFoundException($"Subnautica 2 binary not found at {exe}");
 
@@ -206,8 +212,9 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
     private void EmitPluginConfig()
     {
-        var pluginDir = Path.Combine(_opts.SnInstallRoot,
-            "Subnautica2", "Binaries", "Win64", "Mods", "Beacon");
+        var exe = ResolveSn2ExecutablePath(_opts);
+        var pluginDir = Path.Combine(Path.GetDirectoryName(exe)!,
+            "Mods", "Beacon");
         Directory.CreateDirectory(pluginDir);
         var configPath = Path.Combine(pluginDir, "beacon.config.json");
 
@@ -223,6 +230,26 @@ public sealed class SnProcessSupervisorService : BackgroundService
     }
 
     private static string EscapeArg(string s) => s.Contains(' ') ? $"\"{s}\"" : s;
+
+    internal static string ResolveSn2ExecutablePath(BeaconServerOptions opts)
+    {
+        if (!string.IsNullOrWhiteSpace(opts.SnExecutablePath))
+        {
+            return Path.GetFullPath(opts.SnExecutablePath);
+        }
+
+        foreach (var relativePath in Sn2ExeRelativePaths)
+        {
+            var candidate = Path.Combine([opts.SnInstallRoot, .. relativePath]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        var defaultRelativePath = Sn2ExeRelativePaths[0];
+        return Path.Combine([opts.SnInstallRoot, .. defaultRelativePath]);
+    }
 
     public static string BuildHostTravelUrl(string saveSlot = Sn2CanonicalSaveSlot)
         => Sn2MapPath + BuildHostTravelOptions(saveSlot);

@@ -39,6 +39,13 @@ public sealed class BeaconServerOptions
 
     public string SnInstallRoot { get; set; } = @"C:\Beacon\game";
 
+    /// <summary>
+    /// Optional direct path to the Subnautica 2 executable. Leave empty to
+    /// auto-detect supported Steam/Epic Win64 and Xbox WinGDK layouts under
+    /// <see cref="SnInstallRoot"/>.
+    /// </summary>
+    public string SnExecutablePath { get; set; } = "";
+
     public string SnUserDir { get; set; } = @"C:\Beacon\userdir";
 
     public string SaveDir { get; set; } = @"C:\Beacon\saves";

@@ -24,6 +24,7 @@ public sealed class Sn2RestartCoordinator
     private static readonly string[] Sn2ProcessNames =
     [
         "Subnautica2-Win64-Shipping",
+        "Subnautica2-WinGDK-Shipping",
         "Subnautica2",
     ];
 

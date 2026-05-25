@@ -60,7 +60,8 @@ BeaconServer reads `BeaconServer\appsettings.json` under the `Beacon` section.
 |---|---:|---|
 | `InstanceId` | `default` | Stable instance name used in logs and generated defaults. |
 | `ServerName` | empty | Public name shown in Beacon and Source query. Empty falls back to the instance id. |
-| `SnInstallRoot` | `C:\Beacon\game` | Subnautica 2 install folder containing `Subnautica2.exe`. |
+| `SnInstallRoot` | `C:\Beacon\game` | Subnautica 2 install folder. Beacon auto-detects Steam/Epic Win64 and Xbox WinGDK layouts under this root. |
+| `SnExecutablePath` | empty | Optional direct path to the Subnautica 2 executable, for example an Xbox install's `Subnautica2-WinGDK-Shipping.exe`. |
 | `SnUserDir` | `C:\Beacon\userdir` | User directory used by the hosted game process. |
 | `SaveDir` | `C:\Beacon\saves` | Snapshot metadata and archived saves. |
 | `GameplayPort` | `27015` | UDP port players join through Beacon. |
