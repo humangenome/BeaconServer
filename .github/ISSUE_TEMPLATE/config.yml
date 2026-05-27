@@ -1,8 +1,0 @@
-blank_issues_enabled: false
-contact_links:
-  - name: Report a bug in Beacon
-    url: https://github.com/HumanGenome/Beacon/issues
-    about: Bugs and feature requests for Beacon (launcher + server) are tracked on the main Beacon repo.
-  - name: Hosting support
-    url: https://www.survivalservers.com/support
-    about: If you bought a managed Beacon server, support requests go to your hosting provider, not here.
