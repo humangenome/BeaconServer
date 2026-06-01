@@ -33,7 +33,7 @@ Loads UE4SS Lua and C++ mods through the Beacon runtime layout.
 
 - Windows 10/11 or Windows Server x64
 - Subnautica 2 installed on the host machine
-- A Beacon release package from [HumanGenome/Beacon](https://github.com/HumanGenome/Beacon/releases/latest)
+- A Beacon release package from [HumanGenome/BeaconServer](https://github.com/HumanGenome/BeaconServer/releases/latest)
 - Open/forwarded ports for gameplay, query, RCON, and admin HTTP as needed
 
 Release builds are self-contained; a separate .NET install is not required for normal use.
@@ -44,7 +44,7 @@ Release builds are self-contained; a separate .NET install is not required for n
 [SurvivalServers.com Subnautica 2 hosting](https://www.survivalservers.com/services/game_servers/subnautica_2/?utm_source=github&utm_medium=readme_install&utm_campaign=beaconserver) ships Beacon already installed and handles ports, updates, and panel integration.
 
 ### Self-host
-1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [Beacon latest release](https://github.com/HumanGenome/Beacon/releases/latest).
+1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [BeaconServer latest release](https://github.com/HumanGenome/BeaconServer/releases/latest).
 2. Extract it somewhere stable, such as `C:\Beacon\`.
 3. Edit `BeaconServer\appsettings.json`.
 4. Open/forward the ports listed below.
