@@ -17,10 +17,11 @@ versioning is [SemVer](https://semver.org/).
 
 ### Self-host runtime note
 
-- The server-only zip is the MIT-licensed BeaconServer supervisor. A playable
-  host also needs Beacon's in-game runtime (the `ue4ss\` mods plus the native
-  `Beacon.dll`), which ships preinstalled with managed hosting. This supersedes
-  the 0.3.42 note that pointed at the umbrella release page.
+- The release zip is now self-contained — it bundles the in-game runtime (the
+  `ue4ss\` mods plus the native `Beacon.dll`) with the MIT-licensed supervisor,
+  so a downloaded server is playable as-is. Building from this source yields the
+  supervisor only. This supersedes the 0.3.42 note that pointed self-hosters at
+  the umbrella release page.
 
 ## [0.3.42] - 2026-05-20
 

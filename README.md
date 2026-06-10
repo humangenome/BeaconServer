@@ -7,7 +7,7 @@
 
 BeaconServer is the open-source host supervisor for Beacon multiplayer in **Subnautica 2**. It starts and watches the hosted game process, takes and restores save snapshots, exposes an admin HTTP API, answers Source A2S query, and runs Source RCON.
 
-BeaconServer is not the full product by itself. Players join with the [Beacon launcher](https://github.com/HumanGenome/Beacon), and a playable host also needs Beacon's in-game runtime (a `ue4ss\` folder with Beacon's server mods, plus the native `Beacon.dll`) next to the `BeaconServer\` folder — see [Installation](#installation).
+Players join with the [Beacon launcher](https://github.com/HumanGenome/Beacon). A playable host also needs Beacon's in-game runtime (a `ue4ss\` folder with Beacon's server mods, plus the native `Beacon.dll`) next to the `BeaconServer\` folder — the **release zip bundles this runtime**, so a downloaded server is complete. Building from this source yourself produces the supervisor only; see [Installation](#installation).
 
 ## Features
 
@@ -43,16 +43,16 @@ Release builds are self-contained; a separate .NET install is not required for n
 [SurvivalServers.com Subnautica 2 hosting](https://www.survivalservers.com/services/game_servers/subnautica_2/?utm_source=github&utm_medium=readme_install&utm_campaign=beaconserver) ships the complete Beacon server runtime already installed and handles ports, updates, and panel integration.
 
 ### Self-host
-1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [latest release](https://github.com/HumanGenome/BeaconServer/releases/latest). The zip contains `BeaconServer.exe` and `appsettings.json` at its root.
-2. Extract it into a `BeaconServer` folder under a stable root, such as `C:\Beacon\BeaconServer\`.
+1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [latest release](https://github.com/HumanGenome/BeaconServer/releases/latest). It is self-contained: `BeaconServer\` (the supervisor + `appsettings.json`), `ue4ss\` and `Beacon.dll` (the in-game runtime), and `tools\` (the injector).
+2. Extract it to a stable folder, such as `C:\Beacon\`.
 3. Install the Subnautica 2 game files under the folder set as `SnInstallRoot` (default `C:\Beacon\game`) — copy your `steamapps\common\Subnautica2` folder there, or install with SteamCMD (app `1962700`). The server runs headless; no GPU is required.
-4. Edit `appsettings.json` (see below).
+4. Edit `BeaconServer\appsettings.json` (see below).
 5. Open/forward the ports listed below.
-6. Run `BeaconServer.exe`.
+6. Run `BeaconServer\BeaconServer.exe`.
 
 Players connect with the Beacon launcher to `<host>:<GameplayPort>`.
 
-> **Note:** this repo's release zip contains the MIT-licensed supervisor binaries only. The in-game runtime BeaconServer stages at launch — the `ue4ss\` folder (UE4SS + Beacon's server mods) and the native `Beacon.dll` — must sit next to the `BeaconServer\` folder. Without it, BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server: no password gate, chat, roster, or live map. Managed hosting includes this runtime.
+> **Note:** the release zip above is complete — it bundles the in-game runtime (the `ue4ss\` folder with UE4SS + Beacon's server mods, plus the native `Beacon.dll`) alongside the MIT-licensed supervisor. If you instead build BeaconServer from this source, you get the supervisor only; the runtime must then sit next to the `BeaconServer\` folder, or BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server (no password gate, chat, roster, or live map). Managed hosting includes the runtime.
 
 ## Server Settings
 
