@@ -3,6 +3,25 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.102] - 2026-06-10
+
+### Synced to current source
+
+- Source caught up to Beacon 0.3.102 (this repo had been frozen at the 0.3.42
+  snapshot). Adds in-game chat, the mod manifest + auto-install flow, the live
+  web map (`/map/` plus the position and state endpoints), the `say` /
+  `announce` / `motd` RCON commands and mod slash-command dispatch, the A2S
+  player list, snapshot + restore over the HTTP API, and `BeaconAuthPassword`
+  join auth.
+- Build and 86 tests pass on this source.
+
+### Self-host runtime note
+
+- The server-only zip is the MIT-licensed BeaconServer supervisor. A playable
+  host also needs Beacon's in-game runtime (the `ue4ss\` mods plus the native
+  `Beacon.dll`), which ships preinstalled with managed hosting. This supersedes
+  the 0.3.42 note that pointed at the umbrella release page.
+
 ## [0.3.42] - 2026-05-20
 
 ### Current production source

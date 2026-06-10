@@ -1,0 +1,3737 @@
+{
+  "DA_BedSingle_ConstructData": {
+    "name": "Single Bed"
+  },
+  "DA_BioLabConstructData": {
+    "name": "Biolab"
+  },
+  "DA_BioreactorConstructData": {
+    "name": "Bioreactor"
+  },
+  "DA_BiosamplingKitDispenserConstructData": {
+    "name": "Biosampling Kit Dispenser"
+  },
+  "DA_Carryable_WallRack_ConstructData": {
+    "name": "Wall Light Large"
+  },
+  "DA_CeilingLight_Rect_A_ConstructData": {
+    "name": "Rectangular Ceiling Light"
+  },
+  "DA_ChairDining_ConstructData": {
+    "name": "Dining Chair"
+  },
+  "DA_ChairLab_ConstructData": {
+    "name": "Lab Chair"
+  },
+  "DA_ComputerCoreConstructData": {
+    "name": "NOA Terminal"
+  },
+  "DA_FabricatorConstructData": {
+    "name": "Fabricator"
+  },
+  "DA_FloorLockerConstructData": {
+    "name": "Floor Locker"
+  },
+  "DA_GeothermalRechargerConstructData": {
+    "name": "Geothermal Recharge Station"
+  },
+  "DA_HydroelectricTurbineConstructData": {
+    "name": "Hydroelectric Turbine"
+  },
+  "DA_LampCeilingBulb_ConstructData": {
+    "name": "Bulb Ceiling Lamp"
+  },
+  "DA_LampExteriorWallBulb_ConstructData": {
+    "name": "Bulb Exterior Wall Lamp"
+  },
+  "DA_LampFloorBulb_ConstructData": {
+    "name": "Bulb Floor Lamp"
+  },
+  "DA_Light_Wall_Large_ConstructData": {
+    "name": "Wall Light Large"
+  },
+  "DA_Light_Wall_Small_ConstructData": {
+    "name": "Wall Light Small"
+  },
+  "DA_MiningPlatformConstructData": {
+    "name": "Mining Platform"
+  },
+  "DA_MiningPlatformCopperConstructData": {
+    "name": "Mining Platform"
+  },
+  "DA_ModificationStationConstructData": {
+    "name": "Fabricator"
+  },
+  "DA_Poster_Community01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Community02_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_KeepCalm_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_KeepSwimming_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_PaintedTree_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_PioneerProgram_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Reprinting_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_ScoutRay_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Wanted_ConstructData": {
+    "name": "Vintage Wanted Poster"
+  },
+  "DA_Poster_Zezura_01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Zezura_02_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Zezura_ConstructData": {
+    "name": "Zezura Poster"
+  },
+  "DA_PowerStorage_ConstructData": {
+    "name": "Power Capacitor"
+  },
+  "DA_PowerTransmitterConstructData": {
+    "name": "Power Transmitter"
+  },
+  "DA_Processor_ConstructData": {
+    "name": "Processor"
+  },
+  "DA_RadioConstructData": {
+    "name": "Radio"
+  },
+  "DA_ResonanceFountain_ConstructData": {
+    "name": "Dining Chair"
+  },
+  "DA_ScannerStation_LongRange_ConstructData": {
+    "name": "Scanner Station"
+  },
+  "DA_SensorPodConstructData": {
+    "name": "Sensor Pod"
+  },
+  "DA_ShelfS_ConstructData": {
+    "name": "S Shelf"
+  },
+  "DA_Sign_ConstructData": {
+    "name": "Wall Light Large"
+  },
+  "DA_SolarPanelConstructData": {
+    "name": "Solar Panel"
+  },
+  "DA_SolarPanel_Medium_ConstructData": {
+    "name": "Solar Panel"
+  },
+  "DA_StoolConstructData": {
+    "name": "Stool"
+  },
+  "DA_StorageCache_ConstructData": {
+    "name": "Floor Locker"
+  },
+  "DA_Table_DiningConstructData": {
+    "name": "Dining Table"
+  },
+  "DA_TadpoleDock_Blister_ItemBrushData": {
+    "name": "-WIP Don't Bug-\" Tadpole Blister Dock"
+  },
+  "DA_TrashcanData": {
+    "name": "Trashcan"
+  },
+  "DA_WallBioLabConstructData": {
+    "name": "Biolab"
+  },
+  "DA_WallLockerConstructData": {
+    "name": "Wall Locker"
+  },
+  "DA_AxumPlanter_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_AxumSeat_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_AxumStreetLamp_ConstructData": {
+    "name": "Axum Street Lamp"
+  },
+  "DA_AxumTrashcanData": {
+    "name": "Trashcan"
+  },
+  "DA_AxumWallLamp_ConstructData": {
+    "name": "Axum Wall Lamp"
+  },
+  "DA_Axum_Jar_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Axum_Jar_Small_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Axum_Jar_Tall_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Axum_TreeRelic_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Axum_Drums_ConstructData": {
+    "name": "Small Crate"
+  },
+  "DA_BaseSignalConstructData": {
+    "name": "Roof Radar Antenna"
+  },
+  "DA_BasicBatteryTerminalConstructData": {
+    "name": "Basic Battery Terminal"
+  },
+  "DA_BioBedConstructData": {
+    "name": "BioBed"
+  },
+  "DA_Crate_01ConstructData": {
+    "name": "Small Crate"
+  },
+  "DA_Display_TimeOfDay_ConstructData": {
+    "name": "Power Cell Terminal"
+  },
+  "DA_FabricatorPillarConstructData": {
+    "name": "Fabricator Pillar"
+  },
+  "DA_MedKitDispenserConstructData": {
+    "name": "Med Kit Dispenser"
+  },
+  "DA_PowerCellTerminalConstructData": {
+    "name": "Power Cell Terminal"
+  },
+  "DA_SpotLightConstructData": {
+    "name": "Power Cell Terminal"
+  },
+  "DA_HullPlate_Preorder_01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Preorder_01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Preorder_02_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Preorder_03_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Poster_Preorder_04_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Reaper_Preorder_01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_Seamoth_Preorder_01_ConstructData": {
+    "name": "Keep Calm Poster"
+  },
+  "DA_FarmableAcidAnemone_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_FarmableCradleShootRoot_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Farmable_CherimoyaRotsac_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Farmable_CoralPad_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Farmable_CoralWafer_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Farmable_FeelerTree_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Farmable_Freesia_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_ScrapDeconstruct_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Scrap_CicadaDrbris_01a_Deconstruct_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Scrap_HydroElectricTurbine_Deconstruct_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_Scrap_SolarPanel_Deconstruct_ConstructData": {
+    "name": "Axum Pot"
+  },
+  "DA_GreebleTest_ConstructData": {
+    "name": "Decal Test"
+  },
+  "DA_Greeble_RoofAntenna_A": {
+    "name": "Roof Antenna"
+  },
+  "DA_Greeble_RoofAntenna_B": {
+    "name": "Large Roof Antenna"
+  },
+  "DA_Greeble_RoofAntenna_C": {
+    "name": "Roof Radar Antenna"
+  },
+  "DA_Greeble_RoofCylinder_ConstructionData": {
+    "name": "Roof Cylinder"
+  },
+  "DA_Greeble_RoofFan_Double": {
+    "name": "Roof Fan Double"
+  },
+  "DA_Greeble_RoofFan_Single": {
+    "name": "Roof Fan Single"
+  },
+  "DA_Greeble_RoofPanel_A": {
+    "name": "Large Roof Panel"
+  },
+  "DA_Greeble_WallPanel_A": {
+    "name": "Wall Unit"
+  },
+  "DA_Greeble_WallUnit_A": {
+    "name": "Wall Unit"
+  },
+  "DA_Greeble_WallUnit_B": {
+    "name": "Wall Unit Large"
+  },
+  "DA_Greeble_WallVent": {
+    "name": "Wall Vent"
+  },
+  "DA_Greeble_WallVent_B": {
+    "name": "Wall Vent Large"
+  },
+  "DA_BayDoor_ItemBrushData": {
+    "name": "-WIP Don't Bug- Bay Door"
+  },
+  "DA_Corridor_ItemBrushData": {
+    "text_id": "ST_Buildables/Corridor"
+  },
+  "DA_Foundation_ItemBrushData": {
+    "text_id": "ST_Buildables/FoundationStandard"
+  },
+  "DA_HalfRoundRoom_ItemBrushData": {
+    "text_id": "ST_Buildables/RoomHalfRound"
+  },
+  "DA_Hatch_ItemBrushData": {
+    "text_id": "ST_Buildables/Hatch"
+  },
+  "DA_InteriorArch_ItemBrushData": {
+    "text_id": "ST_Buildables/InteriorArch"
+  },
+  "DA_InteriorDoor_ItemBrushData": {
+    "text_id": "ST_Buildables/DoorInterior"
+  },
+  "DA_InteriorWall_ItemBrushData": {
+    "text_id": "ST_Buildables/InteriorWall"
+  },
+  "DA_Ladder_ItemBrushData": {
+    "text_id": "ST_Buildables/Ladder"
+  },
+  "DA_MoonPoolDock_ItemBrushData": {
+    "text_id": "ST_Buildables/TadpoleDock"
+  },
+  "DA_MoonPool_ItemBrushData": {
+    "text_id": "ST_Buildables/Moonpool"
+  },
+  "DA_Nook_ItemBrushData": {
+    "text_id": "ST_Buildables/Nook"
+  },
+  "DA_Planter_ItemBrushData": {
+    "text_id": "ST_Ruins_Databanks/Aquafarm_title"
+  },
+  "DA_PowerFoundation_ItemBrushData": {
+    "text_id": "ST_Buildables/FoundationPower"
+  },
+  "DA_Room_ItemBrushData": {
+    "name": "-WIP Dont Bug- Room Clay Style!"
+  },
+  "DA_Room_ItemBrushData_Snap": {
+    "text_id": "ST_Buildables/Room"
+  },
+  "DA_Sofa_ItemBrushData": {
+    "name": "-WIP Dont Bug- Sofa"
+  },
+  "DA_StackedRoom_ItemBrushData": {
+    "name": "Stacked Room"
+  },
+  "DA_VehicleFabricator_ItemBrushData": {
+    "text_id": "ST_Buildables/VehicleFabricator"
+  },
+  "DA_Window_ItemBrushData": {
+    "text_id": "ST_Buildables/Window"
+  },
+  "DA_PowerPlant_BuildingProject_A_ConstructData": {
+    "name": "Geothermal Recharge Station"
+  },
+  "DA_FloatingSupportConstructData": {
+    "name": "Solar Panel"
+  },
+  "DA_FloatingSupportData": {
+    "name": "-WIP Don't Bug- Floating Support"
+  },
+  "DA_SupportConstructData": {
+    "name": "Solar Panel"
+  },
+  "DA_SupportData": {
+    "name": "-WIP Don't Bug- Support Pillar"
+  },
+  "DA_Tailing_Barrel_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Chest_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Jar_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Jar_Coral_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Jar_Coral_Small_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Jar_Hanging_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Rug_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_Tailing_Table_ConstructData": {
+    "name": "Axum Seat"
+  },
+  "DA_HaulChassis_ConstructData": {
+    "name": "BioBed"
+  },
+  "DA_ScoutChassis_ConstructData": {
+    "name": "BioBed"
+  },
+  "DA_Tadpole_ConstructData": {
+    "name": "BioBed"
+  },
+  "DA_Beacon_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_CurrentRingConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_DeployableElevator_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_FloatingLockerCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_HeavyFloatingLockerCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_MetalFarm_ConstructData": {
+    "name": "Thermal Plant"
+  },
+  "DA_OxygenGeneratorCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_PowerCellBankCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_SuperHeavyFloatingLockerCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_ThermalPlantConstructData": {
+    "name": "Thermal Plant"
+  },
+  "DA_WorkLightCarryable_ConstructData": {
+    "name": "Current Generator"
+  },
+  "DA_Dash_ActiveBioAbilityData": {
+    "text_id": "ST_BioMods/Dash"
+  },
+  "DA_EchoLocation_ActiveBioAbilityData": {
+    "text_id": "ST_BioMods/EchoLocation"
+  },
+  "DA_ElectrostaticDischarge_ActiveBioAbilityData": {
+    "text_id": "ST_BioMods/ElectrostaticDischarge"
+  },
+  "DA_EmitSpores_ActiveBioAbility": {
+    "text_id": "ST_BioMods/EmitSpores"
+  },
+  "DA_FindTechSites_ActiveBioAbility": {
+    "text_id": "ST_BioMods/FindTechSites"
+  },
+  "DA_Magneto_ActiveBioAbilityData": {
+    "text_id": "ST_BioMods/Magneto"
+  },
+  "DA_Pathfinder_ActiveBioAbility": {
+    "text_id": "ST_BioMods/Pathfinder"
+  },
+  "DA_ThreatSense_ActiveBioAbility": {
+    "text_id": "ST_BioMods/ThreatSense"
+  },
+  "DA_FastUrology_BioAbilityData": {
+    "name": "Fast Urology"
+  },
+  "DA_GelatinousSkin_BioAbilityData": {
+    "name": "Gelatinous Skin"
+  },
+  "DA_Hemophiliac_BioAbilityData": {
+    "name": "Hemophiliac"
+  },
+  "DA_JelliedLegs_BioAbilityData": {
+    "name": "Jellied Legs"
+  },
+  "DA_Maladapted_DeepStart_BioAbilityData": {
+    "name": "Maladapted"
+  },
+  "DA_SmallStomach_BioAbilityData": {
+    "name": "Small Stomach"
+  },
+  "DA_SoHungry_BioAbilityData": {
+    "name": "So Hungry"
+  },
+  "DA_Bioluminescence_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/Bioluminescence"
+  },
+  "DA_Camouflage_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/Camouflage"
+  },
+  "DA_EfficientKidneys_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/EfficientKidneys"
+  },
+  "DA_EnergySourceDetector_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/EnergySourceDetect_title"
+  },
+  "DA_FilterFeeding_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/FilterFeeding"
+  },
+  "DA_ListeningGland_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/ListeningGland"
+  },
+  "DA_NutritiousMussels_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/NutrientMuscles_title"
+  },
+  "DA_OxygenSaturation_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/OxygenSaturation"
+  },
+  "DA_PulseControl_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/PulseControl"
+  },
+  "DA_SeafloorSwimmer_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/SeafloorSwimmer_title"
+  },
+  "DA_SleekSkin_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/SleekSkin"
+  },
+  "DA_SlowMetabolism_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/SlowMetabolism"
+  },
+  "DA_Snorkeling_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/Snorkeling"
+  },
+  "DA_SpeedyDiver_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/SpeedyDiver_title"
+  },
+  "DA_WaterFilterGland_PassiveBioAbilityData": {
+    "text_id": "ST_BioMods/WaterFilterGland"
+  },
+  "DA_AquaticReserves_BioAbilityData": {
+    "name": "Aquatic Reserves"
+  },
+  "DA_ChargeBatteryOnSurface_BioAbilityData": {
+    "name": "Battery Charger"
+  },
+  "DA_ChitinLayer_BioAbilityData": {
+    "name": "Chitin Layer"
+  },
+  "DA_CopperFinder_BioAbilityData": {
+    "name": "Copper Finder"
+  },
+  "DA_CreatureFleeOnDash_BioAbilityData": {
+    "name": "Roar"
+  },
+  "DA_CreatureFollowOnEatOrDrink_BioAbilityData": {
+    "name": "Food Bank"
+  },
+  "DA_CreatureStunOnStop_BioAbilityData1": {
+    "name": "Hypnotize"
+  },
+  "DA_CurrentExitBoost_BioAbilityData": {
+    "name": "Current Exit Boost"
+  },
+  "DA_CurrentRider_BioAbilityData": {
+    "name": "Current Rider"
+  },
+  "DA_DiveOnSubmerge_BioAbilityData": {
+    "name": "Deep Dive"
+  },
+  "DA_DivingReflex_BioAbilityData": {
+    "name": "Diving Reflex"
+  },
+  "DA_EatPlantMatterForSustenance_BioAbilityData": {
+    "name": "Plant Based"
+  },
+  "DA_EfficientFoodAndWaterConsumption_BioAbilityData": {
+    "name": "Slow-twitch Optimization"
+  },
+  "DA_EmitLightOnStop_BioAbilityData": {
+    "name": "Lit Lamp"
+  },
+  "DA_FoodForSurfacing_BioAbilityData": {
+    "name": "Aerated Feast"
+  },
+  "DA_GoldFinder_BioAbilityData": {
+    "name": "Gold Finder"
+  },
+  "DA_GrabInRadius_BioAbilityData": {
+    "name": "Dash Grab"
+  },
+  "DA_GuaranteedTitanium_BioAbilityData": {
+    "name": "Titanium Generator"
+  },
+  "DA_HeatResistanceMediumOxygenPlant_BioAbilityData": {
+    "name": "Oxygenated Heat Resistance"
+  },
+  "DA_HeatResistance_BioAbilityData": {
+    "name": "Heat Resistance"
+  },
+  "DA_HeavyGills_BioAbilityData": {
+    "name": "Heavy Gills"
+  },
+  "DA_HeldResourceFinder_BioAbilityData": {
+    "name": "Litholfactory Sense"
+  },
+  "DA_HyperMitochondria_BioAbilityData": {
+    "name": "Hyper Mitochondria"
+  },
+  "DA_IncreaseScanRepair_BioAbilityData": {
+    "name": "Coolant Exhalation"
+  },
+  "DA_InvisibleOnDash_BioAbilityData": {
+    "name": "Invisible Dash"
+  },
+  "DA_InvisibleOnStop_BioAbilityData": {
+    "name": "Invisible"
+  },
+  "DA_MetabolicOxygenation": {
+    "name": "Metabolic Oxygenation"
+  },
+  "DA_NibbleMineralsForSustenance_BioAbilityData": {
+    "name": "Mineral Nibbler"
+  },
+  "DA_NightVision_BioAbilityData": {
+    "name": "Enhanced Pupils"
+  },
+  "DA_OxygenAdsorption_BioAbilityData": {
+    "name": "Oxygen Adsorption"
+  },
+  "DA_OxygenReprieve_BioAbilityData": {
+    "name": "Oxygen Reprieve"
+  },
+  "DA_OxygenReprieve_ExtremeTemp_BioAbilityData": {
+    "name": "Temperature Reprieve"
+  },
+  "DA_PlanktonBreathing_BioAbilityData": {
+    "name": "Plankton Breathing"
+  },
+  "DA_PowerfulKicks_BioAbilityData": {
+    "name": "Powerful Kicks"
+  },
+  "DA_PowerfulKicks_CaveVariant_BioAbilityData": {
+    "name": "Powerful Kicks - Cave Variant"
+  },
+  "DA_PowerfulKicks_ExtremeTempVariant_BioAbilityData": {
+    "name": "Powerful Kicks - Temperature Variant"
+  },
+  "DA_PressurizedLungs_BioAbilityData": {
+    "name": "Pressurized Lungs"
+  },
+  "DA_ReducedDashCooldown_BioAbilityData": {
+    "name": "Fast-twitch Optimization"
+  },
+  "DA_Regeneration_BioAbilityData": {
+    "name": "Regeneration"
+  },
+  "DA_RestoreHealthOnOxygenated_BioAbilityData": {
+    "name": "Regenerative Breath"
+  },
+  "DA_RestoreOxygenOnDash_BioAbilityData": {
+    "name": "Pseudo Gills"
+  },
+  "DA_RestoreWaterWithinHeat_BioAbilityData": {
+    "name": "Restore Water in Heat"
+  },
+  "DA_ShockAbsorber_BioAbilityData": {
+    "name": "Shock Absorber"
+  },
+  "DA_ShockProof_BioAbilityData": {
+    "name": "Shock Proof"
+  },
+  "DA_SilverFinder_BioAbilityData": {
+    "name": "Silver Finder"
+  },
+  "DA_SuitGills_BioAbilityData": {
+    "name": "Suit Gills"
+  },
+  "DA_TidalDefenses_BioAbilityData": {
+    "name": "Tidal Defense"
+  },
+  "DA_CooldownAbility_BioAbilityData": {
+    "name": "Cooldown"
+  },
+  "DA_PrintString_BioAbilityData": {
+    "name": "PrintString"
+  },
+  "DA_TestBioAbilityA_BioAbilityData": {
+    "name": "Test A"
+  },
+  "DA_TestBioAbilityB_BioAbilityData": {
+    "name": "Test B"
+  },
+  "DA_L_BlightTest_A_BlightNode": {
+    "name": "Blight Test A"
+  },
+  "DA_L_BlightTest_A_BlightNode_Temp": {
+    "name": "Blight Test A"
+  },
+  "DA_L_BlightTest_BlightCore": {
+    "name": "Blight Test A"
+  },
+  "DA_L_BlightTest_BlightCore_Temp": {
+    "name": "Blight Test A"
+  },
+  "DA_L_Main_AR_BlightCore": {
+    "name": "[WIP] Axum Ruins Blight Core"
+  },
+  "DA_L_Main_AR_BlightNodeA": {
+    "name": "[WIP] Axum Ruins Blight Node A"
+  },
+  "DA_L_Main_AR_BlightNodeB": {
+    "name": "[WIP] Axum Ruins Blight Node B"
+  },
+  "DA_L_Main_AR_BlightNodeC": {
+    "name": "[WIP] Axum Ruins Blight Node C"
+  },
+  "DA_L_Main_CG_BlightCore": {
+    "name": "CG_BlightCore"
+  },
+  "DA_BaseSignal_Recipe": {
+    "text_id": "ST_Buildables/BaseSignal"
+  },
+  "DA_BasicBatteryTerminalRecipe": {
+    "text_id": "ST_Buildables/BaseBatteryTerminal"
+  },
+  "DA_BedSingleRecipe": {
+    "text_id": "ST_Buildables/SingleBed"
+  },
+  "DA_BioBedRecipe": {
+    "text_id": "ST_Buildables/Biobed"
+  },
+  "DA_BiolabRecipe": {
+    "text_id": "ST_Buildables/Biolab"
+  },
+  "DA_BioreactorRecipe": {
+    "text_id": "ST_Buildables/Bioreactor"
+  },
+  "DA_Carryable_WallRack_Recipe": {
+    "text_id": "ST_WallRack/CarryableWallRack"
+  },
+  "DA_CeilingLight_Rect_A_Recipe": {
+    "text_id": "ST_Buildables/RectangularCeilingLight"
+  },
+  "DA_ChairDiningRecipe": {
+    "text_id": "ST_Buildables/DiningChair"
+  },
+  "DA_ChairLabRecipe": {
+    "text_id": "ST_Buildables/LabChair"
+  },
+  "DA_ComputerCoreRecipe": {
+    "text_id": "ST_Buildables/NoATerminal"
+  },
+  "DA_Crate_01_Recipe": {
+    "text_id": "ST_Buildables/SmallCrate"
+  },
+  "DA_CurrentRingRecipe": {
+    "text_id": "ST_Buildables/CurrentRing"
+  },
+  "DA_Display_TimeOfDay_Recipe": {
+    "text_id": "ST_Buildables/DisplayTimeOfDay"
+  },
+  "DA_ElevatorPoleRecipe": {
+    "name": "Elevator Pole"
+  },
+  "DA_FabricatorPillarRecipe": {
+    "text_id": "ST_Buildables/FabricatorPillar"
+  },
+  "DA_FabricatorRecipe": {
+    "text_id": "ST_Buildables/Fabricator"
+  },
+  "DA_FloatingSupportRecipe": {
+    "text_id": "ST_Buildables/SupportFloating"
+  },
+  "DA_FloorLockerRecipe": {
+    "text_id": "ST_Buildables/LockerFloor"
+  },
+  "DA_GenericLockerRecipe": {
+    "name": "Generic Locker"
+  },
+  "DA_GeothermalRechargerRecipe": {
+    "name": "Geothermal Recharger"
+  },
+  "DA_HatchRecipe": {
+    "text_id": "ST_Buildables/Hatch"
+  },
+  "DA_HydroelectricTurbineRecipe": {
+    "text_id": "ST_Buildables/HydroelectricTurbine"
+  },
+  "DA_InteriorDoorRecipe": {
+    "text_id": "ST_Buildables/DoorInterior"
+  },
+  "DA_LadderRecipe": {
+    "text_id": "ST_Buildables/Ladder"
+  },
+  "DA_LampCeilingBulb_Recipe": {
+    "text_id": "ST_Buildables/SmallCeilingLight"
+  },
+  "DA_LampExteriorWallBulb_Recipe": {
+    "text_id": "ST_Buildables/ExteriorWallLight"
+  },
+  "DA_LampFloorBulb_Recipe": {
+    "text_id": "ST_Buildables/BulbFloorLamp"
+  },
+  "DA_Light_Wall_Large_Recipe": {
+    "text_id": "ST_Buildables/WallLightLarge"
+  },
+  "DA_Light_Wall_Small_Recipe": {
+    "text_id": "ST_Buildables/WallLightSmall"
+  },
+  "DA_MedKitDispenser_Recipe": {
+    "text_id": "ST_Buildables/MedkitFabricator"
+  },
+  "DA_MetalFarm_Recipe": {
+    "text_id": "ST_Buildables/MetalFarm"
+  },
+  "DA_MiningPlatformCopperRecipe": {
+    "name": "Mining Platform Copper"
+  },
+  "DA_MiningPlatformRecipe": {
+    "name": "Mining Platform"
+  },
+  "DA_ModificationStationRecipe": {
+    "text_id": "ST_ModificationStation/ModificationStation"
+  },
+  "DA_NookRecipe": {
+    "text_id": "ST_Buildables/Nook"
+  },
+  "DA_PosterCommunity01Recipe": {
+    "text_id": "ST_Buildables/PosterCommunity01_Subtitle02"
+  },
+  "DA_PosterCommunity02Recipe": {
+    "text_id": "ST_Buildables/PosterCommunity02"
+  },
+  "DA_PosterKeepCalmRecipe": {
+    "text_id": "ST_Buildables/PosterKeepCalm"
+  },
+  "DA_PosterPaintedTree_Recipe": {
+    "text_id": "ST_Buildables/PaintedTreePoster"
+  },
+  "DA_PosterWantedRecipe": {
+    "text_id": "ST_Buildables/PosterWanted"
+  },
+  "DA_PosterZezuraRecipe": {
+    "text_id": "ST_Buildables/PosterZezura"
+  },
+  "DA_Poster_KeepSwimming_Recipe": {
+    "text_id": "ST_Buildables/Poster01"
+  },
+  "DA_Poster_PioneerProgramRecipe": {
+    "text_id": "ST_Buildables/PosterPioneerProgram"
+  },
+  "DA_Poster_Reprinting_Recipe": {
+    "text_id": "ST_Buildables/Poster02"
+  },
+  "DA_Poster_ScoutRay_Recipe": {
+    "text_id": "ST_Buildables/Poster03"
+  },
+  "DA_Poster_Zezura_01_Recipe": {
+    "text_id": "ST_Buildables/Poster04"
+  },
+  "DA_Poster_Zezura_02_Recipe": {
+    "text_id": "ST_Buildables/Poster05"
+  },
+  "DA_PowerCellTerminalRecipe": {
+    "text_id": "ST_Buildables/PowerCellTerminal"
+  },
+  "DA_PowerGridCapacitorRecipe": {
+    "text_id": "ST_Buildables/PowerStorage"
+  },
+  "DA_PowerTransmitterRecipe": {
+    "text_id": "ST_Buildables/PowerTransmitter"
+  },
+  "DA_ProcessorRecipe": {
+    "text_id": "ST_Buildables/Processor"
+  },
+  "DA_RadioRecipe": {
+    "text_id": "ST_Buildables/Radio"
+  },
+  "DA_ResonanceFountainRecipe": {
+    "name": "Resonance Fountain"
+  },
+  "DA_ScannerStation_LongRange_Recipe": {
+    "text_id": "ST_Buildables/ScannerStationLongRange"
+  },
+  "DA_SensorPodRecipe": {
+    "name": "Sensor Pod"
+  },
+  "DA_ShelfSRecipe": {
+    "text_id": "ST_Buildables/SShelf"
+  },
+  "DA_Sign_Recipe": {
+    "text_id": "ST_Buildables/BaseSign"
+  },
+  "DA_SolarPanelRecipe": {
+    "text_id": "ST_Buildables/SolarPanel"
+  },
+  "DA_SolarPanel_Medium_Recipe": {
+    "text_id": "ST_Buildables/SolarPanelMedium"
+  },
+  "DA_SpotlightRecipe": {
+    "text_id": "ST_Buildables/Spotlight"
+  },
+  "DA_StoolRecipe": {
+    "text_id": "ST_Buildables/Stool"
+  },
+  "DA_StorageCache_Recipe": {
+    "text_id": "ST_Buildables/StorageCache"
+  },
+  "DA_SupportRecipe": {
+    "text_id": "ST_Buildables/SupportPillar"
+  },
+  "DA_TableDiningRecipe": {
+    "text_id": "ST_Buildables/DiningTable"
+  },
+  "DA_ThermalPlantRecipe": {
+    "text_id": "ST_Buildables/ThermalPlant"
+  },
+  "DA_TrashcanRecipe": {
+    "text_id": "ST_Buildables/Trashcan"
+  },
+  "DA_VehicleBayRecipe": {
+    "text_id": "ST_Buildables/VehicleFabricator"
+  },
+  "DA_VehicleDock_Recipe": {
+    "text_id": "ST_Buildables/TadpoleDock"
+  },
+  "DA_WallBiolabRecipe": {
+    "text_id": "ST_Buildables/Biolab"
+  },
+  "DA_WallLockerRecipe": {
+    "text_id": "ST_Buildables/LockerWall"
+  },
+  "DA_AxumPotRecipe": {
+    "text_id": "ST_Buildables/AxumPot"
+  },
+  "DA_AxumSeatRecipe": {
+    "text_id": "ST_Buildables/AxumSeat"
+  },
+  "DA_AxumStreetLampRecipe": {
+    "text_id": "ST_Buildables/AxumStreetLamp"
+  },
+  "DA_AxumTrashcanRecipe": {
+    "text_id": "ST_Buildables/AxumTrashcan"
+  },
+  "DA_AxumWallLampRecipe": {
+    "text_id": "ST_Buildables/AxumWallLamp"
+  },
+  "DA_Axum_Jar_Recipe": {
+    "text_id": "ST_Buildables_Axum/AxumJar"
+  },
+  "DA_Axum_Jar_Small_Recipe": {
+    "text_id": "ST_Buildables_Axum/AxumJarSmall"
+  },
+  "DA_Axum_Jar_Tall_Recipe": {
+    "text_id": "ST_Buildables_Axum/AxumJarTall"
+  },
+  "DA_Axum_TreeRelic_Recipe": {
+    "text_id": "ST_Buildables_Axum/AxumTreeRelic"
+  },
+  "DA_FarmableAcidAnemone_Recipe": {
+    "text_id": "ST_Databank_Sessile/AcidRaion"
+  },
+  "DA_FarmableCradleShootroot_Recipe": {
+    "text_id": "ST_Databank_Sessile/CradleShootroot"
+  },
+  "DA_Farmable_CherimoyaRotsac_Recipe": {
+    "text_id": "ST_Databank_Sessile/CherimoyaRotsac"
+  },
+  "DA_Farmable_CoralPad_Recipe": {
+    "text_id": "ST_Databank_Sessile/Pent"
+  },
+  "DA_Farmable_CoralWafer_Recipe": {
+    "text_id": "ST_Databank_Sessile/MacaronSponge"
+  },
+  "DA_Farmable_FeelerTree_Recipe": {
+    "text_id": "ST_Databank_Sessile/MimicPylon"
+  },
+  "DA_Farmable_Freesia_Recipe": {
+    "text_id": "ST_Databank_Sessile/Freesia"
+  },
+  "DA_ScrapDeconstruct_Recipe": {
+    "name": "Scrap "
+  },
+  "DA_Scrap_CicadaDebris_01a_Deconstruct_Recipe": {
+    "name": "Cicada Scrap Pile"
+  },
+  "DA_Scrap_HydroElectricTurbine_Deconstruct_Recipe": {
+    "name": "Hydro-Electric Turbine Scrap"
+  },
+  "DA_Scrap_SolarPanel_Deconstruct_Recipe": {
+    "name": "Solar Panel Scrap"
+  },
+  "DA_BeaconCarryable_Recipe": {
+    "text_id": "ST_Beacon/Beacon_name"
+  },
+  "DA_DeployableElevator_Recipe": {
+    "text_id": "ST_DeployableElevator/DeployableElevator"
+  },
+  "DA_FloatingLockerCarryable_Recipe": {
+    "text_id": "ST_FloatingLocker_Carryable/FloatingLocker"
+  },
+  "DA_HeavyFloatingLockerCarryable_Recipe": {
+    "text_id": "ST_HeavyFloatingLocker_Carryable/HeavyFloatingLocker"
+  },
+  "DA_OxygenGeneratorCarryable_Recipe": {
+    "text_id": "ST_OxygenGenerator_Carryable/OxygenGenerator"
+  },
+  "DA_PowerCellBankCarryable_Recipe": {
+    "text_id": "ST_PowerCellBank_Carryable/PowerCellBank"
+  },
+  "DA_SuperHeavyFloatingLockerCarryable_Recipe": {
+    "text_id": "ST_SuperHeavyFloatingLocker_Carryable/SuperHeavyFloatingLocker"
+  },
+  "DA_WorkLightCarryable_Recipe": {
+    "text_id": "ST_WorkLight_Carryable/WorkLight"
+  },
+  "DA_GreebleTestRecipe": {
+    "name": "Decal Test"
+  },
+  "DA_Greeble_RoofAntenna_ARecipe": {
+    "text_id": "ST_Buildables/RoofAntenna"
+  },
+  "DA_Greeble_RoofAntenna_BRecipe": {
+    "text_id": "ST_Buildables/RoofAntennaLarge"
+  },
+  "DA_Greeble_RoofAntenna_C_Recipe": {
+    "text_id": "ST_Buildables/RoofSonar"
+  },
+  "DA_Greeble_RoofCylinderRecipe": {
+    "text_id": "ST_Buildables/RoofCylinder"
+  },
+  "DA_Greeble_RoofFan_DoubleRecipe": {
+    "text_id": "ST_Buildables/RoofPumpDouble"
+  },
+  "DA_Greeble_RoofFan_SingleRecipe": {
+    "text_id": "ST_Buildables/RoofPump"
+  },
+  "DA_Greeble_RoofPanel_ARecipe": {
+    "text_id": "ST_Buildables/RoofPanelLarge"
+  },
+  "DA_Greeble_WallPanel_ARecipe": {
+    "text_id": "ST_Buildables/WallPanel"
+  },
+  "DA_Greeble_WallUnit_ARecipe": {
+    "text_id": "ST_Buildables/WallUnitSmall"
+  },
+  "DA_Greeble_WallUnit_BRecipe": {
+    "text_id": "ST_Buildables/WallUnitLarge"
+  },
+  "DA_Greeble_WallVentRecipe": {
+    "text_id": "ST_Buildables/WallVent"
+  },
+  "DA_Greeble_WallVent_B_Recipe": {
+    "text_id": "ST_Buildables/WallVentLarge"
+  },
+  "DA_PowerPlant_BuildingProject_A_Recipe": {
+    "name": "Power Plant Building Project"
+  },
+  "DA_HullPlate_Preorder_01_Recipe": {
+    "text_id": "ST_Buildables/HullPlate_title"
+  },
+  "DA_Poster_Preorder_01_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderPoster01"
+  },
+  "DA_Poster_Preorder_02_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderPoster02"
+  },
+  "DA_Poster_Preorder_03_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderPoster03"
+  },
+  "DA_Poster_Preorder_04_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderPoster04"
+  },
+  "DA_Reaper_Preorder_01_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderReaper"
+  },
+  "DA_Seamoth_Preorder_01_Recipe": {
+    "text_id": "ST_PreorderBonus/PreorderSeaMoth"
+  },
+  "DA_Axum_Drums_Recipe": {
+    "text_id": "ST_Buildables/AxumDrum"
+  },
+  "DA_Tailing_Barrel_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingBarrel"
+  },
+  "DA_Tailing_Chest_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingChest"
+  },
+  "DA_Tailing_Jar_Coral_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoral"
+  },
+  "DA_Tailing_Jar_Coral_Small_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoralSmall"
+  },
+  "DA_Tailing_Jar_Hanging_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingJarHanging"
+  },
+  "DA_Tailing_Jar_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingJar"
+  },
+  "DA_Tailing_Rug_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingRug"
+  },
+  "DA_Tailing_Table_Recipe": {
+    "text_id": "ST_Buildables_Axum/TailingTable"
+  },
+  "DA_ExtraBlueprints": {
+    "text_id": "ST_CraftingSources/InProgress"
+  },
+  "DA_BuilderBaseObjectCategory": {
+    "text_id": "ST_BaseMenuCategories/InteriorFacilities"
+  },
+  "DA_BuilderBaseObject_BioModification": {
+    "text_id": "ST_BaseMenuCategories/BioModification"
+  },
+  "DA_BuilderBaseObject_Lighting": {
+    "text_id": "ST_BaseMenuCategories/Lighting"
+  },
+  "DA_BuilderBaseObject_Power": {
+    "text_id": "ST_BaseMenuCategories/Power"
+  },
+  "DA_BuilderBaseObject_Storage": {
+    "text_id": "ST_BaseMenuCategories/Storage"
+  },
+  "DA_BuilderBasicPiecesCategory": {
+    "text_id": "ST_BaseMenuCategories/BasePieces"
+  },
+  "DA_BuilderExteriorCategory": {
+    "text_id": "ST_BaseMenuCategories/ExteriorFacilities"
+  },
+  "DA_BuilderExteriorGreebleCategory": {
+    "text_id": "ST_BaseMenuCategories/ExteriorDecorations"
+  },
+  "DA_BuilderFarmingCategory": {
+    "text_id": "ST_BaseMenuCategories/Farming"
+  },
+  "DA_BuilderFarmingStructures_Category": {
+    "text_id": "ST_BaseMenuCategories/FarmingStructures"
+  },
+  "DA_BuilderFarming_PlantsCategory": {
+    "text_id": "ST_BaseMenuCategories/Plantables"
+  },
+  "DA_BuilderFurnitureCategory": {
+    "text_id": "ST_BaseMenuCategories/Furniture"
+  },
+  "DA_BuilderFurniture_Axum_Category": {
+    "text_id": "ST_BaseMenuCategories/AxumFurniture"
+  },
+  "DA_BuilderFurniture_Tailing_Category": {
+    "text_id": "ST_BaseMenuCategories/Tailing Furniture"
+  },
+  "DA_BuilderGreebleCategory": {
+    "text_id": "ST_BaseMenuCategories/Decorations"
+  },
+  "DA_BuilderHabitatSystemsCategory": {
+    "text_id": "ST_BaseMenuCategories/HabitatSystems"
+  },
+  "DA_BuilderHidden": {
+    "text_id": "ST_BaseMenuCategories/InDevelopment"
+  },
+  "DA_BuilderLightingExternalCategory": {
+    "text_id": "ST_BaseMenuCategories/Lighting"
+  },
+  "DA_BuilderPostersCategory": {
+    "text_id": "ST_BaseMenuCategories/Posters"
+  },
+  "DA_BuilderPowerExternalCategory": {
+    "text_id": "ST_BaseMenuCategories/Power"
+  },
+  "DA_BuilderStructuralCategory": {
+    "text_id": "ST_BaseMenuCategories/Structural"
+  },
+  "DA_BuilderToolBasePiecesCategory": {
+    "text_id": "ST_BaseMenuCategories/StandardElements"
+  },
+  "DA_BuilderToolDivisionalCategory": {
+    "text_id": "ST_BaseMenuCategories/Divisional"
+  },
+  "DA_BuilderToolInteriorCategory": {
+    "text_id": "ST_BaseMenuCategories/Furniture&Decor"
+  },
+  "DA_BuilderToolProductionResearchCategory": {
+    "text_id": "ST_BaseMenuCategories/Production"
+  },
+  "DA_BuilderToolTools_Category": {
+    "text_id": "ST_BaseMenuCategories/Utility"
+  },
+  "DA_BuilderTool_Carryable_Category": {
+    "text_id": "ST_BaseMenuCategories/Utility"
+  },
+  "DA_BuilderUtilityExternalCategory": {
+    "text_id": "ST_BaseMenuCategories/Utility"
+  },
+  "DA_BuilderVehiclesCategory": {
+    "text_id": "ST_BaseMenuCategories/Vehicles"
+  },
+  "DA_BuilderBaseObject_Crafting": {
+    "name": "Crafting"
+  },
+  "DA_BuilderBaseObject_Stations": {
+    "name": "Stations"
+  },
+  "DA_BuilderBioTechCategory": {
+    "name": "Biotech"
+  },
+  "DA_BuilderToolCategory": {
+    "name": "Builder Tool"
+  },
+  "DA_BuilderToolElevationCategory": {
+    "name": "Elevation"
+  },
+  "DA_BuilderToolSupportCategory": {
+    "name": "Support"
+  },
+  "DA_Consumables": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Consumables"
+  },
+  "DA_Deployables": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Deployables"
+  },
+  "DA_Fabricator": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Fabricator"
+  },
+  "DA_Personal": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Personal"
+  },
+  "DA_PersonalEquipment": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_PersonalEquipment"
+  },
+  "DA_PersonalMisc": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_PersonalMisc"
+  },
+  "DA_PersonalTool": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_PersonalTool"
+  },
+  "DA_Resources": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Resources"
+  },
+  "DA_ResourcesAdvancedMaterials": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_ResourcesAdvancedMaterials"
+  },
+  "DA_ResourcesBasicMaterials": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_ResourcesBasicMaterials"
+  },
+  "DA_ResourcesElectronics": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_ResourcesElectronics"
+  },
+  "DA_Sustenance": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_Sustenance"
+  },
+  "DA_SustenanceCookedFood": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_SustenanceCookedFood"
+  },
+  "DA_SustenanceMeals": {
+    "text_id": "ST_FabricatorCategories/CategoryTItle_SustenanceMeals"
+  },
+  "DA_SustenanceWater": {
+    "text_id": "ST_FabricatorCategories/CategoryTitle_SustenanceWater"
+  },
+  "DA_ModificationStation": {
+    "text_id": "ST_ModificationStation/ModificationStation"
+  },
+  "DA_TadpoleUpgrades": {
+    "text_id": "ST_ModificationStationCategories/TadpoleUpgrades"
+  },
+  "DA_ToolUpgrades": {
+    "text_id": "ST_ModificationStationCategories/ToolUpgrades"
+  },
+  "DA_Processor": {
+    "name": "Processor"
+  },
+  "DA_ProcessorAlternateRecipes": {
+    "text_id": "ST_ProcessorCategories/CategoryTitle_AlternateRecipes"
+  },
+  "DA_ProcessorBiofuel": {
+    "text_id": "ST_ProcessorCategories/CategoryTitle_Biofuel"
+  },
+  "DA_ProcessorExtraction": {
+    "text_id": "ST_ProcessorCategories/CategoryTitle_Extraction"
+  },
+  "DA_ProcessorMetalConversions": {
+    "text_id": "ST_ProcessorCategories/CategoryTitle_MetalConversions"
+  },
+  "DA_Processor_Ingots": {
+    "text_id": "ST_ProcessorCategories/CategoryTitle_Ingots"
+  },
+  "DA_VehicleBay_Category": {
+    "text_id": "ST_BaseMenuCategories/Vehicles"
+  },
+  "DA_Vehicles": {
+    "text_id": "ST_BaseMenuCategories/Vehicles"
+  },
+  "DA_AdvancedWiringKitRecipe": {
+    "text_id": "ST_Items/AdvancedWiringKit"
+  },
+  "DA_AirBladderRecipe": {
+    "text_id": "ST_Items/AirBladder"
+  },
+  "DA_AlcoholRecipe": {
+    "text_id": "ST_Items/Alcohol"
+  },
+  "DA_AxumAcidRecipe": {
+    "name": "Axum Etching Acid DNL"
+  },
+  "DA_BasicBatteryRecipe": {
+    "text_id": "ST_Items/Battery"
+  },
+  "DA_BasicFirstAidKitRecipe": {
+    "text_id": "ST_Items/BasicFirstAidKit"
+  },
+  "DA_BatteryV2Recipe": {
+    "text_id": "ST_Items/AdvancedBattery"
+  },
+  "DA_BeaconRecipe": {
+    "text_id": "ST_Beacon/Beacon_name"
+  },
+  "DA_BiosamplingKitRecipe": {
+    "name": "Biosampling Kit"
+  },
+  "DA_BubblyCysticSoup_Recipe": {
+    "name": "[DEPRECATED] Bubbly Cystic Soup"
+  },
+  "DA_BuilderToolRecipe": {
+    "text_id": "ST_Items/HabitatBuilder"
+  },
+  "DA_CherimoyaChutney_Recipe": {
+    "text_id": "ST_Items/CherimoyaChutney"
+  },
+  "DA_ComputerChipMk2Recipe": {
+    "text_id": "ST_Items/SystemChip2"
+  },
+  "DA_ComputerChipRecipe": {
+    "text_id": "ST_Items/SystemChip1"
+  },
+  "DA_CookedBlueMoonRecipe": {
+    "text_id": "ST_Items/CookedBluemoon"
+  },
+  "DA_CookedElectricGeordieRecipe": {
+    "text_id": "ST_Items/CookedElectricGeordie"
+  },
+  "DA_CookedGeordieRecipe": {
+    "text_id": "ST_Items/CookedGeordie"
+  },
+  "DA_CookedHalfMoonRecipe": {
+    "text_id": "ST_Items/CookedHalfmoon"
+  },
+  "DA_CookedHarvestMoonRecipe": {
+    "text_id": "ST_Items/CookedHarvestmoon"
+  },
+  "DA_CookedQuadrateRecipe": {
+    "text_id": "ST_Items/CookedQuadrate"
+  },
+  "DA_CookedSpineyTail_Recipe": {
+    "text_id": "ST_Items/CookedSpineytail"
+  },
+  "DA_CookedSpineyTail_Variant01_Recipe": {
+    "text_id": "ST_Items/CookedSpineytail_Variant01"
+  },
+  "DA_CopperWireRecipe": {
+    "text_id": "ST_Items/CopperWire"
+  },
+  "DA_CoralCookieRecipe": {
+    "text_id": "ST_Items/CoralCookie"
+  },
+  "DA_CyanGlowStick_Recipe": {
+    "name": "Cyan Glowstick"
+  },
+  "DA_CystSouffle_Recipe": {
+    "name": "[DEPRECATED] Cyst Souffle"
+  },
+  "DA_EnameledGlassRecipe": {
+    "text_id": "ST_Items/EnameledGlass"
+  },
+  "DA_FiberMeshRecipe": {
+    "text_id": "ST_Items/FiberMesh"
+  },
+  "DA_FiberRecipe": {
+    "text_id": "ST_Items/Fiber"
+  },
+  "DA_FinsRecipe": {
+    "text_id": "ST_BasicFins/Fins"
+  },
+  "DA_FirstAidKit_Enhanced_Recipe": {
+    "text_id": "ST_Items/EnhancedFirstAidKit"
+  },
+  "DA_FlareRecipe": {
+    "text_id": "ST_Items/Flare"
+  },
+  "DA_FlashlightRecipe": {
+    "text_id": "ST_Flashlight/Flashlight"
+  },
+  "DA_GlassRecipe": {
+    "text_id": "ST_Items/Glass"
+  },
+  "DA_GlowstickRecipe": {
+    "text_id": "ST_Items/Glowstick"
+  },
+  "DA_GreaseRecipe": {
+    "text_id": "ST_Items/Grease"
+  },
+  "DA_HalfmoonJerkyRecipe": {
+    "text_id": "ST_Items/HalfmoonJerky"
+  },
+  "DA_HeatResistanceChipRecipe": {
+    "name": "Heat Resistance Chip"
+  },
+  "DA_HoverthornSouvlaki_Recipe": {
+    "text_id": "ST_Items/HoverthornSouvlaki"
+  },
+  "DA_ImprovedFinsRecipe": {
+    "text_id": "ST_Items/ImprovedFins"
+  },
+  "DA_IsotonicDrinkRecipe": {
+    "text_id": "ST_Items/IsotonicDrink"
+  },
+  "DA_LargeAirTankRecipe": {
+    "text_id": "ST_Items/UltraHighCapacityAirTank"
+  },
+  "DA_LightstickRecipe": {
+    "text_id": "ST_Items/Lightstick"
+  },
+  "DA_LithiumGrainsRecipe": {
+    "name": "Lithium Grains"
+  },
+  "DA_MacaronCrisp_Recipe": {
+    "name": "Macaron Crisp tesst"
+  },
+  "DA_MediumAirTankRecipe": {
+    "text_id": "ST_Items/HighCapacityAirTank"
+  },
+  "DA_MetalSalvageRecipe": {
+    "text_id": "ST_Recipes/TitaniumFromSalvage"
+  },
+  "DA_MildAcid_Recipe": {
+    "text_id": "ST_Items/MildAcid"
+  },
+  "DA_MineralizedWaterTabletRecipe": {
+    "name": "Mineralized Water Tablet"
+  },
+  "DA_NothinMuffin_Recipe": {
+    "name": "[[DEPRECATED] ] Energy Muffin"
+  },
+  "DA_NutrientBlockRecipe": {
+    "text_id": "ST_Items/NutrientBlock"
+  },
+  "DA_OilySalad_Recipe": {
+    "text_id": "ST_Items/OilySalad"
+  },
+  "DA_Pavlova_Recipe": {
+    "text_id": "ST_Items/Pavlova"
+  },
+  "DA_PlasteelIngotRecipe": {
+    "text_id": "ST_Items/PlasteelIngot"
+  },
+  "DA_PoliticalConsciousnessRecipe": {
+    "text_id": "ST_Items/PoliticalConsciousness"
+  },
+  "DA_PowderedShellRecipe": {
+    "name": "Powdered Shell"
+  },
+  "DA_PowerCellRecipe": {
+    "text_id": "ST_Items/PowerCell"
+  },
+  "DA_PowerCellV2Recipe": {
+    "text_id": "ST_Items/PowerCellV2"
+  },
+  "DA_Rebreather_Recipe": {
+    "text_id": "ST_Rebreather/Rebreather"
+  },
+  "DA_RepairToolRecipe": {
+    "text_id": "ST_Items/RepairTool"
+  },
+  "DA_RubberRecipe": {
+    "text_id": "ST_Items/Rubber"
+  },
+  "DA_ScannerRecipe": {
+    "text_id": "ST_Items/Scanner"
+  },
+  "DA_SilicaDustRecipe": {
+    "name": "Silica Dust"
+  },
+  "DA_SmallAirTankRecipe": {
+    "text_id": "ST_Items/StandardAirTank"
+  },
+  "DA_SonicResonatorRecipe": {
+    "text_id": "ST_Items/SonicResonator"
+  },
+  "DA_StrongAcidRecipe": {
+    "text_id": "ST_Items/StrongAcid"
+  },
+  "DA_SugarAnalog_Recipe": {
+    "text_id": "ST_Items/SugarAnalog"
+  },
+  "DA_SurvivalMultiTool_Recipe": {
+    "text_id": "ST_Items/SurvivalMultitool"
+  },
+  "DA_ThreemoonTemakiRecipe": {
+    "text_id": "ST_Items/ThreemoonTemaki"
+  },
+  "DA_TitaniumIngotRecipe": {
+    "text_id": "ST_Items/TitaniumIngot"
+  },
+  "DA_UrchinPudding_Recipe": {
+    "name": "Urchin Pudding"
+  },
+  "DA_WakemakerRecipe": {
+    "text_id": "ST_Items/Wakemaker"
+  },
+  "DA_WaterRecipe": {
+    "text_id": "ST_Items/Water"
+  },
+  "DA_WiringKitRecipe": {
+    "text_id": "ST_Items/WiringKit"
+  },
+  "DA_FullInventoryRecipe": {
+    "name": "Full Recipe"
+  },
+  "DA_ScannerV2Recipe": {
+    "text_id": "ST_Items/ScannerV2"
+  },
+  "DA_SonicResonatorV2Recipe": {
+    "text_id": "ST_Items/SonicResonatorV2"
+  },
+  "DA_Tadpole_CrushDepthUpgrade_01_Recipe": {
+    "text_id": "ST_Items/TadpoleUpgradeCrushdepth"
+  },
+  "DA_Tadpole_CrushDepthUpgrade_02_Recipe": {
+    "text_id": "ST_Items/TadpoleUpgradeCrushDepth2"
+  },
+  "DA_Tadpole_EchoLocation_Recipe": {
+    "name": "Echo Location"
+  },
+  "DA_Tadpole_EngineEfficiency_Recipe": {
+    "text_id": "ST_Items/TadpoleModificationEngineEfficiency"
+  },
+  "DA_Tadpole_HullReinforcement_Recipe": {
+    "text_id": "ST_Items/TadpoleModificationHullReinforcement"
+  },
+  "DA_Tadpole_HydraulicMuffler_Recipe": {
+    "text_id": "ST_Items/TadpoleModificationHydraulicMuffler"
+  },
+  "DA_Tadpole_PhotovoltaicCharger_Recipe": {
+    "text_id": "ST_Items/TadpoleModificationPhotovoltaicCharger"
+  },
+  "DA_AcidSacToMildAcid_Recipe": {
+    "text_id": "ST_Recipes/MildAcidFromAcidAnemonesProcessor"
+  },
+  "DA_AnemoneAcid_to_FirstAidKit_Recipe": {
+    "text_id": "ST_Items/RefinedMedigel"
+  },
+  "DA_AxumAlloyIngot_Recipe": {
+    "text_id": "ST_Items/AxumIngot"
+  },
+  "DA_CelestineToStrontiumRecipe": {
+    "text_id": "ST_Resources/Strontium"
+  },
+  "DA_CopperToCopperIngot_Recipe": {
+    "text_id": "ST_Items/CopperIngot"
+  },
+  "DA_CrabFeces_to_BiofuelBlock_ProcessorRecipe": {
+    "text_id": "ST_Recipes/BiofuelBlockFromCrabFeces"
+  },
+  "DA_GoldToGoldIngot_Recipe": {
+    "text_id": "ST_Items/GoldIngot"
+  },
+  "DA_GoldToSilverRecipe": {
+    "text_id": "ST_Recipes/SilverFromGold"
+  },
+  "DA_HalfmoontoGreaseRecipe": {
+    "text_id": "ST_Recipes/GreaseFromHalfmoon"
+  },
+  "DA_LeadToGermaniumIngotRecipe": {
+    "text_id": "ST_Recipes/GermaniumFromLead"
+  },
+  "DA_Pents_To_Biofuel_Block_ProcessorRecipe": {
+    "text_id": "ST_Recipes/BiofuelBlockFromPents"
+  },
+  "DA_PentToMildAcid_Recipe": {
+    "text_id": "ST_Recipes/PentToMildAcid"
+  },
+  "DA_PlantFIber_To_Biofuel_Block_ProcessorRecipe": {
+    "text_id": "ST_Recipes/BiofuelBlockFromFibrousPulp"
+  },
+  "DA_PlantFiber_to_Water_ProcessorRecipe": {
+    "text_id": "ST_Recipes/WaterFromPlantMatter"
+  },
+  "DA_Salt_To_Glass_ProcessorRecipe": {
+    "text_id": "ST_Recipes/GlassFromSalt"
+  },
+  "DA_SilverToCopperRecipe": {
+    "text_id": "ST_Recipes/CopperFromSilver"
+  },
+  "DA_SilverToGermaniumIngotRecipe": {
+    "text_id": "ST_Recipes/GermaniumfromSilver"
+  },
+  "DA_SilverToSIlverIngot_Recipe": {
+    "text_id": "ST_Items/SilverIngot"
+  },
+  "DA_StrongAcidRecipe_SulfurGold": {
+    "text_id": "ST_Recipes/SulfurGoldToStrongAcid"
+  },
+  "DA_TitaniumToCopperRecipe": {
+    "text_id": "ST_Recipes/CopperfromTitanium"
+  },
+  "DA_TitaniumToTitaniumIngot_Recipe": {
+    "text_id": "ST_Items/TitaniumIngot"
+  },
+  "DA_SlagtoCopperRecipe": {
+    "text_id": "ST_Copper/Copper"
+  },
+  "DA_SlagtoQuartzRecipe": {
+    "text_id": "ST_Quartz/Quartz"
+  },
+  "DA_SlagtoTitaniumRecipe": {
+    "text_id": "ST_Titanium/Titanium"
+  },
+  "DA_PlasteelIngot_Processor_Recipe": {
+    "text_id": "ST_Items/PlasteelIngot"
+  },
+  "DA_TadpoleRecipe": {
+    "text_id": "ST_Vehicles/Tadpole"
+  },
+  "DA_Tadpole_HAUL_Chassis_Recipe": {
+    "text_id": "ST_Vehicles/TadpoleHaul"
+  },
+  "DA_Tadpole_ScoutRay_Chassis_Recipe": {
+    "text_id": "ST_Vehicles/TadpoleScoutRay"
+  },
+  "DA_TridentRecipe": {
+    "name": "Trident"
+  },
+  "DA_AdvancedBattery_ItemType": {
+    "text_id": "ST_Items/AdvancedBattery"
+  },
+  "DA_AdvancedWiringKit_ItemType": {
+    "text_id": "ST_Items/AdvancedWiringKit"
+  },
+  "DA_AirFissure_ItemType": {
+    "text_id": "ST_Databank_Sessile/CherimoyaRotsac"
+  },
+  "DA_Alcohol_ItemType": {
+    "text_id": "ST_Items/Alcohol"
+  },
+  "DA_AxumAlloyIngot_ItemType": {
+    "text_id": "ST_Items/AxumIngot"
+  },
+  "DA_BasicBatteryTerminal_ItemType": {
+    "text_id": "ST_Buildables/BaseBatteryTerminal"
+  },
+  "DA_BasicBattery_ItemType": {
+    "text_id": "ST_Items/Battery"
+  },
+  "DA_Beacon_ItemType": {
+    "text_id": "ST_Beacon/Beacon_name"
+  },
+  "DA_BiofuelBlock_ItemType": {
+    "text_id": "ST_Items/BiofuelBlock"
+  },
+  "DA_BioMassChunk_ItemType": {
+    "name": "Organic Matter Sample"
+  },
+  "DA_BoxOfHolding_ItemType": {
+    "text_id": "ST_Items/BoxofHolding"
+  },
+  "DA_CherimoyaChutney_ItemType": {
+    "text_id": "ST_Items/CherimoyaChutney"
+  },
+  "DA_CherimoyaRotsacFruit_ItemType": {
+    "text_id": "ST_Databank_Sessile/CherimoyaRotsac"
+  },
+  "DA_ComputerChipMk2_ItemType": {
+    "text_id": "ST_Items/SystemChip2"
+  },
+  "DA_ComputerChip_ItemType": {
+    "text_id": "ST_Items/SystemChip1"
+  },
+  "DA_ComputerCore_ItemType": {
+    "text_id": "ST_Buildables/NoATerminal"
+  },
+  "DA_CookedBluemoon_ItemType": {
+    "text_id": "ST_Items/CookedBluemoon"
+  },
+  "DA_CookedElectricGeordie_ItemType": {
+    "text_id": "ST_Items/CookedElectricGeordie"
+  },
+  "DA_CookedGeordie_ItemType": {
+    "text_id": "ST_Items/CookedGeordie"
+  },
+  "DA_CookedHalfmoon_ItemType": {
+    "text_id": "ST_Items/CookedHalfmoon"
+  },
+  "DA_CookedHarvestmoon_ItemType": {
+    "text_id": "ST_Items/CookedHarvestmoon"
+  },
+  "DA_CookedPneumo_ItemType": {
+    "text_id": "ST_Items/CookedPneumo"
+  },
+  "DA_CookedQuadrate_ItemType": {
+    "text_id": "ST_Items/CookedQuadrate"
+  },
+  "DA_CookedSpineytail_ItemType": {
+    "text_id": "ST_Items/CookedSpineytail"
+  },
+  "DA_CookedSpineytail_Variant01_ItemType": {
+    "text_id": "ST_Items/CookedSpineytail_Variant01"
+  },
+  "DA_CopperIngot_ItemType": {
+    "text_id": "ST_Items/CopperIngot"
+  },
+  "DA_CopperWire_ItemType": {
+    "text_id": "ST_Items/CopperWire"
+  },
+  "DA_Copper_ItemType": {
+    "text_id": "ST_Copper/Copper"
+  },
+  "DA_CoralCookie_ItemType": {
+    "text_id": "ST_Items/CoralCookie"
+  },
+  "DA_CoralGardens_AirFissure_ItemType": {
+    "text_id": "ST_Databank_Sessile/CherimoyaRotsac"
+  },
+  "DA_CurrentRing_ItemType": {
+    "text_id": "ST_Buildables/CurrentRing"
+  },
+  "DA_DeepwingBrooderEgg_ItemType": {
+    "text_id": "ST_Items/DeepwingEgg"
+  },
+  "DA_Display_TimeOfDay_ItemType": {
+    "text_id": "ST_Buildables/DisplayTimeOfDay"
+  },
+  "DA_EnameledGlass_ItemType": {
+    "text_id": "ST_Items/EnameledGlass"
+  },
+  "DA_Fabricator_ItemType": {
+    "text_id": "ST_Buildables/Fabricator"
+  },
+  "DA_FiberMesh_ItemType": {
+    "text_id": "ST_Items/FiberMesh"
+  },
+  "DA_FirstAidKit_Basic_ItemType": {
+    "text_id": "ST_Items/BasicFirstAidKit"
+  },
+  "DA_FirstAidKit_Enhanced_ItemType": {
+    "text_id": "ST_Items/EnhancedFirstAidKit"
+  },
+  "DA_FloatingSupport_ItemType": {
+    "text_id": "ST_Buildables/FloatingSupport"
+  },
+  "DA_GenericLocker_ItemType": {
+    "text_id": "ST_Buildables/LockerWall"
+  },
+  "DA_GeothermalRecharger_ItemType": {
+    "name": "Geothermal Recharger"
+  },
+  "DA_Glass_ItemType": {
+    "text_id": "ST_Items/Glass"
+  },
+  "DA_GoldIngot_ItemType": {
+    "text_id": "ST_Items/GoldIngot"
+  },
+  "DA_Grease_ItemType": {
+    "text_id": "ST_Items/Grease"
+  },
+  "DA_HalfmoonJerky_ItemType": {
+    "text_id": "ST_Items/HalfmoonJerky"
+  },
+  "DA_Haul_ItemType": {
+    "text_id": "ST_Vehicles/TadpoleHaul"
+  },
+  "DA_HoverthornSouvlaki_ItemType": {
+    "text_id": "ST_Items/HalfmoonJerky"
+  },
+  "DA_HydroelectricTurbine_ItemType": {
+    "text_id": "ST_Buildables/HydroelectricTurbine"
+  },
+  "DA_IsotonicDrink_ItemType": {
+    "text_id": "ST_Items/IsotonicDrink"
+  },
+  "DA_LuciferRotsac_ItemType": {
+    "text_id": "ST_Databank_Sessile/LuciferRotsac"
+  },
+  "DA_MetalFarm_ItemType": {
+    "text_id": "ST_Buildables/MetalFarm"
+  },
+  "DA_MetalSalvage_ItemType": {
+    "text_id": "ST_Items/MetalSalvage"
+  },
+  "DA_MildAcid_ItemType": {
+    "text_id": "ST_Items/MildAcid"
+  },
+  "DA_ModificationStation_ItemType": {
+    "text_id": "ST_ModificationStation/ModificationStation"
+  },
+  "DA_NutrientBlock_ItemType": {
+    "text_id": "ST_Items/NutrientBlock"
+  },
+  "DA_NutritiousMussels_ItemType_1": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_NutritiousMussels_ItemType_2": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_NutritiousMussels_ItemType_3": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_NutritiousMussels_ItemType_4": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_NutritiousMussels_ItemType_5": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_NutritiousMussels_ItemType_6": {
+    "text_id": "ST_Items/AlgaeBlockTitle"
+  },
+  "DA_OilySalad_ItemType": {
+    "text_id": "ST_Items/OilySalad"
+  },
+  "DA_Pavlova_ItemType": {
+    "text_id": "ST_Items/Pavlova"
+  },
+  "DA_PlateCoral_ItemType": {
+    "text_id": "ST_Resources/PlateCoral"
+  },
+  "DA_PowerCellTerminal_ItemType": {
+    "text_id": "ST_Buildables/PowerCellTerminal"
+  },
+  "DA_PowerCellV2_ItemType": {
+    "text_id": "ST_Items/PowerCellV2"
+  },
+  "DA_PowerCell_ItemType": {
+    "text_id": "ST_Items/PowerCell"
+  },
+  "DA_PowerTransmitter_ItemType": {
+    "text_id": "ST_Buildables/PowerTransmitter"
+  },
+  "DA_Processor_ItemType": {
+    "text_id": "ST_Buildables/Processor"
+  },
+  "DA_QuartzChip_PoliticalConsciousness_ItemType": {
+    "text_id": "ST_Items/PoliticalConsciousness"
+  },
+  "DA_Sandspear_ItemType": {
+    "text_id": "ST_HardcodedStringReplacementPass_M31/DA_Sandspear_ItemType_Name"
+  },
+  "DA_ScourgeHive_ItemType": {
+    "name": "Scourge Hive"
+  },
+  "DA_ScoutRay_ItemType": {
+    "text_id": "ST_Vehicles/TadpoleScoutRay"
+  },
+  "DA_ScrapDeconstruct_ItemType": {
+    "name": "Can be deconstructed"
+  },
+  "DA_Seafrog_ItemType": {
+    "name": "Seafrog"
+  },
+  "DA_SensorPod_ItemType": {
+    "name": "Sensor Pod"
+  },
+  "DA_SilverIngot_ItemType": {
+    "text_id": "ST_Items/SilverIngot"
+  },
+  "DA_Spotlight_ItemType": {
+    "text_id": "ST_Buildables/Spotlight"
+  },
+  "DA_StrongAcid_ItemType": {
+    "text_id": "ST_Items/StrongAcid"
+  },
+  "DA_Strontium_ItemType": {
+    "text_id": "ST_Resources/Strontium"
+  },
+  "DA_SugarAnalog_ItemType": {
+    "text_id": "ST_Items/SugarAnalog"
+  },
+  "DA_Support_ItemType": {
+    "text_id": "ST_Buildables/Support"
+  },
+  "DA_Tadpole_ItemType": {
+    "text_id": "ST_Vehicles/Tadpole"
+  },
+  "DA_ThermalPlant_ItemType": {
+    "text_id": "ST_Buildables/ThermalPlant"
+  },
+  "DA_ThreemoonTemaki_ItemType": {
+    "text_id": "ST_Items/ThreemoonTemaki"
+  },
+  "DA_TitaniumIngot_ItemType": {
+    "text_id": "ST_Items/TitaniumIngot"
+  },
+  "DA_Unobtanium_ItemType": {
+    "text_id": "ST_Items/Unobtanium"
+  },
+  "DA_WaterSlug_ItemType": {
+    "text_id": "ST_Databank_Motile/WaterSlug"
+  },
+  "DA_Water_ItemType": {
+    "text_id": "ST_Items/Water"
+  },
+  "DA_WeldTarget_ItemType": {
+    "name": "WeldTarget"
+  },
+  "DA_WiringKit_ItemType": {
+    "text_id": "ST_Items/WiringKit"
+  },
+  "DA_BioBed_ItemType": {
+    "text_id": "ST_Buildables/Biobed"
+  },
+  "DA_Biolab_ItemType": {
+    "text_id": "ST_Buildables/Biolab"
+  },
+  "DA_Bioreactor_ItemType": {
+    "text_id": "ST_Buildables/Bioreactor"
+  },
+  "DA_Carryable_WallRack_ItemType": {
+    "text_id": "ST_WallRack/CarryableWallRack"
+  },
+  "DA_FloorLocker_ItemType": {
+    "text_id": "ST_Buildables/LockerFloor"
+  },
+  "DA_LampCeilingBulb_ItemType": {
+    "text_id": "ST_Buildables/BulbCeilingLamp"
+  },
+  "DA_LampExteriorWallBulb_ItemType": {
+    "text_id": "ST_Buildables/BulbExteriorWallLamp"
+  },
+  "DA_LampFloorBulb_ItemType": {
+    "text_id": "ST_Buildables/BulbFloorLamp"
+  },
+  "DA_Light_Wall_Large_ItemType": {
+    "text_id": "ST_Buildables/WallLightLarge"
+  },
+  "DA_Light_Wall_Small_ItemType": {
+    "text_id": "ST_Buildables/WallLightSmall"
+  },
+  "DA_ScannerStation_LongRange_ItemType": {
+    "text_id": "ST_Buildables/ScannerStationLongRange"
+  },
+  "DA_ScannerStation_ShortRange_ItemType": {
+    "text_id": "ST_Buildables/ScannerStationShortRange"
+  },
+  "DA_Sign_ItemType": {
+    "text_id": "ST_Buildables/BaseSign"
+  },
+  "DA_SolarPanel_ItemType": {
+    "text_id": "ST_Buildables/SolarPanel"
+  },
+  "DA_SolarPanel_Medium_ItemType": {
+    "text_id": "ST_Buildables/SolarPanelMedium"
+  },
+  "DA_StorageCache_ItemType": {
+    "text_id": "ST_Buildables/StorageCache"
+  },
+  "DA_WallBiolab_ItemType": {
+    "text_id": "ST_Buildables/Biolab"
+  },
+  "DA_WallLocker_ItemType": {
+    "text_id": "ST_Buildables/LockerWall"
+  },
+  "DA_BaseSignal_ItemType": {
+    "text_id": "ST_Buildables/RoofSonar"
+  },
+  "DA_BedSingle_ItemType": {
+    "text_id": "ST_Buildables/SingleBed"
+  },
+  "DA_CeilingLight_Rect_A_ItemType": {
+    "text_id": "ST_Buildables/RectangularCeilingLight"
+  },
+  "DA_ChairDining_ItemType": {
+    "text_id": "ST_Buildables/DiningChair"
+  },
+  "DA_ChairLab_ItemType": {
+    "text_id": "ST_Buildables/LabChair"
+  },
+  "DA_DeployableElevator_ItemType": {
+    "text_id": "ST_DeployableElevator/DeployableElevator"
+  },
+  "DA_Poster_Community01_ItemType": {
+    "text_id": "ST_Buildables/PosterCommunity01_Subtitle02"
+  },
+  "DA_Poster_Community02_ItemType": {
+    "text_id": "ST_Buildables/PosterCommunity02"
+  },
+  "DA_Poster_KeepCalm_ItemType": {
+    "text_id": "ST_Buildables/PosterKeepCalm"
+  },
+  "DA_Poster_KeepSwimming_ItemType": {
+    "text_id": "ST_Buildables/Poster01"
+  },
+  "DA_Poster_PaintedTree_ItemType": {
+    "text_id": "ST_Buildables/PaintedTreePoster"
+  },
+  "DA_Poster_PioneerProgram_ItemType": {
+    "text_id": "ST_Buildables/PosterPioneerProgram"
+  },
+  "DA_Poster_Reprinting_ItemType": {
+    "text_id": "ST_Buildables/Poster02"
+  },
+  "DA_Poster_ScoutRay_ItemType": {
+    "text_id": "ST_Buildables/Poster03"
+  },
+  "DA_Poster_Wanted_ItemType": {
+    "text_id": "ST_Buildables/PosterWanted"
+  },
+  "DA_Poster_Zezura_01_ItemType": {
+    "text_id": "ST_Buildables/Poster04"
+  },
+  "DA_Poster_Zezura_02_ItemType": {
+    "text_id": "ST_Buildables/Poster05"
+  },
+  "DA_Poster_Zezura_ItemType": {
+    "text_id": "ST_Buildables/PosterZezura"
+  },
+  "DA_PowerGridCapacitor_ItemType": {
+    "text_id": "ST_Buildables/PowerStorage"
+  },
+  "DA_Radio_ItemType": {
+    "text_id": "ST_Buildables/Radio"
+  },
+  "DA_ResonanceFountain_ItemType": {
+    "name": "Resonance Fountain"
+  },
+  "DA_ShelfS_ItemType": {
+    "text_id": "ST_Buildables/SShelf"
+  },
+  "DA_Stabilizer_ItemType": {
+    "name": "Stabilizer"
+  },
+  "DA_Stool_ItemType": {
+    "text_id": "ST_Buildables/Stool"
+  },
+  "DA_TableDining_ItemType": {
+    "text_id": "ST_Buildables/DiningTable"
+  },
+  "DA_Trashcan_ItemType": {
+    "text_id": "ST_Buildables/Trashcan"
+  },
+  "DA_AxumPot_ItemType": {
+    "text_id": "ST_Buildables/AxumPot"
+  },
+  "DA_AxumSeat_ItemType": {
+    "text_id": "ST_Buildables/AxumSeat"
+  },
+  "DA_AxumStreetLamp_ItemType": {
+    "text_id": "ST_Buildables/AxumStreetLamp"
+  },
+  "DA_AxumTrashcan_ItemType": {
+    "text_id": "ST_Buildables/AxumTrashcan"
+  },
+  "DA_AxumWallLamp_ItemType": {
+    "text_id": "ST_Buildables/AxumWallLamp"
+  },
+  "DA_Axum_Jar_ItemType": {
+    "text_id": "ST_Buildables_Axum/AxumJar"
+  },
+  "DA_Axum_Jar_Small_ItemType": {
+    "text_id": "ST_Buildables_Axum/AxumJarSmall"
+  },
+  "DA_Axum_Jar_Tall_ItemType": {
+    "text_id": "ST_Buildables_Axum/AxumJarTall"
+  },
+  "DA_Axum_TreeRelic_ItemType": {
+    "text_id": "ST_Buildables_Axum/AxumTreeRelic"
+  },
+  "DA_GreebleTest_ItemType": {
+    "name": "Greeble Test"
+  },
+  "DA_Greeble_RoofAntenna_A_ItemType": {
+    "text_id": "ST_Buildables/RoofAntenna"
+  },
+  "DA_Greeble_RoofAntenna_B_ItemType": {
+    "text_id": "ST_Buildables/RoofAntennaLarge"
+  },
+  "DA_Greeble_RoofAntenna_C_ItemType": {
+    "text_id": "ST_Buildables/RoofSonar"
+  },
+  "DA_Greeble_RoofCylinder_ItemType": {
+    "text_id": "ST_Buildables/RoofCylinder"
+  },
+  "DA_Greeble_RoofFan_Double_ItemType": {
+    "text_id": "ST_Buildables/RoofPumpDouble"
+  },
+  "DA_Greeble_RoofFan_Single_ItemType": {
+    "text_id": "ST_Buildables/RoofPump"
+  },
+  "DA_Greeble_RoofPanel_A_ItemType": {
+    "text_id": "ST_Buildables/RoofPanelLarge"
+  },
+  "DA_Greeble_WallPanel_A_ItemType": {
+    "text_id": "ST_Buildables/WallPanel"
+  },
+  "DA_Greeble_WallUnit_A_ItemType": {
+    "text_id": "ST_Buildables/WallUnitSmall"
+  },
+  "DA_Greeble_WallUnit_B_ItemType": {
+    "text_id": "ST_Buildables/WallUnit"
+  },
+  "DA_Greeble_WallVent_B_ItemType": {
+    "text_id": "ST_Buildables/WallVentLarge"
+  },
+  "DA_Greeble_WallVent_ItemType": {
+    "text_id": "ST_Buildables/WallVent"
+  },
+  "DA_HullPlate_Preorder_01_ItemType": {
+    "text_id": "ST_Buildables/HullPlate_title"
+  },
+  "DA_Poster_Preorder_01_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderPoster01"
+  },
+  "DA_Poster_Preorder_02_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderPoster02"
+  },
+  "DA_Poster_Preorder_03_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderPoster03"
+  },
+  "DA_Poster_Preorder_04_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderPoster04"
+  },
+  "DA_Reaper_Preorder_01_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderReaper"
+  },
+  "DA_Seamoth_Preorder_01_ItemType": {
+    "text_id": "ST_PreorderBonus/PreorderSeaMoth"
+  },
+  "DA_Tailing_Barrel_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingBarrel"
+  },
+  "DA_Tailing_Chest_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingChest"
+  },
+  "DA_Tailing_Jar_Coral_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoral"
+  },
+  "DA_Tailing_Jar_Coral_Small_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoralSmall"
+  },
+  "DA_Tailing_Jar_Hanging_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingJarHanging"
+  },
+  "DA_Tailing_Jar_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingJar"
+  },
+  "DA_Tailing_Rug_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingRug"
+  },
+  "DA_Tailing_Table_ItemType": {
+    "text_id": "ST_Buildables_Axum/TailingTable"
+  },
+  "DA_ElectricGeordie_ItemType": {
+    "text_id": "ST_Databank_Motile/ElectricGeordie"
+  },
+  "DA_FlashSlug_ItemType": {
+    "text_id": "ST_Ruins_Databanks/Motile_Flashslug_title"
+  },
+  "DA_Geordie_ItemType": {
+    "text_id": "ST_Databank_Motile/Geordie"
+  },
+  "DA_HalfmoonVariant01_ItemType": {
+    "text_id": "ST_Databank_Motile/Harvestmoon"
+  },
+  "DA_HalfmoonVariant02_ItemType": {
+    "text_id": "ST_Databank_Motile/Bluemoon"
+  },
+  "DA_Halfmoon_ItemType": {
+    "text_id": "ST_Databank_Motile/Halfmoon"
+  },
+  "DA_Houndgar_ItemType1": {
+    "text_id": "ST_Databank_Motile/Houndgar"
+  },
+  "DA_Pneumo_ItemType": {
+    "text_id": "ST_Ruins_Databanks/Motile_Pneuma_title"
+  },
+  "DA_Quadrate_ItemType": {
+    "text_id": "ST_Databank_Motile/Quadrate"
+  },
+  "DA_SeaOlive_ItemType": {
+    "text_id": "ST_Databank_Motile/Halfmoon"
+  },
+  "DA_ShadowGeordie_ItemType": {
+    "name": "Shadow Geordie"
+  },
+  "DA_SpineyTail_ItemType": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_SpineyTail_title"
+  },
+  "DA_SpineyTail_Variant01_ItemType": {
+    "text_id": "ST_Items/Spineytail_Variant01"
+  },
+  "DA_VoidLeviathan_ItemType": {
+    "text_id": "ST_Ruins_Databanks/Motile_VoidLeviathan_title"
+  },
+  "DA_JellyRing_ItemType": {
+    "text_id": "ST_Databank_Motile/JellyRing"
+  },
+  "DA_Marrowbreach_ItemType": {
+    "text_id": "ST_Databank_Motile/Marrowbreach"
+  },
+  "DA_NibblerShark_ItemType": {
+    "text_id": "ST_Databank_Motile/Nibbler"
+  },
+  "DA_DroneBuddy_Prototype": {
+    "name": "Greeble"
+  },
+  "DA_FloatingLocker_Carryable_ItemType": {
+    "text_id": "ST_FloatingLocker_Carryable/FloatingLocker"
+  },
+  "DA_HeavyFloatingLocker_Carryable_ItemType": {
+    "text_id": "ST_HeavyFloatingLocker_Carryable/HeavyFloatingLocker"
+  },
+  "DA_OxygenGenerator_Carryable_ItemType": {
+    "text_id": "ST_OxygenGenerator_Carryable/OxygenGenerator"
+  },
+  "DA_PowerCellBank_Carryable_ItemType": {
+    "text_id": "ST_PowerCellBank_Carryable/PowerCellBank"
+  },
+  "DA_SuperHeavyFloatingLocker_Carryable_ItemType": {
+    "text_id": "ST_SuperHeavyFloatingLocker_Carryable/SuperHeavyFloatingLocker"
+  },
+  "DA_WorkLight_Carryable_ItemType": {
+    "text_id": "ST_WorkLight_Carryable/WorkLight"
+  },
+  "DA_Airag_ItemType": {
+    "text_id": "ST_Items/Airag"
+  },
+  "DA_AnemoneSample_ItemType": {
+    "name": "DEPRECATED, PLEASE BUG (BP_Anemone Sample/Raion Cutting)"
+  },
+  "DA_AxumAcid_ItemType": {
+    "name": "Axum Etching Acid"
+  },
+  "DA_Axum_Drum_ItemType": {
+    "text_id": "ST_Buildables/AxumDrum"
+  },
+  "DA_BubblyCysticSoup_ItemType": {
+    "name": "[DEPRECATED] Bubbly Cystic Soup"
+  },
+  "DA_CabbageShootroot_Fruit_ItemType": {
+    "text_id": "ST_Databank_Sessile/AeroshellSponge"
+  },
+  "DA_CraftTestAdditionalOutput_ItemType": {
+    "name": "CraftAdditionalOutput"
+  },
+  "DA_CraftTestInput_ItemType": {
+    "name": "CraftInput"
+  },
+  "DA_CraftTestOutput_ItemType": {
+    "name": "CraftOutput"
+  },
+  "DA_Crate_01_ItemType": {
+    "text_id": "ST_Buildables/SmallCrate"
+  },
+  "DA_CyanPigment_ItemType": {
+    "name": "Cyan Pigmente"
+  },
+  "DA_CystSouffle_ItemType": {
+    "name": "[DEPRECATED] Cyst Souffle"
+  },
+  "DA_FabricatorPillar_ItemType": {
+    "text_id": "ST_Buildables/FabricatorPillar"
+  },
+  "DA_LithiumGrains_ItemType": {
+    "name": "LIthium Grains"
+  },
+  "DA_MacaronCrisp_ItemType": {
+    "name": "Macaron Crisp"
+  },
+  "DA_MacaronLining_ItemType": {
+    "name": "Macaron Lining"
+  },
+  "DA_Mare_ItemType": {
+    "name": "Mare's Milk"
+  },
+  "DA_MedKitDispenser_ItemType": {
+    "text_id": "ST_Buildables/MedkitFabricator"
+  },
+  "DA_MineralizedWaterTablet_ItemType": {
+    "name": "Mineralized Water Tablet"
+  },
+  "DA_MiningPlatformCopper_ItemType": {
+    "name": "Mining Platform Copper"
+  },
+  "DA_MiningPlatform_ItemType": {
+    "name": "Mining Platform"
+  },
+  "DA_NothinMuffin_ItemType": {
+    "name": "[DEPRECATED] Energy Muffin"
+  },
+  "DA_OxygenBottle_ItemType": {
+    "name": "Oxygen Bottle"
+  },
+  "DA_PearlPrototype_ItemType": {
+    "name": "[TEST] Pearl Chunk"
+  },
+  "DA_PowderedShell_ItemType": {
+    "name": "Powdered Shell"
+  },
+  "DA_PrismaticShell_ItemType": {
+    "name": "Prismatic Shell"
+  },
+  "DA_ScanTestActor_ItemType": {
+    "name": "ScanTestActor"
+  },
+  "DA_ShellPiece_ItemType": {
+    "name": "Shell Piece"
+  },
+  "DA_SilicaDust_ItemType": {
+    "name": "Silica Dust"
+  },
+  "DA_SlugOoze_ItemType": {
+    "name": "Slug Ooze"
+  },
+  "DA_TridentStripped_ItemType": {
+    "name": "Trident Stripped"
+  },
+  "DA_Trident_ItemType": {
+    "name": "Trident"
+  },
+  "DA_UrchinPudding_ItemType": {
+    "name": "Urchin Pudding"
+  },
+  "DA_Fins_ItemType": {
+    "text_id": "ST_BasicFins/Fins"
+  },
+  "DA_HeatResistTorsoItem_ItemType": {
+    "name": "Heat Resistance Chip"
+  },
+  "DA_ImprovedFins_ItemType": {
+    "text_id": "ST_Items/ImprovedFins"
+  },
+  "DA_OxygenTank_Large_EquippableItemType": {
+    "text_id": "ST_Items/UltraHighCapacityAirTank"
+  },
+  "DA_OxygenTank_Medium_EquippableItemType": {
+    "text_id": "ST_Items/HighCapacityAirTank"
+  },
+  "DA_OxygenTank_Small_ItemType": {
+    "text_id": "ST_Items/StandardAirTank"
+  },
+  "DA_Rebreather_EquippableItemType": {
+    "text_id": "ST_Rebreather/Rebreather"
+  },
+  "DA_ScubaMask_ItemType": {
+    "text_id": "ST_Items/ScubaMask"
+  },
+  "DA_Farmable_AcidAnemone_ItemType": {
+    "text_id": "ST_Databank_Sessile/AcidRaion"
+  },
+  "DA_Farmable_CherimoyaRotsac_ItemType": {
+    "text_id": "ST_Buildables/Support"
+  },
+  "DA_Farmable_CoralPad_ItemType": {
+    "text_id": "ST_Buildables/Support"
+  },
+  "DA_Farmable_CoralWafer_ItemType": {
+    "text_id": "ST_Databank_Sessile/MacaronSponge"
+  },
+  "DA_Farmable_CradleShootroot_ItemType": {
+    "text_id": "ST_Buildables/Support"
+  },
+  "DA_Farmable_FeelerTree_ItemType": {
+    "text_id": "ST_Databank_Sessile/MimicPylon"
+  },
+  "DA_Farmable_Freesia_ItemType": {
+    "text_id": "ST_Databank_Sessile/Freesia"
+  },
+  "DA_Tadpole_CrushDepthUpgrade01_ItemType_01": {
+    "text_id": "ST_Items/TadpoleUpgradeCrushdepth"
+  },
+  "DA_Tadpole_CrushDepthUpgrade02_ItemType": {
+    "text_id": "ST_Items/TadpoleUpgradeCrushDepth2"
+  },
+  "DA_Tadpole_EchoLocation_ItemType": {
+    "name": "Echo Location"
+  },
+  "DA_Tadpole_EngineEfficiency_ItemType": {
+    "text_id": "ST_Items/TadpoleModificationEngineEfficiency"
+  },
+  "DA_Tadpole_HullReinforcement_ItemType": {
+    "text_id": "ST_Items/TadpoleModificationHullReinforcement"
+  },
+  "DA_Tadpole_HydraulicMuffler_ItemType": {
+    "text_id": "ST_Items/TadpoleModificationHydraulicMuffler"
+  },
+  "DA_Tadpole_PhotovoltaicCharger_ItemType": {
+    "text_id": "ST_Items/TadpoleModificationPhotovoltaicCharger"
+  },
+  "DA_PowerPlant_BuildingProject_A_ItemType": {
+    "name": "Power Plant Part A"
+  },
+  "DA_AcidAnemone_AcidSac_ItemType": {
+    "text_id": "ST_Resources/AcidSac"
+  },
+  "DA_AcidAnemone_Medigel_ItemType": {
+    "text_id": "ST_Resources/Acid"
+  },
+  "DA_AirFruit_ItemType": {
+    "name": "[PLACEHOLDER] Aero Cyst"
+  },
+  "DA_Atacamite_ItemType": {
+    "text_id": "ST_Resources/Atacamite"
+  },
+  "DA_AxumBioprintCulture_ItemType": {
+    "text_id": "ST_Items/AxumBioprintCulture"
+  },
+  "DA_AxumDataCache_ItemType": {
+    "name": "[PLACEHOLDER] Axum Data Cache"
+  },
+  "DA_AxumRelic_ItemType": {
+    "name": "[PLACEHOLDER] Axum Relic"
+  },
+  "DA_Celestine_ItemType": {
+    "text_id": "ST_Celestine/Celestine"
+  },
+  "DA_ConduitCrystal_ItemType": {
+    "text_id": "ST_Items/ConduitCrystal"
+  },
+  "DA_CrabFeces_ItemType": {
+    "text_id": "ST_Resources/CrabFeces"
+  },
+  "DA_Diamond_ItemType": {
+    "text_id": "ST_Resources/Diamond"
+  },
+  "DA_Enamel_ItemType": {
+    "text_id": "ST_Resources/Enamel"
+  },
+  "DA_FalseOysterRaion_Nodule_ItemType": {
+    "text_id": "ST_Resources/NecroleiEgg"
+  },
+  "DA_FerrofluidCrystal_ItemType": {
+    "name": "[PLACEHOLDER] Ferrofluid Crystal"
+  },
+  "DA_Fiber_ItemType": {
+    "text_id": "ST_Items/Fiber"
+  },
+  "DA_Fordite_ItemType": {
+    "name": "[PLACEHOLDER] Fordite"
+  },
+  "DA_FunkyFruit_ItemType": {
+    "name": "[PLACEHOLDER] Funky Fruit"
+  },
+  "DA_GatewayCrystal_ItemType": {
+    "name": "Gateway Crystal"
+  },
+  "DA_GermaniumIngot_ItemType": {
+    "text_id": "ST_Resources/Germanium"
+  },
+  "DA_Gold_ItemType": {
+    "text_id": "ST_Resources/Gold"
+  },
+  "DA_Lead_ItemType": {
+    "text_id": "ST_Lead/Lead"
+  },
+  "DA_Lithium_ItemType": {
+    "text_id": "ST_Lithium/Lithium"
+  },
+  "DA_Nickel_ItemType": {
+    "text_id": "ST_Resources/Nickel"
+  },
+  "DA_Pent01a_ItemType": {
+    "text_id": "ST_Items/Pent"
+  },
+  "DA_PlantMatter_ItemType": {
+    "text_id": "ST_FibrousPulp/FibrousPulp"
+  },
+  "DA_PlasteelIngot_ItemType": {
+    "text_id": "ST_Items/PlasteelIngot"
+  },
+  "DA_PuddingUrchin_ItemType": {
+    "name": "Pudding Urchin"
+  },
+  "DA_Quartz_ItemType": {
+    "text_id": "ST_Quartz/Quartz"
+  },
+  "DA_RawOre_ItemType": {
+    "name": "Raw Ore"
+  },
+  "DA_Rubber_ItemType": {
+    "text_id": "ST_Items/Rubber"
+  },
+  "DA_Salt_ItemType": {
+    "text_id": "ST_Resources/Salt"
+  },
+  "DA_Silver_ItemType": {
+    "text_id": "ST_Silver/Silver"
+  },
+  "DA_Sulfur_ItemType": {
+    "text_id": "ST_Resources/Sulfur"
+  },
+  "DA_Titanium_ItemType": {
+    "text_id": "ST_Titanium/Titanium"
+  },
+  "DA_Troilite_ItemType": {
+    "text_id": "ST_Resources/Troilite"
+  },
+  "DA_Tungsten_ItemType": {
+    "text_id": "ST_Resources/Tungsten"
+  },
+  "DA_BiosampleTest": {
+    "name": "TestActor"
+  },
+  "DA_NoEquipSlot_ItemType_Test": {
+    "name": "Test Inventory Item No equip slot"
+  },
+  "DA_Stackable_ItemType_Test": {
+    "name": "Test Stackable"
+  },
+  "DA_VepEggTest": {
+    "name": "Veps Egg"
+  },
+  "DA_VepJellyTest": {
+    "name": "Veps Jelly"
+  },
+  "DA_AirBladder_ItemType": {
+    "text_id": "ST_Items/AirBladder"
+  },
+  "DA_Biosampler_ItemType": {
+    "name": "Biosampling Kit"
+  },
+  "DA_Builder_ItemType": {
+    "text_id": "ST_Items/HabitatBuilder"
+  },
+  "DA_CyanGlowstick_ItemType": {
+    "name": "Cyan Glowstick"
+  },
+  "DA_Disperser_ItemType": {
+    "name": "Disperser"
+  },
+  "DA_Flares_ItemType": {
+    "text_id": "ST_Items/Flare"
+  },
+  "DA_FlashLight_ItemType": {
+    "text_id": "ST_Flashlight/Flashlight"
+  },
+  "DA_FloatingLocker_ItemType": {
+    "name": "DO NOT USE - [Deprecated] Floating Locker"
+  },
+  "DA_Glowstick_ItemType": {
+    "text_id": "ST_Items/Glowstick"
+  },
+  "DA_Lightstick_ItemType": {
+    "text_id": "ST_Items/Lightstick"
+  },
+  "DA_RepairTool_ItemType": {
+    "text_id": "ST_RepairTool/RepairTool"
+  },
+  "DA_ScannerV2_ItemType": {
+    "text_id": "ST_Items/ScannerV2"
+  },
+  "DA_Scanner_ItemType": {
+    "text_id": "ST_Items/Scanner"
+  },
+  "DA_SonicResonatorV2_ItemType": {
+    "text_id": "ST_Items/SonicResonatorV2"
+  },
+  "DA_SonicResonator_ItemType": {
+    "text_id": "ST_Items/SonicResonator"
+  },
+  "DA_SurvivalMultiTool_ItemType": {
+    "text_id": "ST_Items/SurvivalMultitool"
+  },
+  "DA_Wakemaker_ItemType": {
+    "text_id": "ST_Items/Wakemaker"
+  },
+  "DA_Scrap_CicadaDebris_01a_Deconstructable_ItemType": {
+    "name": "Can be deconstructed"
+  },
+  "DA_Scrap_HydroElectricTurbine_Deconstructable_ItemType": {
+    "name": "Can be deconstructed"
+  },
+  "DA_Scrap_SolarPanel_Deconstructable_ItemType": {
+    "name": "Can be deconstructed"
+  },
+  "DA_Character_Ander": {
+    "text_id": "ST_CoralGardens_Databanks/Ander_title"
+  },
+  "DA_Character_Anita": {
+    "text_id": "ST_CoralGardens_Databanks/BlackBox_Anita_title"
+  },
+  "DA_Character_Audio": {
+    "text_id": "ST_Databank/Audio"
+  },
+  "DA_Character_BrokenPDA": {
+    "text_id": "ST_Databank/PDA"
+  },
+  "DA_Character_Chap": {
+    "text_id": "ST_CoralGardens_Databanks/Chap_title"
+  },
+  "DA_Character_Eddy": {
+    "text_id": "ST_CoralGardens_Databanks/Eddy_title"
+  },
+  "DA_Character_Ganzo": {
+    "text_id": "ST_CoralGardens_Databanks/Ganz_title"
+  },
+  "DA_Character_Gram": {
+    "text_id": "ST_CoralGardens_Databanks/Gram_title"
+  },
+  "DA_Character_IntroPDA": {
+    "name": "PDA"
+  },
+  "DA_Character_Iso": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Iso_title"
+  },
+  "DA_Character_Khutulun": {
+    "name": "Khutulun"
+  },
+  "DA_Character_Mantis": {
+    "text_id": "ST_CoralGardens_Databanks/Mantis_title"
+  },
+  "DA_Character_Mel": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Mel_title"
+  },
+  "DA_Character_Mogami": {
+    "text_id": "ST_CoralGardens_Databanks/Mogami_title"
+  },
+  "DA_Character_Nahema": {
+    "text_id": "ST_CoralGardens_Databanks/Nahema_title"
+  },
+  "DA_Character_NearbyPlayer": {
+    "name": "Player"
+  },
+  "DA_Character_Noa": {
+    "name": "Noa"
+  },
+  "DA_Character_Player": {
+    "name": "Player"
+  },
+  "DA_Character_Quaker": {
+    "text_id": "ST_CoralGardens_Databanks/Quaker_title"
+  },
+  "DA_Character_Raster": {
+    "text_id": "ST_CoralGardens_Databanks/Raster_title"
+  },
+  "DA_Character_ruby": {
+    "text_id": "ST_CoralGardens_Databanks/Ruby_title"
+  },
+  "DA_Character_Sean": {
+    "text_id": "ST_CoralGardens_Databanks/Sean_title"
+  },
+  "DA_Character_Singh": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Singh_title"
+  },
+  "DA_Character_Sophie": {
+    "text_id": "ST_CoralGardens_Databanks/Sophie_title"
+  },
+  "DA_Character_ThingOne": {
+    "text_id": "ST_CoralGardens_Databanks/ThingOne_title"
+  },
+  "DA_Character_ThingTwo": {
+    "text_id": "ST_CoralGardens_Databanks/ThingTwo_title"
+  },
+  "DA_Character_Tuba": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Tuba_title"
+  },
+  "DA_Character_Twinkle": {
+    "text_id": "ST_CoralGardens_Databanks/Twinkle_title"
+  },
+  "DA_Character_Unknown": {
+    "text_id": "ST_Databank/Unknown"
+  },
+  "DA_Character_Wander": {
+    "text_id": "ST_CoralGardens_Databanks/Wander_title"
+  },
+  "DA_Character_WelcomeCenterVoice": {
+    "name": "Recorded Voice"
+  },
+  "DA_Character_Wu": {
+    "text_id": "ST_CoralGardens_Databanks/Wu_title"
+  },
+  "DA_Character_Zip": {
+    "text_id": "ST_CoralGardens_Databanks/Zip_title"
+  },
+  "DA_TestSpeaker": {
+    "name": "Test Speaker"
+  },
+  "DA_StiltOrb_ScanData": {
+    "text_id": "ST_Databank_Sessile/StiltOrb"
+  },
+  "DA_BatteryV2_ScanData": {
+    "text_id": "ST_Items/AdvancedBattery"
+  },
+  "DA_Biosampler_ScanData": {
+    "name": "Biosampler Tool"
+  },
+  "DA_BlightParasite_ScanData": {
+    "text_id": "ST_BlightParasite/BloomParasite"
+  },
+  "DA_BlightSap_ScanData": {
+    "text_id": "ST_BlightSap/BloomSap"
+  },
+  "DA_BlightWall_ScanData": {
+    "text_id": "ST_BlightWeb/BloomBiofilm"
+  },
+  "DA_BrokenComputerCore_ScanData": {
+    "text_id": "ST_Buildables/NoaTerminal_damaged"
+  },
+  "DA_CG_Plateaus_ScanData": {
+    "name": "Plateaus"
+  },
+  "DA_Display_TimeOfDay_ScanData": {
+    "text_id": "ST_Buildables/DisplayTimeOfDay"
+  },
+  "DA_EssentialBlackboxScan_ScanData": {
+    "name": "Kurul-Rate Security Key"
+  },
+  "DA_Fins_ScanData": {
+    "text_id": "ST_BasicFins/Fins"
+  },
+  "DA_FirstBlackboxScan_ScanData": {
+    "name": "Security Key Fragment"
+  },
+  "DA_HalfRoundRoom_ScanData": {
+    "text_id": "ST_Buildables/RoomHalfRound"
+  },
+  "DA_ImprovedFins_ScanData": {
+    "text_id": "ST_Items/ImprovedFins"
+  },
+  "DA_KF_BulbKelp_ScanData": {
+    "name": "BulbKelp"
+  },
+  "DA_LabChair_ScanData": {
+    "text_id": "ST_Buildables/LabChair"
+  },
+  "DA_LargeAirTank_ScanData": {
+    "text_id": "ST_Items/UltraHighCapacityAirTank"
+  },
+  "DA_Lightstick_ScanData": {
+    "text_id": "ST_Items/Lightstick"
+  },
+  "DA_MapOfCGCicadaChunk_ScanData": {
+    "name": "Survey Room Signatures"
+  },
+  "DA_MultiPartBlackboxScan_ScanData": {
+    "name": "Blackbox Cluster Incident Analysis"
+  },
+  "DA_Observatory_Blockout_Exterior_ScanData": {
+    "name": "Tower Exterior"
+  },
+  "DA_PlayerSpaceSuit_ScanData": {
+    "name": "EVA Suit"
+  },
+  "DA_PowerCellV2_ScanData": {
+    "text_id": "ST_Items/PowerCellV2"
+  },
+  "DA_Rebreather_ScanData": {
+    "text_id": "ST_Rebreather/Rebreather"
+  },
+  "DA_RoomNook_ScanData": {
+    "text_id": "ST_Buildables/Nook"
+  },
+  "DA_ScanTestActor_ScanData": {
+    "name": "ScanTestActor"
+  },
+  "DA_SmallAirTank_ScanData": {
+    "text_id": "ST_Items/StandardAirTank"
+  },
+  "DA_SnapshotScreenPrototype02_ScanData": {
+    "name": "SnapshotScreen"
+  },
+  "DA_SnapshotScreenPrototype_ScanData": {
+    "name": "SnapshotScreen"
+  },
+  "DA_ZooScanExample_ScanData": {
+    "name": "Scan Example"
+  },
+  "DA_Basepiece_Aquafarm_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Aquafarm_title"
+  },
+  "DA_BasePiece_BatteryTerminal_ScanData": {
+    "text_id": "ST_Buildables/BaseBatteryTerminal"
+  },
+  "DA_BasePiece_BioBed_ScanData": {
+    "text_id": "ST_Buildables/Biobed"
+  },
+  "DA_BasePiece_Bioreactor_ScanData": {
+    "text_id": "ST_Buildables/Bioreactor"
+  },
+  "DA_BasePiece_CeilingLightSmall_ScanData": {
+    "text_id": "ST_Buildables/RectangularCeilingLight"
+  },
+  "DA_BasePiece_Corridor_ScanData": {
+    "text_id": "ST_Buildables/Corridor"
+  },
+  "DA_BasePiece_DiveElevator_ScanData": {
+    "text_id": "ST_DeployableElevator/DeployableElevator"
+  },
+  "DA_BasePiece_Fabricator_ScanData": {
+    "text_id": "ST_Buildables/Fabricator"
+  },
+  "DA_BasePiece_FloorLocker_ScanData": {
+    "text_id": "ST_Buildables/LockerFloor"
+  },
+  "DA_BasePiece_Hatch_ScanData": {
+    "text_id": "ST_Buildables/Hatch"
+  },
+  "DA_BasePiece_HullPlate_ScanData": {
+    "text_id": "ST_Buildables/HullPlate_title"
+  },
+  "DA_BasePiece_HydroelectricTurbine_ScanData": {
+    "text_id": "ST_Buildables/HydroelectricTurbine"
+  },
+  "DA_BasePiece_InteriorDoor_ScanData": {
+    "text_id": "ST_Buildables/DoorInterior"
+  },
+  "DA_BasePiece_InteriorWall_ScanData": {
+    "text_id": "ST_Buildables/InteriorWall"
+  },
+  "DA_BasePiece_MoonPool_ScanData": {
+    "text_id": "ST_Buildables/Moonpool"
+  },
+  "DA_BasePiece_NoATerminal_ScanData": {
+    "text_id": "ST_Buildables/NoATerminal"
+  },
+  "DA_BasePiece_PowerCapacitor_ScanData": {
+    "text_id": "ST_Buildables/PowerStorage"
+  },
+  "DA_BasePiece_PowerCellTerminal_ScanData": {
+    "text_id": "ST_Buildables/PowerCellTerminal"
+  },
+  "DA_BasePiece_PowerTransmitter_ScanData": {
+    "text_id": "ST_Buildables/PowerTransmitter"
+  },
+  "DA_BasePiece_Processor_ScanData": {
+    "text_id": "ST_Buildables/Processor"
+  },
+  "DA_BasePiece_ReaperStatue_ScanData": {
+    "text_id": "ST_Buildables/ReaperStatue"
+  },
+  "DA_BasePiece_RoofAntennaLarge_ScanData": {
+    "text_id": "ST_Buildables/RoofAntennaLarge"
+  },
+  "DA_BasePiece_RoofAntenna_ScanData": {
+    "text_id": "ST_Buildables/RoofAntenna"
+  },
+  "DA_BasePiece_RoofCylinder_ScanData": {
+    "text_id": "ST_Buildables/RoofCylinder"
+  },
+  "DA_BasePiece_RoofListeningDish_ScanData": {
+    "text_id": "ST_Buildables/RoofSonar"
+  },
+  "DA_BasePiece_RoofPanelLarge_ScanData": {
+    "text_id": "ST_Buildables/RoofPanelLarge"
+  },
+  "DA_BasePiece_RoofPumpDouble_ScanData": {
+    "text_id": "ST_Buildables/RoofPumpDouble"
+  },
+  "DA_BasePiece_RoofPump_ScanData": {
+    "text_id": "ST_Buildables/RoofPump"
+  },
+  "DA_BasePiece_Room_ScanData": {
+    "text_id": "ST_Buildables/Room"
+  },
+  "DA_BasePiece_ScannerStationLR_ScanData": {
+    "text_id": "ST_Buildables/ScannerStationLongRange"
+  },
+  "DA_BasePiece_ScannerStationSR_ScanData": {
+    "text_id": "ST_Buildables/ScannerStationLongRange"
+  },
+  "DA_BasePiece_Seamoth_ScanData": {
+    "text_id": "ST_Buildables/SeaMothStatue_title"
+  },
+  "DA_BasePiece_SingleBed_ScanData": {
+    "text_id": "ST_Buildables/SingleBed"
+  },
+  "DA_BasePiece_SolarPanel_ScanData": {
+    "text_id": "ST_Buildables/SolarPanel"
+  },
+  "DA_BasePiece_Spotlight_ScanData": {
+    "text_id": "ST_Buildables/Spotlight"
+  },
+  "DA_BasePiece_ThermalPlant_ScanData": {
+    "text_id": "ST_Buildables/ThermalPlant"
+  },
+  "DA_BasePiece_VehicleFabricator_ScanData": {
+    "text_id": "ST_Buildables/VehicleFabricator"
+  },
+  "DA_BasePiece_WallLightExterior_ScanData": {
+    "text_id": "ST_Buildables/ExteriorWallLight"
+  },
+  "DA_BasePiece_WallLocker_ScanData": {
+    "text_id": "ST_Buildables/LockerWall"
+  },
+  "DA_BasePiece_WallPanel_ScanData": {
+    "text_id": "ST_Buildables/WallPanel"
+  },
+  "DA_BasePiece_WallUnitLarge_ScanData": {
+    "text_id": "ST_Buildables/WallUnitLarge"
+  },
+  "DA_BasePiece_WallUnitSmall_ScanData": {
+    "text_id": "ST_Buildables/WallUnitSmall"
+  },
+  "DA_BasePiece_WallVentLarge_ScanData": {
+    "text_id": "ST_Buildables/WallVentLarge"
+  },
+  "DA_BasePiece_WallVent_ScanData": {
+    "text_id": "ST_Buildables/WallVent"
+  },
+  "DA_BasePiece_Window_ScanData": {
+    "text_id": "ST_Buildables/Window"
+  },
+  "DA_BioLab_Fragment_ScanData": {
+    "text_id": "ST_Buildables/Biolab"
+  },
+  "DA_BiosamplerDispenser_ScanData": {
+    "name": "Biosampler Dispenser"
+  },
+  "DA_Ch2_CGP_DestroyedBiobed_ScanData": {
+    "text_id": "ST_Buildables/Biobed"
+  },
+  "DA_CurrentGenerator_ScanData": {
+    "text_id": "ST_Buildables/CurrentRing"
+  },
+  "DA_DiningChair_ScanData": {
+    "text_id": "ST_Buildables/DiningChair"
+  },
+  "DA_DiningTable_ScanData": {
+    "text_id": "ST_Buildables/DiningTable"
+  },
+  "DA_FloorLight_Bulb_ScanData": {
+    "text_id": "ST_Buildables/RectangularCeilingLight"
+  },
+  "DA_Foundation_ScanData": {
+    "text_id": "ST_Buildables/FoundationStandard"
+  },
+  "DA_Interior_LightWall_ScanData": {
+    "text_id": "ST_Buildables/WallLightSmall"
+  },
+  "DA_Interior_ModificationStation_ScanData": {
+    "text_id": "ST_ModificationStation/ModificationStation"
+  },
+  "DA_MedkitDispenser_ScanData": {
+    "text_id": "ST_Buildables/MedkitFabricator"
+  },
+  "DA_PowerCell_ScanData": {
+    "text_id": "ST_Items/PowerCell"
+  },
+  "DA_Shelf_S_A_ScanData": {
+    "text_id": "ST_Buildables/SShelf"
+  },
+  "DA_Stabilizer_ScanData": {
+    "name": "Stabilizer"
+  },
+  "DA_Stool_ScanData": {
+    "text_id": "ST_Buildables/Stool"
+  },
+  "DA_TrashCan_ScanData": {
+    "text_id": "ST_Buildables/Trashcan"
+  },
+  "DA_VehicleBayScan_ScanData": {
+    "text_id": "ST_Buildables/VehicleBay"
+  },
+  "DA_AxumPlanter01a_ScanData": {
+    "text_id": "ST_Buildables/AxumPlanterUnknown"
+  },
+  "DA_AxumPowerFoundation_ScanData": {
+    "text_id": "ST_Buildables/FoundationPowerUnknown"
+  },
+  "DA_AxumSeat_ScanData": {
+    "text_id": "ST_Buildables/AxumSeatUnknown"
+  },
+  "DA_AxumStreetLamp_ScanData": {
+    "text_id": "ST_Buildables/AxumStreetLampUnknown"
+  },
+  "DA_AxumTrashCan_ScanData": {
+    "text_id": "ST_Buildables/AxumTrashcanUnknown"
+  },
+  "DA_AxumWallLamp_ScanData": {
+    "text_id": "ST_Buildables/AxumWallLampUnknown"
+  },
+  "DA_Axum_Drum_ScanData": {
+    "text_id": "ST_Buildables/AxumDrum"
+  },
+  "DA_Axum_Jar_ScanData": {
+    "text_id": "ST_Buildables_Axum/AxumJar"
+  },
+  "DA_Axum_Jar_Small_ScanData": {
+    "text_id": "ST_Buildables_Axum/AxumJarSmall"
+  },
+  "DA_Axum_Jar_Tall_ScanData": {
+    "text_id": "ST_Buildables_Axum/AxumJarTall"
+  },
+  "DA_Axum_TreeRelic_ScanData": {
+    "text_id": "ST_Buildables_Axum/AxumTreeRelic"
+  },
+  "DA_Tailing_Barrel_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingBarrel"
+  },
+  "DA_Tailing_Chest_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingChest"
+  },
+  "DA_Tailing_Jar_Coral_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoral"
+  },
+  "DA_Tailing_Jar_Coral_Small_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingJarCoralSmall"
+  },
+  "DA_Tailing_Jar_Hanging_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingJarHanging"
+  },
+  "DA_Tailing_Jar_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingJar"
+  },
+  "DA_Tailing_Rug_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingRug"
+  },
+  "DA_Tailing_Table_ScanData": {
+    "text_id": "ST_Buildables_Axum/TailingTable"
+  },
+  "DA_BasePiece_Community01Poster_ScanData": {
+    "text_id": "ST_Buildables/PosterCommunity01_Subtitle02"
+  },
+  "DA_BasePiece_Community02Poster_ScanData": {
+    "text_id": "ST_Buildables/PosterCommunity02"
+  },
+  "DA_BasePiece_KeepCalmPoster_ScanData": {
+    "text_id": "ST_Buildables/PosterKeepCalm"
+  },
+  "DA_BasePiece_Poster_PioneerProgram_ScanData": {
+    "text_id": "ST_Buildables/PosterPioneerProgram"
+  },
+  "DA_Poster_KeepSwimming_ScanData": {
+    "text_id": "ST_Buildables/Poster01"
+  },
+  "DA_Poster_PaintedTree_ScanData": {
+    "text_id": "ST_Buildables/PaintedTreePosterDescription"
+  },
+  "DA_Poster_Reprinting_ScanData": {
+    "text_id": "ST_Buildables/Poster02"
+  },
+  "DA_Poster_ScoutRay_ScanData": {
+    "text_id": "ST_Buildables/Poster03"
+  },
+  "DA_Poster_Zezura_01_ScanData": {
+    "text_id": "ST_Buildables/Poster04"
+  },
+  "DA_Poster_Zezura_02_ScanData": {
+    "text_id": "ST_Buildables/Poster05"
+  },
+  "DA_OR_BuilderProject_ScanData": {
+    "text_id": "ST_Ruins_Databanks/PowerPlantComponent1_title"
+  },
+  "DA_BasePiece_CarryableWallRack_ScanData": {
+    "text_id": "ST_WallRack/CarryableWallRack"
+  },
+  "DA_HeavyFloatingLockerCarryable_ScanData": {
+    "name": "HeavyFloatingLoackerCarryable"
+  },
+  "DA_OxygenGeneratorCarryable_ScanData": {
+    "text_id": "ST_OxygenGenerator_Carryable/OxygenGenerator"
+  },
+  "DA_PowerCellBankCarryable_ScanData": {
+    "name": "PowerCellBankCarryable"
+  },
+  "DA_SuperHeavyFloatingLockerCarryable_ScanData": {
+    "name": "SuperHeavyFloatingLoackerCarryable"
+  },
+  "DA_WorkLightCarryable_ScanData": {
+    "text_id": "ST_WorkLight_Carryable/WorkLight"
+  },
+  "DA_BlackBox_Investigation_Anita_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/BlackBox_Anita_title"
+  },
+  "DA_BlackBox_Investigation_Chap_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Chap_title"
+  },
+  "DA_BlackBox_Investigation_Quaker_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Quaker_title"
+  },
+  "DA_BlackBox_Investigation_Ruby_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Ruby_title"
+  },
+  "DA_BlackBox_Investigation_Wander_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Wander_title"
+  },
+  "DA_CoralGardens_TailingsVillage_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/TailingsVillage_title"
+  },
+  "DA_AnemoneCrab_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_AnemoneCrab_title"
+  },
+  "DA_Awnworm_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_Awnworm_title"
+  },
+  "DA_Bullethead_ScanData": {
+    "text_id": "ST_Databank_Motile/Bullethead"
+  },
+  "DA_Cerathecan_ScanData1": {
+    "text_id": "ST_Ruins_Databanks/Motile_Cerathecan_title"
+  },
+  "DA_Clamthulu_ScanData": {
+    "text_id": "ST_Databank_Motile/GreatJaw"
+  },
+  "DA_CollectorLeviathan_ScanData1": {
+    "text_id": "ST_Databank_Motile/CollectorLeviathan"
+  },
+  "DA_CoralCrab_ScanData": {
+    "text_id": "ST_Databank_Motile/CoralCrab"
+  },
+  "DA_CoralDome_ScanData": {
+    "text_id": "ST_Databank_Sessile/CoralDome"
+  },
+  "DA_CoralShard_ScanData": {
+    "text_id": "ST_Databank_Sessile/CoralShard"
+  },
+  "DA_DeadCoralCrab_ScanData": {
+    "text_id": "ST_HardcodedStringReplacementPass_M31/DA_DeadCoralCrab_ScanData_Name"
+  },
+  "DA_Deepwing_ScanData1": {
+    "text_id": "ST_Ruins_Databanks/Motile_DeepwingBrooder_title"
+  },
+  "DA_DefenderVep_ScanData": {
+    "text_id": "ST_Databank_Motile/VepsDefender"
+  },
+  "DA_ElectricGeordie_ScanData": {
+    "text_id": "ST_Databank_Motile/ElectricGeordie"
+  },
+  "DA_EpicureanSymbiote_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_EpicureanParasite_title"
+  },
+  "DA_Epicurean_ScanData1": {
+    "text_id": "ST_Ruins_Databanks/Motile_Epicurean_title"
+  },
+  "DA_FlashFish_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_Flashslug_title"
+  },
+  "DA_FourEye_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_Foureye_title"
+  },
+  "DA_Geordie_ScanData": {
+    "text_id": "ST_Databank_Motile/Geordie"
+  },
+  "DA_HalfmoonHeatVariant_ScanData": {
+    "name": "Heat Halfmoon"
+  },
+  "DA_HalfmoonVariant01_ScanData": {
+    "text_id": "ST_Databank_Motile/Harvestmoon"
+  },
+  "DA_HalfmoonVariant02_ScanData": {
+    "text_id": "ST_Databank_Motile/Bluemoon"
+  },
+  "DA_Halfmoon_ScanData": {
+    "text_id": "ST_Databank_Motile/Halfmoon"
+  },
+  "DA_HammerheadHeatVariant_ScanData": {
+    "name": "Heat Hammerhead"
+  },
+  "DA_Hammerhead_ScanData": {
+    "text_id": "ST_Databank_Motile/Hammerhead"
+  },
+  "DA_Houndgar_ScanData": {
+    "text_id": "ST_Databank_Motile/Houndgar"
+  },
+  "DA_Jellyfisher_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_Jellyfisher_title"
+  },
+  "DA_JellyRing_ScanData": {
+    "text_id": "ST_Databank_Motile/JellyRing"
+  },
+  "DA_Jetocaris_ScanData": {
+    "text_id": "ST_Databank_Motile/Jetocaris"
+  },
+  "DA_MarrowbreachHeatVariant_ScanData": {
+    "name": "Heat Marrowbreach"
+  },
+  "DA_Marrowbreach_ScanData": {
+    "text_id": "ST_Databank_Motile/Marrowbreach"
+  },
+  "DA_MegaJelly_ScanData": {
+    "text_id": "ST_Databank_Motile/BFJ"
+  },
+  "DA_NeedlerShark_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_NeedlerShark_title"
+  },
+  "DA_NibblerMango_ScanData": {
+    "text_id": "ST_Databank_Motile/Nibbler"
+  },
+  "DA_Pneumo_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_Pneumo_title"
+  },
+  "DA_Quadrate_ScanData": {
+    "text_id": "ST_Databank_Motile/Quadrate"
+  },
+  "DA_Sandspear_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_Sandspear_title"
+  },
+  "DA_SeaOlive_ScanData": {
+    "text_id": "ST_Databank_Motile/Halfmoon"
+  },
+  "DA_SensorVep_ScanData": {
+    "text_id": "ST_Databank_Motile/VepsSensor"
+  },
+  "DA_SpineyTailVariant01_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_SpineyTail_title"
+  },
+  "DA_SpineyTail_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Motile_SpineyTail_title"
+  },
+  "DA_SurgeJelly_ScanData": {
+    "text_id": "ST_Databank_Motile/SurgeJelly"
+  },
+  "DA_TwinEels_ScanData1": {
+    "text_id": "ST_Ruins_Databanks/Motile_TwinSitaray_title"
+  },
+  "DA_VepEggTestData": {
+    "name": "Vep Egg Test"
+  },
+  "DA_VoidLeviathan_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Motile_VoidLeviathan_title"
+  },
+  "DA_Waterslug_ScanData": {
+    "text_id": "ST_Databank_Motile/WaterSlug"
+  },
+  "DA_Waxmoon_ScanData": {
+    "text_id": "ST_Databank_Motile/Waxmoon"
+  },
+  "DA_AcidSponge_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_AcidSponge_title"
+  },
+  "DA_AeroshellSponge_ScanData": {
+    "text_id": "ST_Databank_Sessile/AeroshellSponge"
+  },
+  "DA_AirKelp_ScanData": {
+    "name": "Aero Kelp"
+  },
+  "DA_AmphoraSponge_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_AmphoraSponge_title"
+  },
+  "DA_AnemoneTower_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_AmemoneTower_title"
+  },
+  "DA_AngelComb_Juvenile_ScanData": {
+    "text_id": "ST_BlightNode/AngelCombJuvenile"
+  },
+  "DA_AngelComb_ScanData": {
+    "text_id": "ST_BlightCore/AngelComb"
+  },
+  "DA_AsterSponge_ScanData": {
+    "text_id": "ST_Databank_Sessile/AsterScyllid"
+  },
+  "DA_BlightCanker_Closed_ScanData": {
+    "text_id": "ST_BlightCanker/BloomCanker"
+  },
+  "DA_BlightCanker_HotLab_ScanData": {
+    "text_id": "ST_BlightCanker/BloomCanker"
+  },
+  "DA_BlightCanker_ScanData": {
+    "text_id": "ST_BlightCanker/BloomCanker"
+  },
+  "DA_BlightCore_Remediated_ScanData": {
+    "text_id": "ST_BlightCore/AngelComb"
+  },
+  "DA_BlightCore_ScanData": {
+    "text_id": "ST_BlightCore/BloomCore"
+  },
+  "DA_BlightNode_ScanData": {
+    "text_id": "ST_BlightNode/BloomNode"
+  },
+  "DA_BoaKelp_ScanData": {
+    "text_id": "ST_Databank_Sessile/JellyLei"
+  },
+  "DA_BranchingCoral_ScanData": {
+    "text_id": "ST_Databank_Sessile/BranchingCoral"
+  },
+  "DA_BrownTubeSponge_ScanData": {
+    "text_id": "ST_Databank_Sessile/ApocalypseSponge"
+  },
+  "DA_CabbageShootroot_ScanData": {
+    "text_id": "ST_Databank_Sessile/CabbageShootroot"
+  },
+  "DA_CageGorgon_ScanData": {
+    "text_id": "ST_Databank_Sessile/CageGorgon"
+  },
+  "DA_CherimoyaRotsac_ScanData": {
+    "text_id": "ST_Databank_Sessile/CherimoyaRotsac"
+  },
+  "DA_CradleShootroot_ScanData": {
+    "text_id": "ST_Databank_Sessile/CradleShootroot"
+  },
+  "DA_CurtainTunic_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_CurtainTunic_title"
+  },
+  "DA_DanglingSalp_ScanData": {
+    "text_id": "ST_Databank_Sessile/DanglingSalp"
+  },
+  "DA_DonutNoWorms_ScanData": {
+    "text_id": "ST_Databank_Sessile/DonutNoWorms"
+  },
+  "DA_DonutofWorms_ScanData": {
+    "text_id": "ST_Databank_Sessile/DonutofWorms"
+  },
+  "DA_FalseFissionDrum_ScanData": {
+    "text_id": "ST_Databank_Sessile/FalseFissionDrum"
+  },
+  "DA_FeatherKelp_ScanData": {
+    "text_id": "ST_HardcodedStringReplacementPass_M31/DA_FeatherKelp_ScanData_Name"
+  },
+  "DA_FernKelp_ScanData": {
+    "name": "Fern Kelp"
+  },
+  "DA_FlagonSpraion_ScanData": {
+    "text_id": "ST_Databank_Sessile/FlagonSpraion"
+  },
+  "DA_GlowLettuce_ScanData": {
+    "text_id": "ST_Databank_Sessile/FridgeWorm"
+  },
+  "DA_HecatonTunic_ScanData": {
+    "text_id": "ST_Databank_Sessile/HecatatonTunic"
+  },
+  "DA_HiHat_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_HiHat_title"
+  },
+  "DA_LampShootroot_ScanData": {
+    "text_id": "ST_Databank_Sessile/LampShootroot"
+  },
+  "DA_MacaronSponge_ScanData": {
+    "text_id": "ST_Databank_Sessile/MacaronSponge"
+  },
+  "DA_MimicPylon_ScanData": {
+    "text_id": "ST_Databank_Sessile/MimicPylon"
+  },
+  "DA_OxygenTunic_ScanData": {
+    "text_id": "ST_Databank_Sessile/OxygenTunic"
+  },
+  "DA_PeacockRaion_ScanData": {
+    "text_id": "ST_Databank_Sessile/PeacockRaion"
+  },
+  "DA_PebbledSporal_ScanData": {
+    "text_id": "ST_Databank_Sessile/PebbledSporal"
+  },
+  "DA_Pent_ScanData": {
+    "text_id": "ST_Databank_Sessile/Pent"
+  },
+  "DA_PlateCoral_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_PlateCoral_title"
+  },
+  "DA_PoisonTubeCluster_ScanData": {
+    "text_id": "ST_Databank_Sessile/PoisonTubeCluster"
+  },
+  "DA_SeaGrass_ScanData": {
+    "name": "Sea Grass"
+  },
+  "DA_SeaWhip_ScanData": {
+    "text_id": "ST_Databank_Sessile/WhipGorgon"
+  },
+  "DA_Sporal_ScanData": {
+    "text_id": "ST_Ruins_Databanks/TBD"
+  },
+  "DA_Tallshroom_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_Tallshroom_title"
+  },
+  "DA_TripeBowlRaion_ScanData": {
+    "text_id": "ST_Databank_Sessile/TripeBowlRaion"
+  },
+  "DA_TypeRaion_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_TypeRaion_title"
+  },
+  "DA_WortWort_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_WortWort_title"
+  },
+  "DA_YellowSporal_ScanData": {
+    "name": "Yellow Sporal"
+  },
+  "DA_YellowTubeSponge_ScanData": {
+    "text_id": "ST_Databank_Sessile/JackSponge"
+  },
+  "DA_AcidRaion_ScanData": {
+    "text_id": "ST_Databank_Sessile/AcidRaion"
+  },
+  "DA_AirFruit_ScanData": {
+    "name": "Aero Cyst"
+  },
+  "DA_Atacamite_ScanData": {
+    "text_id": "ST_Resources/Atacamite"
+  },
+  "DA_AxumAlloyIngot_ScanData": {
+    "text_id": "ST_Items/AxumIngot"
+  },
+  "DA_AxumRebar_ScanData": {
+    "name": "Axum Rebar"
+  },
+  "DA_Celestine_ScanData": {
+    "text_id": "ST_Celestine/Celestine"
+  },
+  "DA_Copper_ScanData": {
+    "text_id": "ST_Copper/Copper"
+  },
+  "DA_DeepRootResource_ScanData": {
+    "text_id": "ST_Resources/DeepRootResource"
+  },
+  "DA_Enamel_ScanData": {
+    "text_id": "ST_Resources/Enamel"
+  },
+  "DA_FerrofluidCrystal_ScanData": {
+    "name": "Ferrofluid Crystal"
+  },
+  "DA_Fordite_ScanData": {
+    "name": "Fordite"
+  },
+  "DA_FreesiaPlant_ScanData": {
+    "text_id": "ST_Databank_Sessile/Freesia"
+  },
+  "DA_Fulgurite_ScanData": {
+    "text_id": "ST_Items/ConduitCrystal"
+  },
+  "DA_GatewayCrystal_ScanData": {
+    "text_id": "ST_Ruins_Databanks/GatewaySpire"
+  },
+  "DA_GatewaySpire_ScanData": {
+    "text_id": "ST_Ruins_Databanks/GatewaySpire"
+  },
+  "DA_Germanium_ScanData": {
+    "text_id": "ST_Resources/Germanium"
+  },
+  "DA_Gold_ScanData": {
+    "text_id": "ST_Gold/Gold"
+  },
+  "DA_Lead_ScanData": {
+    "text_id": "ST_Lead/Lead"
+  },
+  "DA_Lithium_ScanData": {
+    "text_id": "ST_Lithium/Lithium"
+  },
+  "DA_LuciferRotsac_ScanData": {
+    "text_id": "ST_Databank_Sessile/LuciferRotsac"
+  },
+  "DA_MetalSalvage_ScanData": {
+    "text_id": "ST_Items/MetalSalvage"
+  },
+  "DA_NeedlerSHarkNeedle_ScanData": {
+    "text_id": "ST_HardcodedStringReplacementPass_M31/DA_NeedleSharkNeedleDeposit_ResonatableData_Name"
+  },
+  "DA_Nickel_ScanData": {
+    "text_id": "ST_Resources/Nickel"
+  },
+  "DA_NutrientBlock_ScanData": {
+    "text_id": "ST_Items/NutrientBlock"
+  },
+  "DA_PlantMatter_ScanData": {
+    "text_id": "ST_Items/Fiber"
+  },
+  "DA_Plasteel_ScanData": {
+    "text_id": "ST_Items/PlasteelIngot"
+  },
+  "DA_PuddingUrchin_ScanData": {
+    "name": "Pudding Urchin"
+  },
+  "DA_Quartz_ScanData": {
+    "text_id": "ST_Quartz/Quartz"
+  },
+  "DA_Resource_BioMass_ScanData": {
+    "name": "Organic Matter"
+  },
+  "DA_Salt_ScanData": {
+    "text_id": "ST_Resources/Salt"
+  },
+  "DA_SensorPod_ScanData": {
+    "text_id": "ST_Buildables/SensorPod"
+  },
+  "DA_Silver_ScanData": {
+    "text_id": "ST_Silver/Silver"
+  },
+  "DA_Strontium_ScanData": {
+    "text_id": "ST_Resources/Strontium"
+  },
+  "DA_Sulfur_ScanData": {
+    "text_id": "ST_Resources/Sulfur"
+  },
+  "DA_Titanium_ScanData": {
+    "text_id": "ST_Titanium/Titanium"
+  },
+  "DA_TitanRockbore_Scandata": {
+    "text_id": "ST_WorldTreeRoot/TitanRockbore"
+  },
+  "DA_Troilite_ScanData": {
+    "text_id": "ST_Resources/Troilite"
+  },
+  "DA_VepJellyTestData": {
+    "name": "Vep Jelly Test"
+  },
+  "DA_ArchitectLanguage_ScanData": {
+    "text_id": "ST_Ruins_Databanks/AxumGlyph_title"
+  },
+  "DA_Farms_BlackBox_Zip_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Blackbox_Zip_Title"
+  },
+  "DA_MetalFarming_ScanData": {
+    "text_id": "ST_Buildables/MetalFarm"
+  },
+  "DA_Needler_BlackBox_Ruby_ScanData": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Ruby_title"
+  },
+  "DA_NewLanguage_ScanData": {
+    "text_id": "ST_Ruins_Databanks/AxumGlyph_title"
+  },
+  "DA_Observatory_ClimateLab_ScanData": {
+    "text_id": "ST_Ruins_Databanks/ClimateLab_title"
+  },
+  "DA_Observatory_Door_ScanData": {
+    "text_id": "ST_Ruins_Databanks/AxumDoor_title"
+  },
+  "DA_Observatory_Orrery_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Orrery_title"
+  },
+  "DA_Observatory_RosettaStone_ScanData": {
+    "text_id": "ST_Ruins_Databanks/RosettaStone_title"
+  },
+  "DA_Observatory_ScanData": {
+    "text_id": "ST_Ruins_Databanks/Observatory_title"
+  },
+  "DA_PowerBlightCore_BlackBox_Anita_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/BlackBox_Anita_title"
+  },
+  "DA_PowerPlantComponent_ScanData": {
+    "text_id": "ST_Ruins_Databanks/PowerPlantComponent1_title"
+  },
+  "DA_PowerPlantNeedle_ScanData": {
+    "text_id": "ST_Ruins_Databanks/PowerPlantNeedle_title"
+  },
+  "DA_PowerPlantSuperStructure_ScanData": {
+    "text_id": "ST_Ruins_Databanks/PowerPlant_title"
+  },
+  "DA_PowerPlantUpperControlRoom_ScanData": {
+    "text_id": "ST_Ruins_Databanks/PowerPlantUpperControlRoom_title"
+  },
+  "DA_Wreck2A_BlackBox_Mel_ScanData": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Mel_title"
+  },
+  "DA_Wreck2A_BlackBox_Singh_ScanData": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Singh_title"
+  },
+  "DA_Wreck2B_BlackBox_Tuba_ScanData": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Tuba_title"
+  },
+  "DA_Wreck_SuperScanner_BlackBox_Iso_ScanData": {
+    "text_id": "ST_Ruins_Databanks/BlackBox_Iso_title"
+  },
+  "DA_WelcomeCenterDisplayA_ScanData": {
+    "text_id": "ST_HardcodedStringReplacementPass_M31/DA_WelcomeCenterDisplayA_ScanData"
+  },
+  "DA_BlackBox_DeepCave_Ander_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Ander_title"
+  },
+  "DA_BlackBox_DeepCave_Eddy_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Eddy_title"
+  },
+  "DA_BlackBox_DeepCave_Ganz_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Ganz_title"
+  },
+  "DA_BlackBox_DeepCave_Gram_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Gram_title"
+  },
+  "DA_BlackBox_DeepCave_Raster_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Raster_title"
+  },
+  "DA_BlackBox_DeepCave_Rho_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Rowboat_title"
+  },
+  "DA_BlackBox_DeepCave_Sean_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Sean_title"
+  },
+  "DA_BlackBox_DeepCave_Twinkle_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Twinkle_title"
+  },
+  "DA_BlackBox_DeepCave_Wander_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Wander_title"
+  },
+  "DA_BlackBox_DeepCave_Zip_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Zip_title"
+  },
+  "DA_CampOne_BlackBoxTubaJubilee_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Tuba_title"
+  },
+  "DA_BlightLab_Experiment1_ScanData": {
+    "text_id": "ST_CrewGlyphs_Ch2_Plateaus/Bloom_Specimen"
+  },
+  "DA_BlightLab_Experiment2_ScanData": {
+    "text_id": "ST_CrewGlyphs_Ch2_Plateaus/Bloom_Specimen"
+  },
+  "DA_Ch2_CGP_Blackbox_Chap_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Chap_title"
+  },
+  "DA_Ch2_CGP_Blackbox_Mantis_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Mantis_title"
+  },
+  "DA_Ch2_CGP_Blackbox_Mogami_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Mogami_title"
+  },
+  "DA_Ch2_CGP_Blackbox_Quaker_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Quaker_title"
+  },
+  "DA_Ch2_CGP_Blackbox_ThingTwo_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_ThingTwo_title"
+  },
+  "DA_Ch2_CGP_Blackbox_Wu_ScanData": {
+    "text_id": "ST_Databank_Human/Blackbox_Wu_title"
+  },
+  "DA_CrabTeratoma_ScanData": {
+    "text_id": "ST_CoralGardens_Databanks/Sessile_CrabTeratoma_title"
+  },
+  "DA_Salvage_RepairTool_01_ScanData": {
+    "text_id": "ST_Items/RepairTool"
+  },
+  "DA_Salvage_SonicResonator_01_ScanData": {
+    "text_id": "ST_Items/SonicResonator"
+  },
+  "DA_Salvage_Wakemaker_02_ScanData": {
+    "text_id": "ST_Items/Wakemaker"
+  },
+  "DA_Tools_AEPSuit_ScanData": {
+    "text_id": "ST_Items/AEPSuit_title"
+  },
+  "DA_Tools_AirBladder_ScanData": {
+    "text_id": "ST_Items/AirBladder"
+  },
+  "DA_Tools_BasicFirstAidKit_ScanData": {
+    "text_id": "ST_Items/BasicFirstAidKit"
+  },
+  "DA_Tools_Beacon_ScanData": {
+    "text_id": "ST_Beacon/Beacon_name"
+  },
+  "DA_Tools_DeployableLocker_ScanData": {
+    "text_id": "ST_FloatingLocker_Carryable/FloatingLocker"
+  },
+  "DA_Tools_Flare_ScanData": {
+    "text_id": "ST_Items/Glowstick"
+  },
+  "DA_Tools_Flashlight_ScanData": {
+    "text_id": "ST_Flashlight/Flashlight"
+  },
+  "DA_Tools_HabitatBuilder_ScanData": {
+    "text_id": "ST_Items/HabitatBuilder"
+  },
+  "DA_Tools_HandheldScanner_ScanData": {
+    "text_id": "ST_Items/Scanner"
+  },
+  "DA_Tools_ModdedResonator_ScanData": {
+    "text_id": "ST_Items/SonicResonatorV2"
+  },
+  "DA_Tools_PDA_ScanData": {
+    "text_id": "ST_Items/PDA_title"
+  },
+  "DA_Tools_RepairTool_ScanData": {
+    "text_id": "ST_Items/RepairTool"
+  },
+  "DA_Tools_SonicResonator_ScanData": {
+    "text_id": "ST_Items/SonicResonator"
+  },
+  "DA_Tools_SuperScanner_ScanData": {
+    "text_id": "ST_Items/ScannerV2"
+  },
+  "DA_Tools_SurvivalMultitool_ScanData": {
+    "text_id": "ST_Items/SurvivalMultitool"
+  },
+  "DA_Tools_Wakemaker_ScanData": {
+    "text_id": "ST_Items/WakemakerFragment"
+  },
+  "DA_ScanData_TadpoleMod_EngineEfficiency": {
+    "text_id": "ST_Items/TadpoleModificationEngineEfficiency"
+  },
+  "DA_Tadpole_HAUL_ScanData": {
+    "text_id": "ST_Vehicles/TadpoleHaul"
+  },
+  "DA_Tadpole_ScanData": {
+    "text_id": "ST_Vehicles/Tadpole"
+  },
+  "DA_Tadpole_ScoutRay_ScanData": {
+    "text_id": "ST_Vehicles/TadpoleScoutRay"
+  },
+  "DA_Tadpole_Fragment_ScanData": {
+    "text_id": "ST_Vehicles/TadpoleFragment"
+  },
+  "DA_Tadpole_HAUL_Fragment_ScanData": {
+    "text_id": "ST_Vehicles/TadpoleHaul"
+  },
+  "DA_Tadpole_ScoutRay_Fragment_ScanData": {
+    "text_id": "ST_Vehicles/TadpoleScoutRayFragment"
+  },
+  "DA_AlterraBases_ScannerStationFilter": {
+    "text_id": "ST_ScannerStation/AlterraBases"
+  },
+  "DA_Anomaly_ScannerStationFilter": {
+    "text_id": "ST_ScannerStation/Anomaly"
+  },
+  "DA_Blight_ScannerStationFilter": {
+    "text_id": "ST_ScannerStation/Blight"
+  },
+  "DA_CicadaDebris_ScannerStationFilter": {
+    "text_id": "ST_ScannerStation/CicadaDebris"
+  },
+  "DA_Copper_ScannerStationFilter": {
+    "text_id": "ST_Copper/Copper"
+  },
+  "DA_Gold_ScannerStationFilter": {
+    "text_id": "ST_Gold/Gold"
+  },
+  "DA_Lead_ScannerStationFilter": {
+    "text_id": "ST_Lead/Lead"
+  },
+  "DA_Lithium_ScannerStationFilter": {
+    "text_id": "ST_Lithium/Lithium"
+  },
+  "DA_Necrolei_ScannerStationFilter": {
+    "text_id": "ST_Resources/NecroleiEgg"
+  },
+  "DA_Quartz_ScannerStationFilter": {
+    "text_id": "ST_Quartz/Quartz"
+  },
+  "DA_Salt_ScannerStationFilter": {
+    "text_id": "ST_Resources/Salt"
+  },
+  "DA_Silver_ScannerStationFilter": {
+    "text_id": "ST_Silver/Silver"
+  },
+  "DA_Sulfur_ScannerStationFilter": {
+    "text_id": "ST_Resources/Sulfur"
+  },
+  "DA_Titanium_ScannerStationFilter": {
+    "text_id": "ST_Titanium/Titanium"
+  },
+  "DA_Upgrades_ScannerStationFilter": {
+    "text_id": "ST_ScannerStation/UpgradeTerminals"
+  },
+  "DA_Atacamite_ScannerStationFilter": {
+    "text_id": "ST_Resources/Atacamite"
+  },
+  "DA_AxumBioprintCulture_ScannerStationFilter": {
+    "text_id": "ST_Items/AxumBioprintCulture"
+  },
+  "DA_Celestine_ScannerStationFilter": {
+    "text_id": "ST_Celestine/Celestine"
+  },
+  "DA_ConduitCrystal_ScannerStationFilter": {
+    "text_id": "ST_Items/ConduitCrystal"
+  },
+  "DA_Enamel_ScannerStationFilter": {
+    "text_id": "ST_Resources/Enamel"
+  },
+  "DA_Freesia_ScannerStationFilter": {
+    "text_id": "ST_Databank_Sessile/Freesia"
+  },
+  "DA_Troilite_ScannerStationFilter": {
+    "text_id": "ST_Resources/Troilite"
+  }
+}

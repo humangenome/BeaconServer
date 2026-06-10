@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using BeaconServer.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -39,9 +40,11 @@ public sealed class BeaconHttpService : BackgroundService
 
     private readonly ILogger<BeaconHttpService> _log;
     private readonly BeaconServerOptions _opts;
+    private readonly IConfiguration _config;
     private readonly SaveOrchestratorService _saves;
     private readonly PipeServerState _pipeState;
     private readonly InstanceIdentityProvider _identity;
+    private readonly ChatService _chat;
     private readonly byte[] _authKey;
     private readonly SemaphoreSlim _requestLimiter = new(MaxConcurrentRequests, MaxConcurrentRequests);
     // Sliding window of signatures we've already accepted, so a captured
@@ -54,15 +57,19 @@ public sealed class BeaconHttpService : BackgroundService
     public BeaconHttpService(
         ILogger<BeaconHttpService> log,
         IOptions<BeaconServerOptions> opts,
+        IConfiguration config,
         SaveOrchestratorService saves,
         PipeServerState pipeState,
-        InstanceIdentityProvider identity)
+        InstanceIdentityProvider identity,
+        ChatService chat)
     {
         _log = log;
         _opts = opts.Value;
+        _config = config;
         _saves = saves;
         _pipeState = pipeState;
         _identity = identity;
+        _chat = chat;
         // The HTTP API auth secret is SHA256(RconPassword). Same trust tier
         // as RCON — if the customer has set an RCON password, they already
         // expose admin control of the world. Deriving from RconPassword
@@ -88,6 +95,7 @@ public sealed class BeaconHttpService : BackgroundService
 
         _listener = new HttpListener();
         _listener.Prefixes.Add($"http://+:{_opts.HttpPort}/api/v1/");
+        _listener.Prefixes.Add($"http://+:{_opts.HttpPort}/map/");
 
         try
         {
@@ -111,6 +119,7 @@ public sealed class BeaconHttpService : BackgroundService
             {
                 _listener = new HttpListener();
                 _listener.Prefixes.Add($"http://+:{_opts.HttpPort}/api/v1/");
+                _listener.Prefixes.Add($"http://+:{_opts.HttpPort}/map/");
                 _listener.Start();
                 _log.LogInformation("HTTP API bound to all interfaces on port {Port} after urlacl fix", _opts.HttpPort);
             }
@@ -125,6 +134,8 @@ public sealed class BeaconHttpService : BackgroundService
                 _listener = new HttpListener();
                 _listener.Prefixes.Add($"http://localhost:{_opts.HttpPort}/api/v1/");
                 _listener.Prefixes.Add($"http://127.0.0.1:{_opts.HttpPort}/api/v1/");
+                _listener.Prefixes.Add($"http://localhost:{_opts.HttpPort}/map/");
+                _listener.Prefixes.Add($"http://127.0.0.1:{_opts.HttpPort}/map/");
                 try { _listener.Start(); }
                 catch (Exception innerEx)
                 {
@@ -219,16 +230,41 @@ public sealed class BeaconHttpService : BackgroundService
         try
         {
             res.Headers["X-Beacon-Instance"] = _identity.InstanceId;
+            // The live web map is opened from a file:// / localhost origin (the
+            // launcher), so the browser needs CORS to read these JSON endpoints.
+            // ACAO does not bypass server-side auth — sensitive routes stay HMAC-gated.
+            res.Headers["Access-Control-Allow-Origin"] = "*";
+            if (method == "OPTIONS")
+            {
+                res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
+                res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
+                res.StatusCode = 204;
+                res.OutputStream.Close();
+                return;
+            }
 
             // Public endpoints
             if (method == "GET" && path == "/api/v1/health")
             {
-                await WriteJsonAsync(res, 200, new
+                var heartbeatTimeout = TimeSpan.FromSeconds(Math.Max(1, _opts.PluginHeartbeatTimeoutSeconds));
+                var pluginOnline = _pipeState.HasFreshHeartbeat(heartbeatTimeout);
+                int? heartbeatAgeSeconds = null;
+                if (_pipeState.LastHeartbeatAt is DateTimeOffset lastHeartbeat)
+                    heartbeatAgeSeconds = Math.Max(0, (int)(DateTimeOffset.UtcNow - lastHeartbeat).TotalSeconds);
+
+                await WriteJsonAsync(res, pluginOnline ? 200 : 503, new
                 {
-                    ok = true,
+                    ok = pluginOnline,
                     instance = _identity.InstanceId,
+                    server_name = string.IsNullOrWhiteSpace(_opts.ServerName) ? $"Beacon - {_identity.InstanceId}" : _opts.ServerName.Trim(),
                     beacon_version = BeaconVersionInfo.BeaconVersion,
                     sn2_build = BeaconVersionInfo.Sn2Build,
+                    gameplay_port = _opts.GameplayPort,
+                    query_port = _opts.QueryPort,
+                    max_players = _opts.MaxPlayers,
+                    player_count = _pipeState.EffectivePlayerCount,
+                    plugin_connected = _pipeState.Connection is not null,
+                    last_heartbeat_age_seconds = heartbeatAgeSeconds,
                 });
                 return;
             }
@@ -251,6 +287,208 @@ public sealed class BeaconHttpService : BackgroundService
                         ping_ms = p.PingMs > 0 ? p.PingMs : (int?)null,
                     }),
                 });
+                return;
+            }
+
+            if (method == "GET" && path == "/api/v1/manifest")
+            {
+                // Public — players need this before they have RconPassword,
+                // so HMAC is intentionally not enforced. Integrity rests on
+                // per-mod sha256 pins in the payload. Spec:
+                // protocol/manifest-v1.md.
+                //
+                // Read the Mods section fresh from IConfiguration so a
+                // hoster editing appsettings.json never needs a restart.
+                // ASP.NET Core's default appsettings provider has
+                // reloadOnChange=true so this picks up edits within seconds.
+                var mods = _config.GetSection("Beacon:Mods").Get<ModsOptions>() ?? new ModsOptions();
+                // Gate the in-game chat overlay on Beacon:Chat:Enabled (default
+                // true). When a hoster turns chat off, drop the beacon-hud entry
+                // from the published manifest so joining clients never install or
+                // load it — chat is off server-wide. Read fresh (reloadOnChange)
+                // so the toggle applies without a restart.
+                var chatEnabled = _config.GetValue<bool?>("Beacon:Chat:Enabled") ?? true;
+                var requiredMods = (mods.Required ?? new())
+                    .Where(m => chatEnabled || !string.Equals(m.Id, "beacon-hud", StringComparison.OrdinalIgnoreCase));
+                await WriteJsonAsync(res, 200, new
+                {
+                    manifest_version = 1,
+                    instance = _identity.InstanceId,
+                    server_name = string.IsNullOrWhiteSpace(_opts.ServerName) ? $"Beacon - {_identity.InstanceId}" : _opts.ServerName.Trim(),
+                    beacon_version = BeaconVersionInfo.BeaconVersion,
+                    generated_unix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                    required = requiredMods.Select(SerializeEntry),
+                    recommended = (mods.Recommended ?? new()).Select(SerializeEntry),
+                    blocked = (mods.Blocked ?? new()).Select(b => new
+                    {
+                        id = b.Id ?? "",
+                        reason = b.Reason ?? "",
+                    }),
+                });
+                return;
+            }
+
+            // ----- Live web map (protocol/map-v1.md) -----
+            //
+            // BeaconRoster Lua mod writes roster.json (player list +
+            // positions) every 5s and on K2_PostLogin/Logout.
+            // /api/v1/map/state projects that into the SPA's expected
+            // shape. Public when MapOptions.Public=true (community
+            // dashboards) or HMAC-authed (launcher / private use) —
+            // fall-through to the authed handler at the bottom of this
+            // method covers the private path. The /map/ SPA HTML is
+            // always public; if the state endpoint refuses the SPA's
+            // poll the page renders "map is private" rather than failing
+            // silently.
+
+            // The HttpListener only routes the "/map/" prefix here (prefixes
+            // must end in '/'), so every map asset arrives as /map/<path>.
+            if (method == "GET" && path.StartsWith("/map/", StringComparison.Ordinal))
+            {
+                if (!_opts.Map.Enabled)
+                {
+                    await WriteJsonAsync(res, 404, new { error = "map disabled" });
+                    return;
+                }
+                await ServeMapAssetAsync(res, path, ct).ConfigureAwait(false);
+                return;
+            }
+
+            if (method == "GET" && path == "/api/v1/map/state" && _opts.Map.Enabled && _opts.Map.Public)
+            {
+                await ServeMapStateAsync(res, ct).ConfigureAwait(false);
+                return;
+            }
+
+            if (method == "GET" && path == "/api/v1/map/state" && !_opts.Map.Enabled)
+            {
+                await WriteJsonAsync(res, 404, new { error = "map disabled" });
+                return;
+            }
+
+            // ----- Chat plane reads (protocol/chat-v1.md) -----
+            //
+            // Public on purpose. SN2 has no native chat, so the only thing
+            // that ever lands in the ring buffer is admin broadcast
+            // (RCON say/announce + HTTP /chat/say + scheduled warnings +
+            // MOTD). Everything in the stream is already shouted at every
+            // joined player, so a public read endpoint leaks nothing extra.
+            //
+            // The in-game BeaconHud overlay runs inside the player's SN2
+            // process and has no access to RconPassword, so HMAC would
+            // require shipping the secret to every client. If SN2 ever
+            // grows native chat or DMs, the public surface stays
+            // admin-broadcast-only and a separate authed /chat/recent/full
+            // can carry private channels.
+            if (method == "GET" && path == "/api/v1/chat/recent")
+            {
+                var sinceMs = ParseLongQuery(req.Url, "since", 0);
+                var limit = (int)ParseLongQuery(req.Url, "limit", 100);
+                var msgs = _chat.GetRecent(sinceMs, limit);
+                await WriteJsonAsync(res, 200, new
+                {
+                    version = 1,
+                    instance = _identity.InstanceId,
+                    now_ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    messages = msgs,
+                });
+                return;
+            }
+
+            if (method == "GET" && path == "/api/v1/chat/motd")
+            {
+                await WriteJsonAsync(res, 200, new
+                {
+                    instance = _identity.InstanceId,
+                    msg = _chat.GetMotd(),
+                });
+                return;
+            }
+
+            // ----- Public chat ingest from player overlays -----
+            //
+            // SN2 has no native chat. Players type into the BeaconHud overlay's
+            // ImGui InputText, the launcher relays the message here. Channel is
+            // forced to "player" and target to "all" by ChatService.
+            // BroadcastFromPlayer. Per-IP rate limit handled there.
+            //
+            // Body is bounded at 2 KB — bigger than any sensible chat message
+            // (the body itself caps at 512 bytes via NormalizeBody) but small
+            // enough that we can read it inline without the streaming buffer
+            // the authed routes use.
+            if (method == "POST" && path == "/api/v1/chat/player")
+            {
+                string rawBody;
+                try { rawBody = await ReadShortBodyAsync(req, maxBytes: 2048, ct).ConfigureAwait(false); }
+                catch (BodyTooLargeException)
+                {
+                    await WriteJsonAsync(res, 413, new { error = "payload too large" });
+                    return;
+                }
+                ChatPlayerRequest? plReq;
+                try
+                {
+                    plReq = JsonSerializer.Deserialize<ChatPlayerRequest>(rawBody, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                        PropertyNameCaseInsensitive = true,
+                    });
+                }
+                catch (JsonException)
+                {
+                    await WriteJsonAsync(res, 400, new { error = "invalid json" });
+                    return;
+                }
+                if (plReq is null || string.IsNullOrWhiteSpace(plReq.Msg))
+                {
+                    await WriteJsonAsync(res, 400, new { error = "msg required" });
+                    return;
+                }
+                var clientIp = req.RemoteEndPoint?.Address?.ToString() ?? "";
+                var entry = _chat.BroadcastFromPlayer(clientIp, plReq.Sender ?? "Player", plReq.Msg);
+                if (entry is null)
+                {
+                    await WriteJsonAsync(res, 429, new { error = "rate limited" });
+                    return;
+                }
+                await WriteJsonAsync(res, 200, new { ok = true, ts = entry.Ts });
+                return;
+            }
+
+            // Public: a connected launcher pushes its own player's world position
+            // for the live web map (the headless server can't read a remote
+            // player's position — they're simulated client-side). No HMAC, same
+            // trust model as /chat/player; positions expire server-side.
+            if (method == "POST" && path == "/api/v1/map/position")
+            {
+                string rawBody;
+                try { rawBody = await ReadShortBodyAsync(req, maxBytes: 1024, ct).ConfigureAwait(false); }
+                catch (BodyTooLargeException)
+                {
+                    await WriteJsonAsync(res, 413, new { error = "payload too large" });
+                    return;
+                }
+                MapPositionRequest? posReq;
+                try
+                {
+                    posReq = JsonSerializer.Deserialize<MapPositionRequest>(rawBody, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                        PropertyNameCaseInsensitive = true,
+                    });
+                }
+                catch (JsonException)
+                {
+                    await WriteJsonAsync(res, 400, new { error = "invalid json" });
+                    return;
+                }
+                if (posReq is null || string.IsNullOrWhiteSpace(posReq.Id))
+                {
+                    await WriteJsonAsync(res, 400, new { error = "id required" });
+                    return;
+                }
+                _pipeState.UpsertClientPosition(posReq.Id, posReq.Name ?? posReq.Id, posReq.X, posReq.Y, posReq.Z);
+                await WriteJsonAsync(res, 200, new { ok = true });
                 return;
             }
 
@@ -287,6 +525,21 @@ public sealed class BeaconHttpService : BackgroundService
                     query_port = _opts.QueryPort,
                     max_players = _opts.MaxPlayers,
                 });
+                return;
+            }
+
+            // Authed entry for /api/v1/map/state. If MapOptions.Public is
+            // set the public block above returned early; this branch handles
+            // launcher + dashboard clients that authenticate via HMAC.
+            if (method == "GET" && path == "/api/v1/map/state")
+            {
+                body.Dispose();
+                if (!_opts.Map.Enabled)
+                {
+                    await WriteJsonAsync(res, 404, new { error = "map disabled" });
+                    return;
+                }
+                await ServeMapStateAsync(res, ct).ConfigureAwait(false);
                 return;
             }
 
@@ -391,6 +644,37 @@ public sealed class BeaconHttpService : BackgroundService
                 var ok = await _saves.RestoreFromZipPathAsync(
                     body.TempPath, "http-api", "snapshot.import_restore", ct).ConfigureAwait(false);
                 body.Dispose();
+                await WriteJsonAsync(res, ok ? 200 : 500, new { ok });
+                return;
+            }
+
+            // ----- Chat plane writes (protocol/chat-v1.md) -----
+            // GET /chat/recent + GET /chat/motd live above the auth gate.
+            if (method == "POST" && path == "/api/v1/chat/say")
+            {
+                var sayReq = await ParseJsonBodyAsync<ChatSayRequest>(body, ct).ConfigureAwait(false);
+                body.Dispose();
+                if (sayReq is null || string.IsNullOrWhiteSpace(sayReq.Msg))
+                {
+                    await WriteJsonAsync(res, 400, new { error = "msg required" });
+                    return;
+                }
+                var entry = _chat.BroadcastFromServer(
+                    sayReq.Msg, sayReq.Channel, sayReq.Color, sayReq.Sender);
+                await WriteJsonAsync(res, 200, new { ok = true, ts = entry.Ts });
+                return;
+            }
+
+            if (method == "POST" && path == "/api/v1/chat/motd")
+            {
+                var motdReq = await ParseJsonBodyAsync<MotdRequest>(body, ct).ConfigureAwait(false);
+                body.Dispose();
+                if (motdReq is null)
+                {
+                    await WriteJsonAsync(res, 400, new { error = "json body required" });
+                    return;
+                }
+                var ok = _chat.SetMotd(motdReq.Msg ?? "");
                 await WriteJsonAsync(res, ok ? 200 : 500, new { ok });
                 return;
             }
@@ -609,4 +893,244 @@ public sealed class BeaconHttpService : BackgroundService
         res.ContentLength64 = bytes.Length;
         await res.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
     }
+
+    // Root of the vendored joric map app, copied to output as map/ by the
+    // BeaconServer.csproj Content glob.
+    private static readonly string MapRoot =
+        Path.Combine(AppContext.BaseDirectory, "map");
+
+    /// <summary>
+    /// Serves the vendored joric map SPA and its static assets under /map/.
+    /// /map/ and /map/index.html resolve to index.html; everything else maps
+    /// to a file under <see cref="MapRoot"/> with a path-traversal guard. The
+    /// SPA itself pulls tiles + libs from our GitHub Pages / CDN; only the live
+    /// player overlay polls this server's same-origin /api/v1/map/state.
+    /// </summary>
+    private async Task ServeMapAssetAsync(HttpListenerResponse res, string path, CancellationToken ct)
+    {
+        // Strip the "/map/" prefix; default to index.html for the bare dir.
+        var rel = path.Substring("/map/".Length);
+        if (rel.Length == 0 || rel.EndsWith('/'))
+            rel += "index.html";
+        rel = Uri.UnescapeDataString(rel).Replace('/', Path.DirectorySeparatorChar);
+
+        var full = Path.GetFullPath(Path.Combine(MapRoot, rel));
+        var rootFull = Path.GetFullPath(MapRoot) + Path.DirectorySeparatorChar;
+        if (!full.StartsWith(rootFull, StringComparison.Ordinal) || !File.Exists(full))
+        {
+            await WriteJsonAsync(res, 404, new { error = "not found" });
+            return;
+        }
+
+        res.StatusCode = 200;
+        res.ContentType = MapContentType(full);
+        // index.html stays fresh (live overlay wiring); hashed assets + data
+        // can cache briefly. Keep it simple: no-store for html, short for rest.
+        res.Headers["Cache-Control"] =
+            full.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ? "no-store" : "max-age=300";
+        var bytes = await File.ReadAllBytesAsync(full, ct).ConfigureAwait(false);
+        res.ContentLength64 = bytes.Length;
+        await res.OutputStream.WriteAsync(bytes, ct).ConfigureAwait(false);
+        res.OutputStream.Close();
+    }
+
+    private static string MapContentType(string path) =>
+        Path.GetExtension(path).ToLowerInvariant() switch
+        {
+            ".html" => "text/html; charset=utf-8",
+            ".js"   => "text/javascript; charset=utf-8",
+            ".css"  => "text/css; charset=utf-8",
+            ".json" => "application/json; charset=utf-8",
+            ".gz"   => "application/gzip",
+            ".webp" => "image/webp",
+            ".png"  => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".svg"  => "image/svg+xml",
+            ".woff2" => "font/woff2",
+            ".woff" => "font/woff",
+            ".ttf"  => "font/ttf",
+            _ => "application/octet-stream",
+        };
+
+    /// <summary>
+    /// Reads roster.json (written by the BeaconRoster Lua mod every 5s,
+    /// plus on K2_PostLogin/Logout) and projects it into the /api/v1/map/state
+    /// response shape. Position fields (X/Y/Z, world.name) are populated by
+    /// the same rescan that writes the player list, so map data is exactly
+    /// as fresh as the roster snapshot.
+    ///
+    /// Why not a separate map-state.json: UE5 dedicated SN2 with zero
+    /// connected players ticks at near-zero rate, so a 1Hz Lua LoopAsync
+    /// fires every 10+ min in idle state. Roster's 5s tick is the only
+    /// scheduler in the mod chain that catches both join (via K2_PostLogin
+    /// fast path) and movement (via active-engine tick when a player is
+    /// in-world), so we co-locate position publishing with it.
+    /// </summary>
+    private async Task ServeMapStateAsync(HttpListenerResponse res, CancellationToken ct)
+    {
+        // Players + freshness come from the in-memory pipe state, which the native
+        // plugin pushes on its wall-clock heartbeat thread (PlayerListSnapshot) — so
+        // the map survives the UE5 0-player engine-thread collapse that froze the old
+        // roster.json path. World name is read best-effort from roster.json (cheap
+        // side-channel; it rarely changes and isn't freshness-critical).
+        long unixMs = _pipeState.LastHeartbeatAt?.ToUnixTimeMilliseconds() ?? 0;
+        var stale = !_pipeState.HasFreshHeartbeat(TimeSpan.FromMilliseconds(_opts.Map.StaleAfterMs));
+
+        // Prefer client-reported positions (real world coords + the launcher's
+        // friendly name) — the headless server can't read remote-player positions
+        // itself. Fall back to the native roster (count + names at 0,0,0) when no
+        // launcher is pushing, so the endpoint is never empty while players are on.
+        var clientPos = _pipeState.RecentClientPositions(
+            TimeSpan.FromMilliseconds(Math.Max(_opts.Map.StaleAfterMs, 15000)));
+        object[] players;
+        if (clientPos.Count > 0)
+        {
+            players = clientPos.Select(p => (object)new
+            {
+                id    = p.Id,
+                name  = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name,
+                x     = p.X,
+                y     = p.Y,
+                z     = p.Z,
+                biome = "",
+            }).ToArray();
+        }
+        else
+        {
+            players = _pipeState.Players.Select(p => (object)new
+            {
+                id    = p.BeaconUserId,
+                name  = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName,
+                x     = p.PosX,
+                y     = p.PosY,
+                z     = p.PosZ,
+                biome = "",
+            }).ToArray();
+        }
+
+        string worldName = "";
+        var rosterPath = Path.Combine(AppContext.BaseDirectory, "roster.json");
+        if (File.Exists(rosterPath))
+        {
+            try
+            {
+                var body = await File.ReadAllTextAsync(rosterPath, ct).ConfigureAwait(false);
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("world", out var w) && w.ValueKind == JsonValueKind.Object
+                    && w.TryGetProperty("name", out var wn))
+                    worldName = wn.GetString() ?? "";
+            }
+            catch (Exception ex) when (ex is IOException or JsonException)
+            {
+                _log.LogDebug(ex, "roster.json world-name read failed for map state");
+            }
+        }
+
+        await WriteJsonAsync(res, 200, new
+        {
+            instance = _identity.InstanceId,
+            beacon_version = BeaconVersionInfo.BeaconVersion,
+            server_name = string.IsNullOrWhiteSpace(_opts.ServerName)
+                ? $"Beacon - {_identity.InstanceId}"
+                : _opts.ServerName.Trim(),
+            unix_ms = unixMs,
+            stale,
+            world = new { name = worldName },
+            players,
+        });
+    }
+
+    private static long ParseLongQuery(Uri? url, string key, long defaultValue)
+    {
+        if (url is null) return defaultValue;
+        var q = url.Query;
+        if (string.IsNullOrEmpty(q)) return defaultValue;
+        if (q[0] == '?') q = q[1..];
+        foreach (var pair in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = pair.IndexOf('=');
+            if (eq <= 0) continue;
+            if (!pair.AsSpan(0, eq).SequenceEqual(key.AsSpan())) continue;
+            var raw = Uri.UnescapeDataString(pair[(eq + 1)..]);
+            if (long.TryParse(raw, out var v)) return v;
+            return defaultValue;
+        }
+        return defaultValue;
+    }
+
+    private static async Task<T?> ParseJsonBodyAsync<T>(BufferedBody body, CancellationToken ct) where T : class
+    {
+        try
+        {
+            await using var fs = File.OpenRead(body.TempPath);
+            return await JsonSerializer.DeserializeAsync<T>(fs, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                PropertyNameCaseInsensitive = true,
+            }, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private sealed class ChatSayRequest
+    {
+        public string Msg { get; set; } = "";
+        public string? Channel { get; set; }
+        public string? Color { get; set; }
+        public string? Sender { get; set; }
+    }
+
+    private sealed class MotdRequest
+    {
+        public string? Msg { get; set; }
+    }
+
+    private sealed class ChatPlayerRequest
+    {
+        public string Msg { get; set; } = "";
+        public string? Sender { get; set; }
+    }
+
+    private sealed class MapPositionRequest
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
+    }
+
+    private static async Task<string> ReadShortBodyAsync(HttpListenerRequest req, int maxBytes, CancellationToken ct)
+    {
+        if (!req.HasEntityBody) return "";
+        if (req.ContentLength64 > maxBytes) throw new BodyTooLargeException();
+        var buffer = new byte[Math.Min(maxBytes, 4096)];
+        using var ms = new MemoryStream();
+        int total = 0;
+        var stream = req.InputStream;
+        while (true)
+        {
+            var read = await stream.ReadAsync(buffer, ct).ConfigureAwait(false);
+            if (read <= 0) break;
+            total += read;
+            if (total > maxBytes) throw new BodyTooLargeException();
+            ms.Write(buffer, 0, read);
+        }
+        return req.ContentEncoding.GetString(ms.ToArray());
+    }
+
+    private static object SerializeEntry(ModEntry e) => new
+    {
+        id = e.Id ?? "",
+        name = e.Name ?? "",
+        version = e.Version ?? "",
+        url = e.Url ?? "",
+        sha256 = string.IsNullOrEmpty(e.Sha256) ? null : e.Sha256,
+        size_bytes = e.SizeBytes,
+        install_root = e.InstallRoot ?? "",
+        notes = string.IsNullOrEmpty(e.Notes) ? null : e.Notes,
+    };
 }

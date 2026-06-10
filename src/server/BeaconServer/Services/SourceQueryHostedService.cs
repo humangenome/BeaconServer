@@ -16,6 +16,7 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
     private readonly ILogger<SourceQueryHostedService> _log;
     private readonly BeaconServerOptions _opts;
     private readonly PipeServerState _state;
+    private readonly TimeSpan _heartbeatTimeout;
     private SourceQueryServer? _server;
 
     public SourceQueryHostedService(
@@ -26,6 +27,7 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
         _log = log;
         _opts = opts.Value;
         _state = state;
+        _heartbeatTimeout = TimeSpan.FromSeconds(Math.Max(1, _opts.PluginHeartbeatTimeoutSeconds));
     }
 
     public Task StartAsync(CancellationToken ct)
@@ -34,7 +36,8 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
             _opts.QueryPort,
             BuildInfo,
             BuildPlayers,
-            BuildRules);
+            BuildRules,
+            IsGameOnline);
         _log.LogInformation("Source A2S query listening on UDP {Port}", _server.BoundPort);
         return _server.StartAsync(ct);
     }
@@ -55,9 +58,17 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
         Folder: "Beacon",
         Game: "Subnautica 2",
         SteamAppId: 1962700,                          // real Steam AppID — written as 64-bit GameID in EDF
-        PlayerCount: _state.LastReportedPlayerCount,
+        PlayerCount: _state.EffectivePlayerCount,
         MaxPlayers: _opts.MaxPlayers,
-        PasswordRequired: !string.IsNullOrEmpty(_opts.ServerPassword),
+        // Reflect the Lua-side BeaconAuth gate's configured password.
+        // BeaconAuthPassword is the field the panel populates and that
+        // BeaconAuth.lua actually enforces. The legacy ServerPassword
+        // field is intentionally ignored here for consistency with
+        // BeaconAuth.lua, which dropped the legacy fallback in v0.3.55
+        // (see BeaconAuth.lua for the full rationale — reading
+        // ServerPassword would only matter for the native-enforcement
+        // crash path we're pivoting away from).
+        PasswordRequired: !string.IsNullOrEmpty(_opts.BeaconAuthPassword),
         VacSecured: false,
         Version: $"beacon-{BeaconVersionInfo.BeaconVersion}/sn2-{BeaconVersionInfo.Sn2Build}",
         GameplayPort: _opts.GameplayPort,
@@ -96,4 +107,6 @@ public sealed class SourceQueryHostedService : IHostedService, IAsyncDisposable
         new KeyValuePair<string, string>("beacon_version", BeaconVersionInfo.BeaconVersion),
         new KeyValuePair<string, string>("sn2_build", BeaconVersionInfo.Sn2Build),
     };
+
+    private bool IsGameOnline() => _state.HasFreshHeartbeat(_heartbeatTimeout);
 }

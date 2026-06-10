@@ -1,0 +1,109 @@
+{
+  "icon": "misc",
+  "group": "misc",
+  "match": {
+    "type": {
+
+      "playerPosition": {"icon": "player", "group": "locations"},
+      "regionMarker": {"icon": "region", "group": "locations" },
+
+      "BookMark": {"icon": "bookmark", "group": "misc" },
+      "BP_StaticLifepod_Surface_C": {"icon": "lifepod", "group": "locations" },
+
+      "BP_EdgeOfWorldVolume_C": {"icon": "edge_volume", "group": "locations" },
+
+      "UWEBoxWorldZone": {"icon": "zone_box", "group": "misc" },
+      "BP_Nrtv_QuartzChip_C": { "icon": "chip", "group": "locations"},
+      "BP_RecipeGainDataCard_Button_C": { "icon": "databox", "group": "locations"},
+      "BP_WorldSupplyLocker_C": { "icon": "locker", "group": "locations", "title":"Supply Locker"},
+      "BP_SupplyCrate_C": { "icon": "supply_crate", "group": "locations", "title":"Supply Crate"},
+
+      "BP_AxumGlyph_C": { "icon": "glyph", "group": "locations", "category": "BP_AxumGlyph_C"},
+      "BP_AxumGlyph_NoAdaptation_C": { "icon": "glyph", "group": "locations", "category": "BP_AxumGlyph_C"},
+
+      "BP_Planetary_C": { "icon": "planetary", "group": "locations"},
+      "BP_Clamthulu_C": { "icon": "great_jaw", "group": "animals"},
+
+      "BP_ComputerTextInterface_Terminal_C": { "icon": "terminal", "group": "locations"},
+
+      "BP_BioBed_Lifepod_C": { "icon": "bed", "group": "misc", "category": "BP_BioBed_C"},
+      "BP_BioBed_C": { "icon": "bed", "group": "misc", "category": "BP_BioBed_C"},
+
+      "BP_BiobedFragment*": { "icon": "blueprint", "group": "blueprints", "category": "BP_BioBed_Scan_C"},
+      "BP_Bio[bB]ed_Scan": { "icon": "blueprint", "group": "blueprints", "category": "BP_BioBed_Scan_C"},
+
+
+      "BP_Black[bB]ox_Clickable_01a_C": { "icon": "blackbox", "group": "locations", "category": "BP_BlackBox_Clickable_01a_C" },
+
+      "BP_CrabFeces_C": { "icon": "poop", "group": "minerals"},
+
+      "BP_ActivateConsoleButton_C": { "icon": "alien_console", "group": "locations"},
+
+
+      "BP_WorldBuildable_C": { "icon": "turbine", "group": "locations"},
+
+      "BP_ResourceDeposit_NeedleSharkNeedles_C": { "icon": "shark_needles", "group": "minerals"},
+      "BP_ResourceDeposit_DeepRootResonatableResource_C": { "icon": "deep_root", "group": "minerals"},
+      "BP_UpgradeTerminal_C": {"icon": "upgrade", "group": "locations" },
+
+      "BP_ScannerStationSignal_C": {"icon": "station", "group": "misc" },
+      "BP_NarrativeSignal_C": {"icon": "signal", "group": "misc" },
+
+      "BP_AbandonedBaseSign_C": {"icon": "base", "group": "locations" },
+
+
+      "BP_Food_C": {"icon": "food", "group": "misc" },
+      "BP_CopperWire_C": {"icon": "resource", "group": "misc"},
+      "BP_WiringKit_C": {"icon": "resource", "group": "misc" },
+      "BP_MedKit_C": {"icon": "medkit", "group": "misc" },
+
+      "BP_Lead_C": {"icon": "lead", "group": "misc" },
+      "BP_Flares_C": {"icon": "resource", "group": "misc" },
+      "BP_TitaniumIngot_C": {"icon": "titanium", "group": "misc" },
+      "BP_Water_C": {"icon": "food", "resource": "misc" },
+      "BP_BasicBattery_C": {"icon": "resource", "group": "misc" },
+
+      ".*(_Scan_|_Scannable_)": {"icon": "blueprint", "group": "blueprints"},
+      ".*Fragment*": {"icon": "blueprint", "group": "blueprints"},
+
+
+      ".*atacamite*": { "icon": "atacamite", "group": "minerals", "category": "BP_ResourceDeposit_Atacamite_C"},
+      ".*celestine*": { "icon": "celestine", "group": "minerals",  "category": "BP_ResourceDeposit_Celestine_C"},
+      ".*copper*": { "icon": "copper", "group": "minerals",  "category": "BP_ResourceDeposit_Copper_C"},
+      ".*fulgurite*": { "icon": "fulgurite", "group": "minerals",  "category": "BP_ResourceDeposit_Fulgurite_C"},
+      ".*gold*": { "icon": "gold", "group": "minerals",  "category": "BP_ResourceDeposit_Gold_C"},
+      ".*lead_c": { "icon": "lead", "group": "minerals",  "category": "BP_ResourceDeposit_Lead_C"},
+      ".*lithium*": { "icon": "lithium", "group": "minerals",  "category": "BP_ResourceDeposit_Lithium_C"},
+      ".*quartz*": { "icon": "quartz", "group": "minerals",  "category": "BP_ResourceDeposit_Quartz_C"},
+      ".*salt*": { "icon": "salt", "group": "minerals",  "category": "BP_ResourceDeposit_Salt_C"},
+      ".*silver*": { "icon": "silver", "group": "minerals",  "category": "BP_ResourceDeposit_Silver_C"},
+      ".*sulfur*": { "icon": "sulfur", "group": "minerals",  "category": "BP_ResourceDeposit_Sulfur_C"},
+      ".*titanium*": { "icon": "titanium", "group": "minerals", "category": "BP_ResourceDeposit_Titanium_C"},
+
+      "BP_Base*": {"icon": "fragment", "group": "misc", "category": "basePieces"},
+
+      "BP_AcidAnemone_C": {"icon": "acid_anemone", "group": "plants"},
+      "BP_AngelCombCore_C": { "icon": "angel_comb", "group": "plants"},
+      "BP_CG_BulbFlower_C":  { "icon": "plant", "group": "plants"},
+      "BP_CoralPad_01c_C": { "icon": "pent", "group": "plants"},
+      "BP_OxygenPlant_C": { "icon": "oxygen", "group": "plants"},
+
+      "BP_BlightNode_C": { "icon": "canker", "group": "plants"},
+
+      "BP_MinorThreat_PoisonTubeCluster_C": { "icon": "poison_tube", "group": "plants"},
+
+      ".*(Flower|Petal|Anemone|Coral|OxygenPlant|Tree|BP_StiltOrb_).*": {"icon": "vegetation", "group": "plants", "category": "misc"},
+
+      "BP_WaterSlugWorldPopProxy_C": { "icon": "water_slug", "group": "animals"},
+
+      ".*(F-ishSchool).*": {"icon": "fish", "group": "animals", "category": "fishSchool"},
+
+      ".*(Leviathan).*": {"icon": "monster", "group": "animals", "category": "BP_CollectorLeviathan_C"},
+
+      ".*(Fish).*": {"icon": "fish", "group": "animals", "category": "fish"},
+
+      "---.*": {"icon": "misc", "group": "misc", "comment": "remove --- to show all blueprints as separate classes"}
+
+    }
+  }
+}

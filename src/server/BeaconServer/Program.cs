@@ -37,7 +37,11 @@ public static class Program
             builder.Services.AddSingleton<Sn2RestartCoordinator>();
 
             builder.Services.AddSingleton<SaveOrchestratorService>();
+            builder.Services.AddSingleton<ChatService>();
+            builder.Services.AddSingleton<CommandDispatchService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SaveOrchestratorService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<CommandDispatchService>());
             builder.Services.AddHostedService<NamedPipeServerService>();
             builder.Services.AddHostedService<HeartbeatWatchdogService>();
             builder.Services.AddHostedService<SourceQueryHostedService>();

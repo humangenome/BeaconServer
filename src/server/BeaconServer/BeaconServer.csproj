@@ -20,6 +20,19 @@
     <PackageReference Include="MessagePack" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Vendored joric map app (Unlicense) served at GET /map/. Copied to
+         output as map/** so BeaconHttpService serves it same-origin; tiles
+         load on demand from our GitHub Pages tileset. The SDK auto-includes
+         the .json files as Content, so clear the implicit items first and
+         re-add the whole tree with copy-to-output + a map/ link. -->
+    <Content Remove="Static\map\**\*" />
+    <None Remove="Static\map\**\*" />
+    <Content Include="Static\map\**\*">
+      <Link>map\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../shared/Beacon.Protocol/Beacon.Protocol.csproj" />
     <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
     <ProjectReference Include="../Beacon.SourceQuery/Beacon.SourceQuery.csproj" />

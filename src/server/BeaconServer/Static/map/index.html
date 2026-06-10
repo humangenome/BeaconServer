@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<!--
+  Subnautica 2 interactive map — base map, tileset, and POI data by joric
+  (https://github.com/joric/subnautica , https://joric.github.io/subnautica/),
+  released into the public domain under the Unlicense. Vendored into Beacon to
+  serve the live multiplayer map. Full credit for the 16-gigapixel tileset
+  capture and the UE4SS capture tooling goes to joric.
+  Beacon additions: js/beacon-live.js (live online-player overlay) + the
+  tileset_base pointing at humangenome.github.io/subnautica2-tileset.
+-->
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M464 256A208 208 0 1 0 48 256a208 208 0 1 0 416 0zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm306.7 69.1L162.4 380.6c-19.4 7.5-38.5-11.6-31-31l55.5-144.3c3.3-8.5 9.9-15.1 18.4-18.4l144.3-55.5c19.4-7.5 38.5 11.6 31 31L325.1 306.7c-3.2 8.5-9.9 15.1-18.4 18.4zM288 256a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z'/%3E%3C/svg%3E" />
+
+<title>Joric's Subnautica 2</title>
+<meta name="description" content="Subnautica 2 Interactive Map" />
+
+<meta property="og:image" content="https://repository-images.githubusercontent.com/1238346146/86b1dba3-723f-4453-a0c9-6cc88c44d323" />
+<meta property="og:site_name" content="Joric" />
+<meta property="og:type" content="object" />
+<meta property="og:title" content="Joric's Subnautica 2" />
+<meta property="og:description" content="Subnautica 2 Interactive Map" />
+<meta property="og:url" content="https://joric.github.io/subnautica/" />
+<meta property="og:locale" content="en_US" />
+
+<link rel="stylesheet" href="css/main.css" />
+
+<style>
+/* Beacon: the map sits on a dark page, so make the options (hamburger) menu
+   button readable instead of a near-black glyph that vanishes on the seabed. */
+.options-control-button {
+  background: rgba(15, 22, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.options-control-button:hover,
+.options-control:focus-within .options-control-button {
+  background: rgba(15, 22, 32, 0.95);
+}
+.options-control-icon svg { fill: #eaf6ff; color: #eaf6ff; }
+</style>
+
+<template id="remote">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/js/all.min.js"></script>
+  <link  href="https://cdn.jsdelivr.net/npm/maptalks-gl@0.124.4/dist/maptalks-gl.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/maptalks-gl@0.124.4/dist/maptalks-gl.min.js"></script>
+  <link href="https://joric.github.io/maps/src/controls/search-control/search-control.css" rel="stylesheet">
+  <script src="https://joric.github.io/maps/src/controls/search-control/search-control.js"></script>
+  <link href="https://joric.github.io/maps/src/controls/markers-control/markers-control.css" rel="stylesheet">
+  <script src="https://joric.github.io/maps/src/controls/markers-control/markers-control.js"></script>
+</template>
+
+<template id="local">
+  <script src="../../lib/font-awesome/js/all.min.js"></script>
+  <link href="../../lib/maptalks-gl/maptalks-gl.css" rel="stylesheet">
+  <script src="../../lib/maptalks-gl/maptalks-gl.js"></script>
+  <link href="../../src/controls/search-control/search-control.css" rel="stylesheet">
+  <script src="../../src/controls/search-control/search-control.js"></script>
+  <link href="../../src/controls/markers-control/markers-control.css" rel="stylesheet">
+  <script src="../../src/controls/markers-control/markers-control.js"></script>
+</template>
+
+<script src="js/three-onlymath.min.js"></script>
+<script src="js/FModelReader.js"></script>
+
+<template id="popup-template">
+  <div id="popup" class="popup">
+    <div class="popup-content-wrapper">
+      <div class="popup-content">
+        <div id="popup-title">Popup Title</div>
+        <div id="popup-subtitle">Popup Subtitle</div>
+        <div id="popup-note">Popup Note</div>
+        <div id="popup-subnote" class="collapsed">Popup Subnote</div>
+        <div id="popup-data" class="collapsed"></div>
+        <div id="popup-data-toggle" data-toggle="collapse" data-target="popup-data"><hr/></div>
+        <div class="popup-controls">
+          <input id="popup-found" type="checkbox">
+          <label id="popup-found-label" for="popup-found" title="Toggle found">Found</label>
+          <a class="popup-link" id="popup-wiki-link" href="#" target="_blank" title="Wiki"><i class="fa fa-brands fa-wikipedia-w"></i></a>
+          <a class="popup-link" id="popup-map-link" href="#" target="_blank" title="Copy Map Link to Clipboard"><i class="fa fa-link"></i></a>
+          <a class="popup-link" id="popup-form-id-link" href="#" target="_blank" title="Copy Marker SID to Clipboard"><i class="fa fa-hashtag"></i></a>
+          <a class="popup-link" id="popup-marker-id-link" href="#" target="_blank" title="Copy Marker Location to Clipboard"><i class="fa fa-location-crosshairs"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="popup-tip-container"><div class="popup-tip"></div></div>
+    <a id="popup-close" class="popup-close-button">&times;</a>
+  </div>
+</template>
+
+</head>
+<body>
+
+<script>
+document.head.appendChild(document.getElementById(location.protocol === 'file:' ? 'local' : 'remote').content.cloneNode(true));
+let tileset_base = location.protocol === 'file:' ? '../subnautica2_tileset' : 'https://humangenome.github.io/subnautica2-tileset';
+</script>
+
+<div tabindex=0 id="map" style="background1: #445232; background: #333; background-size: 100px 100px; background-repeat: repeat; ba1ckground-image: url('data/photo-seamless-texture-calm-ocean-water_950361-43063.jpg')"></div>
+<div class="controls-topleft">
+
+  <div class="options-control" tabindex=0>
+    <button type="button" class="options-control-button" title="Menu"><span class="options-control-icon"><i class="fa fa-bars"></i></span></button>
+    <div class="options-control-items">
+      <input id="file" type='file' hidden/>
+      <input id="game_file" type='file' hidden/>
+      <div id="show_all" class="options-control-item"><i class="fa fa-eye"></i> Show All Markers</div>
+      <div id="hide_all" class="options-control-item"><i class="fa fa-eye-slash"></i> Hide All Markers</div>
+      <div id="save_data" class="options-control-item"><i class="fa fa-download"></i> Download Settings</div>
+      <div id="load_data" class="options-control-item"><i class="fa fa-upload"></i> Upload Settings</div>
+      <div id="reset_data" class="options-control-item"><i class="fa fa-recycle"></i> Reset Settings</div>
+      <div id="copy_path" class="options-control-item" title="Paste it in Import dialog and press Enter to change folder"><i class="fa fa-copy"></i> Copy Save Path</div>
+      <!--div id="import_save" class="options-control-item" title="Import Game Save file to mark items automatically"><i class="fa fa-floppy-disk"></i> Import Save File</div-->
+    </div>
+  </div>
+
+</div>
+
+<style>
+
+#language-selector {
+  z-index: 1;
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  right: 90px;
+  top: 14px;
+}
+
+</style>
+
+<div id="language-selector" >
+  <select>
+  </select>
+</div>
+
+<a href="https://github.com/joric/subnautica/wiki/" target="_blank" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+
+<div class="version"></div>
+
+<div id="alert" class="closed" tabindex="-1">Copied To Clipboard</div>
+
+<div id="map-tooltip" class="arrow-left"></div>
+
+<script>
+
+let gameTitle = 'subnautica';
+let dataPrefix = location.protocol === 'file:' ? '../supraland/' : 'https://joric.github.io/supraland/';
+
+let iconImages = {};
+let iconSize = 48;
+let markedOpacity = 0.33;
+let counters = {};
+//let theme = 'glass';
+//let theme = 'retro';
+let theme = '';
+
+let playerMarker = null;
+let playerMarkerType = 'playerPosition';
+let playerMarkerGroup = 'playerPosition';
+
+let activeMarker = null;
+let infoWindowOpen = false;
+
+let cb = {left:-17, top:8, right: -1, bottom: 24};
+let cs = 25600;
+let bb = {left: cb.left*cs, top: cb.top*cs, right: cb.right*cs, bottom: cb.bottom*cs};
+let cc = {left: bb.left + (bb.right-bb.left)/2, top: bb.top + (bb.bottom-bb.top)/2, alt: 0};
+
+let bb1=bb; let cc1=cc;
+
+let d = (32-15)/2;
+cb = {left:-41, top:39-d, right: -10+1, bottom: 53+d+1};
+cs = 9375;
+bb = { left: cb.left*cs, top: cb.top*cs, right: cb.right*cs, bottom: cb.bottom*cs };
+cc = { left: bb.left + (bb.right-bb.left)/2, top: bb.top + (bb.bottom-bb.top)/2, alt: 0};
+
+let maps = {
+  sn2:  { 
+    title: 'Subnautica 2',
+    tileSize: 512,
+    versions: {
+      '112084': { date: '2026-05-02', data: 'data/markers.json', tiles: `${tileset_base}/tiles/capture_v1/{z}/{x}_{y}.jpg`, bounds: bb1, center: cc1, maxZoom: 6},
+      '113109': { date: '2026-05-14', data: 'data/markers.json', tiles: `${tileset_base}/tiles/capture_v2/{z}/{y}/{x}.webp`, bounds: bb, center: cc, maxZoom: 8},
+    },
+   },
+};
+
+let localDataName = 'joricsSubnautica';
+let localData = JSON.parse(localStorage.getItem(localDataName)) || {};
+let settings = null;
+
+let map;
+let defaultPitch = 30;
+let typeData = {};
+let iconData = {};
+let stringData =  {};
+let regionData = {};
+let itemsData = {};
+let blueprintsData = {};
+
+let regionDataLoaded = false;
+
+let mapParam = {};
+
+let lang = {}
+
+let regionColors = {};
+
+let regionZoom = 3;
+
+let zoomGroups = {
+  'polygons':[-99, regionZoom],
+  'labels':[0, regionZoom],
+};
+
+const truncate = (str, n=64) => str.length <= n ? str : str.slice(0, n) + "...";
+
+function capitalize(s) {
+  return s ? s[0].toUpperCase()+s.slice(1) : '';
+}
+
+function splitCamelCase(s) {
+  return s.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z&&[^s]])/);
+}
+
+function translate(s, caller='default') {
+  if (!s || !typeof(s) === 'string') return s;
+  if (lang) {
+    const t = String((typeof stringData[s] === 'string' && stringData[s]) || s);
+    if (t.includes('/')) {
+      const parts = t.split('/');
+      const section = parts[0];
+      const entry = parts[1];
+      if (lang[section] && lang[section][entry]) {
+        const res = lang[section][entry];
+        //console.log(s, '=>', res);
+        return res;
+      }
+    } else if (stringData[s] && stringData[s][settings.language]) {
+      return stringData[s][settings.language];
+    }
+    if (itemsData[s]) return translate([itemsData[s].text_id] || itemsData[s].name, caller);
+    if (blueprintsData[s]) return translate(blueprintsData[s].item, caller);
+  }
+  //return splitCamelCase(String(s).replace('_C','')).map(capitalize).join(' ');
+  return capitalize(String(s));
+}
+
+const formatZ = c => { z=(c[2]/100).toFixed(0); return z>0 ? `&UpArrow;${z}m`: `&DownArrow;${-z}m`};
+
+function setClass(e, set, c) { set ? e.classList.add(c) : e.classList.remove(c);}
+function toggleClass(e, c) { if (e.classList.contains(c)) { e.classList.remove(c); return false; } else { e.classList.add(c); return true; }}
+function toggleNav(e) { let input = document.querySelector('#search-input'); toggleClass(e.parentElement, 'closed') ? input.blur() : input.focus();}
+function toggleVisibility(a) { [].forEach.call(a, function(e) { toggleClass(document.querySelector(e), 'collapsed'); }) }
+
+function getLineColor(t){
+  let color = iconData[ t.icon ]?.color;
+  return color;
+}
+
+function getCentroid(points) {
+  if (!points || points.length === 0) return null;
+  let sumX = 0, sumY = 0;
+  const count = points.length;
+  points.forEach(point => {
+      sumX += point.x;
+      sumY += point.y;
+  });
+  const centroidX = sumX / count;
+  const centroidY = sumY / count;
+  return { x: centroidX, y: centroidY };
+}
+
+function getCentroidRaw(points) {
+  if (!points || points.length === 0) return null;
+  let sumX = 0, sumY = 0;
+  const count = points.length;
+  points.forEach(point => {
+      sumX += point[0];
+      sumY += point[1];
+  });
+  const centroidX = sumX / count;
+  const centroidY = sumY / count;
+  return [centroidX, centroidY, 0];
+}
+
+function getCentroidRaw2(points) {
+    if (!points || points.length < 3) return null;
+    
+    // Ensure polygon is closed (last point = first point)
+    let closedPoints = [...points];
+    if (closedPoints[0][0] !== closedPoints[closedPoints.length-1][0] || 
+        closedPoints[0][1] !== closedPoints[closedPoints.length-1][1]) {
+        closedPoints.push([closedPoints[0][0], closedPoints[0][1], closedPoints[0][2] || 0]);
+    }
+    
+    let area = 0;
+    let centroidX = 0;
+    let centroidY = 0;
+    
+    for (let i = 0; i < closedPoints.length - 1; i++) {
+        const x1 = closedPoints[i][0];
+        const y1 = closedPoints[i][1];
+        const x2 = closedPoints[i + 1][0];
+        const y2 = closedPoints[i + 1][1];
+        
+        // Cross product for area contribution
+        const cross = x1 * y2 - x2 * y1;
+        area += cross;
+        
+        // Weighted sum for centroid
+        centroidX += (x1 + x2) * cross;
+        centroidY += (y1 + y2) * cross;
+    }
+    
+    area = area / 2;
+    
+    // Handle degenerate polygons (area = 0)
+    if (Math.abs(area) < 1e-10) {
+        // Fallback to simple vertex average
+        let sumX = 0, sumY = 0;
+        const count = points.length;
+        points.forEach(point => {
+            sumX += point[0];
+            sumY += point[1];
+        });
+        return [sumX / count, sumY / count, 0];
+    }
+    
+    centroidX = centroidX / (6 * area);
+    centroidY = centroidY / (6 * area);
+    
+    return [centroidX, centroidY, 0];
+}
+
+function getType(o) {
+  function getTypeRecursive(data, t={}) {
+    const prop = Object.fromEntries(Object.entries(data).filter(([k,v]) => typeof v !== 'object' || k=='replace'));
+
+    if (prop.icon && !prop.category) {
+      t.category_icon = t.icon;
+    }
+
+    for (const[field, section] of Object.entries(data.match||{})) {
+      const value = o[field];
+      if (!value) continue;
+
+      // try exact match first (faster)
+      const entry = section[value];
+      if (entry) {
+        return getTypeRecursive(entry, {...t, category: value, ...prop});
+      }
+
+      /*
+      // no match, try regex over presorted entries (VERY SLOW, need to speed it up!)
+      for (const [regex, entry] of Object.entries(section).filter(s=>/[^A-Za-z0-9_]/.test(s)).sort(([,a],[,b])=>(b.weight??0)-(a.weight??0))) {
+        if (value.match(new RegExp(regex, "i"))) {
+          return getTypeRecursive(entry, {...t, category: value, ...prop});
+        }
+      }
+      */
+
+    }
+    return {...t, ...prop};
+  }
+
+  return getTypeRecursive(typeData);
+}
+
+let regexCache = null;
+
+let getType2 = function(o) {
+  // preprocess regex cache on first call
+  if (!regexCache) {
+    regexCache = new WeakMap();
+
+    function preprocess(node) {
+      if (!node.match) return;
+
+      const nodeCache = {};
+      for (const [field, map] of Object.entries(node.match)) {
+        const arr = [];
+        for (const [k, entry] of Object.entries(map)) {
+          if (/[\^\*\+\$\|\(\)\[\]\{\}]/.test(k)) {
+            arr.push({ re: new RegExp(k, "i"), entry });
+          }
+        }
+
+        if (arr.length) {
+          arr.sort((a,b)=>(b.entry?.weight??0)-(a.entry?.weight??0));
+          nodeCache[field] = arr;
+        }
+      }
+
+      regexCache.set(node, nodeCache);
+
+      // recurse into child nodes
+      for (const map of Object.values(node.match)) {
+        for (const entry of Object.values(map)) {
+          if (entry && typeof entry === "object") preprocess(entry);
+        }
+      }
+    }
+
+    preprocess(typeData);
+  }
+
+  function rec(node, t = {}) {
+    // collect non-object props except "replace"
+    const prop = Object.fromEntries(
+      Object.entries(node).filter(([k, v]) => typeof v !== "object" || k === "replace")
+    );
+
+    if (prop.icon && !prop.category) t.category_icon = t.icon;
+
+    for (const [field, exactMap] of Object.entries(node.match || {})) {
+      const value = o[field];
+      if (!value) continue;
+
+      // 1) exact match
+      const ex = exactMap[value];
+      if (ex) return rec(ex, { ...t, category: value, ...prop });
+
+      // 2) regex match from cache
+      const cached = regexCache.get(node)?.[field] || [];
+      for (const r of cached) {
+        const matches = value.match(r.re);
+        if (matches) {
+          const entry = matches.length === 1 ? r.entry : Object.fromEntries(
+            Object.entries(r.entry).map(([key, propValue]) => {
+              return [
+                key,
+                typeof propValue === 'string'
+                  ? propValue.replace(/\\\d+/g, m => matches[parseInt(m.slice(1))] || '')
+                  : propValue
+              ];
+            })
+          );
+          return rec(entry, { ...t, category: value, ...prop });
+        }
+      }
+    }
+
+    return { ...t, ...prop };
+  }
+
+  return rec(typeData);
+}
+
+getType = getType2;
+
+function parseFAClass(faClass) {
+  const parts = faClass.trim().split(/\s+/);
+  const prefix = parts.find(p => p.startsWith('fa-') || p === 'fa')?.replace('fa-', '') || 'solid';
+  const iconName = parts.find(p => p.startsWith('fa-') && p !== 'fa' && p !== `fa-${prefix}`)?.replace('fa-', '');
+  const prefixMap = { solid: 'fas', regular: 'far', light: 'fal', thin: 'fat', duotone: 'fad', brands: 'fab' };
+  return { prefix: prefixMap[prefix] || 'fas', iconName };
+}
+
+function getIcon(t, useCategoryIcon) {
+  let iconRecord = iconData[useCategoryIcon && t.item ? (t.category_icon || t.icon) : t.icon] || {class: 'fa fa-circle-question'};
+  let fa = parseFAClass(iconRecord.class).iconName;
+  let bg = t.color || iconRecord.color || 'grey';
+  let fg = iconRecord.background || 'white';
+  return {fa: fa, bg :bg, fg:fg, image:iconRecord.image};
+}
+
+const getGroup = f =>getType(f).group;
+
+let mouseMoved = false;
+document.addEventListener('mousedown', function(event) {mouseMoved = false; });
+document.addEventListener('mousemove', function(event){mouseMoved = true; });
+
+function getBaseURL() {
+  //return window.location.href.replace(/#.*$/,'');
+  return 'https://joric.github.io/subnautica/';
+}
+
+function getMapURL(id) { return getBaseURL() + '#' + encodeURIComponent(id); }
+
+function getWikiURL(title) {
+  title = title || 'UndefinedWikiTitle';
+  if (title.startsWith('«') && title.endsWith('«')) title = title.slice(1,-1);
+  let wikiPrefix = 'https://wiki.subnautica.com/sn/';
+  return wikiPrefix + encodeURIComponent(title);
+}
+
+
+let copyLink = e=>{ copyToClipboard(e.target.href); return false; };
+
+function copyToClipboard(text) {
+  let input = document.body.appendChild(document.createElement("input"));
+  input.value = text;
+  const prev = document.activeElement;
+  input.focus();
+  input.select();
+  document.execCommand('copy');
+  input.parentNode.removeChild(input);
+  if (prev) prev.focus();
+  document.getElementById('alert').classList.remove('closed');
+  setTimeout(function(e){ document.getElementById('alert').classList.add('closed') },1500);
+}
+
+function getSubtitle(feature) {
+  let o = feature.properties;
+  let t = getType(o);
+  let s = '';
+
+  if (o.spawns) {
+    let pt = getType({...o, 'type': o.spawns, 'name': o.name + ':spawns' });
+    s = pt.title || pt.category || 'Unnamed';
+    s = s.replace(/ [+-]*\{.+\}(%*)/,''); // remove {} formatting
+    if (s==t.title) s='';
+  }
+
+  if (o.coins) return `${o.coins} coins`;
+
+  let title = o.ActorLabel || o.text || o.achievement || t.color || s;
+
+  if (!title) {
+    if (o.area) title = o.area.replace('subnautica.Area.','');
+    if (o.progression) title += ' (' + o.progression.replace('subnautica.Story.','') + ')';
+  }
+
+  if (o.abilities) {
+    let obj = o.abilities;
+    if (typeof obj === 'string') {
+        obj = obj.split(',').map(item => item.trim());
+    }
+    title += ' [' + (obj.map(s=>(s+'').split('.').pop()).join(',')) +']';
+  }
+
+  if (o.color) title += ' (' + (o.color+'').split('::').pop() +')';
+
+  if (o.hidden===true || o.exists===false) title +=' (Hidden)';
+
+  title = (title||'').replace('BP_','');
+
+  return title
+}
+
+function customAnimateTo(map, targetView, duration = 200) {
+    const startView = { pitch: map.getPitch() };
+    const startTime = performance.now();
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        const pitch = startView.pitch + (targetView.pitch - startView.pitch) * progress;
+        map.setView({pitch: pitch});
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+function compassOnClick(e) {
+  if (map.getBearing()!=0) {
+    map.animateTo({ bearing: 0 });
+  } else {
+      let newPitch = map.getPitch()!=0 ? 0 : defaultPitch;
+      //map.animateTo({pitch: newPitch });
+      //animateto fails here for some reason if clicked from compass (maptalks-gl@0.124.4 issue)
+      customAnimateTo(map, { pitch: newPitch });
+  }
+}
+
+function getCardinalBearing(deltaX, deltaY) {
+  let bearing = Math.atan2(deltaX, -deltaY) * 180 / Math.PI;
+  bearing = Math.round(bearing);
+  if (bearing < 0) bearing += 360;
+
+  // Convert bearing to cardinal direction
+  const cardinalDirections = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const cardinalIndex = Math.round(bearing / 45) % 8;
+  const cardinal = cardinalDirections[cardinalIndex];
+  return `${cardinal} ${bearing}°`;
+}
+
+function getCoordinates(feature) {
+  const cc = feature.geometry.coordinates;
+  let p = cc.map(x=>x && x.toFixed(0) || 0);
+  return `${p[0]}, ${p[1]}, ${p[2]}`;
+}
+
+function getDirections(feature) {
+  //if (feature.properties.type == playerMarkerType) return '';
+
+  const t = feature.geometry.coordinates;
+  const c = settings.playerPosition;
+
+  if (!c) return '';
+
+  const src = {x:c[0], y:c[1]};
+  const dst = {x:t[0], y:t[1], z:t[2]};
+
+  //if (src.x==dst.x && src.y==dst.y) return '';
+
+  // Calculate differences
+  const deltaX = dst.x - src.x;
+  const deltaY = dst.y - src.y;
+  const deltaZ = dst.z || 0;
+
+  // Calculate distance (2D horizontal distance)
+  const horizontalDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  const distanceMeters = Math.round(horizontalDistance/100);
+
+  // Depth (absolute value since z is negative for depth)
+  const depthMeters = Math.round(Math.abs(deltaZ)/100);
+
+  const cb = getCardinalBearing(deltaX, deltaY);
+  const cbr = getCardinalBearing(-deltaX, -deltaY);
+
+  // Create directions
+  const directions = `${distanceMeters}m / ${cb}`;
+
+  return directions;
+}
+
+function locatePlayer() {
+  playerMarker.show();
+  map.animateTo({center: playerMarker.getCoordinates(), zoom: regionZoom+1});
+}
+
+let tooltipShowTimer = null;
+let tooltipHideTimer = null;
+let tooltipHideDelay = 1;
+let tooltipShowDelay = 1;
+
+function clearSelection() {
+  if (window.getSelection) {
+    // Modern browsers
+    const selection = window.getSelection();
+    if (selection.removeAllRanges) {
+      selection.removeAllRanges();
+    } else if (selection.collapseToEnd) {
+      // For older WebKit browsers
+      selection.collapseToEnd();
+    }
+  } else if (document.selection) {
+    // Older versions of Internet Explorer
+    document.selection.empty();
+  }
+}
+
+function showTooltip(e) {
+  var tooltip = document.getElementById('map-tooltip');
+
+  clearTimeout(tooltipHideTimer);
+
+  tooltip.onmouseover = function(e) {
+    clearTimeout(tooltipHideTimer);
+  };
+
+  tooltip.onmouseout = function(e) {
+    tooltipHideTimer = setTimeout(hideTooltip, tooltipHideDelay);
+  };
+
+
+  // Show the tooltip to calculate the size
+  // Since browsers do not repaint the screen during synchronous JavaScript execution,
+  // temporarily changing the display property within a script will not cause the element to flash visibly on the screen.
+
+  if (tooltip.style.display == 'block') return;
+
+  tooltip.style.display = 'block';
+  let marker = e.target;
+  let feature = marker.feature;
+  let o = marker.feature.properties;
+
+  let info = getType2(o);
+
+  let subtitle = getSubtitle(marker.feature);
+
+  let h1=capitalize(info.title||o.type||'undefined');
+  let h2=capitalize(info.group||'');
+  let h3=capitalize(subtitle||'');
+
+  let cc = marker.feature.geometry.coordinates;
+
+  let content = `<b title="${o.name}">${h1 + '&nbsp;'+ formatZ(cc)}</b>`;
+
+  if (h2)
+    content += `<br>${h2}`;
+
+  content += `<br><small class="small">${h3}</small>`;
+
+  let p = cc.map(x=>x.toFixed(0));
+  content += `<hr><small title="Marker coordinates">${p[0]}, ${p[1]}, ${p[2]}</small>`;
+
+  content += `${getDirections(feature)}`;
+
+  tooltip.innerHTML = content;
+
+  let c = marker.getContainerExtent();
+  let screenPosition = {x: c.pxmin, y: c.pymin};
+
+  // Determine the tooltip position
+  var mapContainer = map.getContainer();
+  var mapRect = mapContainer.getBoundingClientRect();
+  var tooltipWidth = tooltip.offsetWidth;
+  var tooltipHeight = tooltip.offsetHeight;
+
+  // Calculate available space
+  var spaceRight = mapRect.width - screenPosition.x;
+  var spaceLeft = screenPosition.x;
+
+  let offset = [30,30]; //getMarkerSize(marker)/2+5;
+
+  // Position the tooltip
+  if (spaceRight > tooltipWidth) {
+    // Place tooltip to the right
+    tooltip.style.left = mapRect.left + screenPosition.x + offset[0] + 'px';
+    tooltip.className = 'arrow-left';
+  } else {
+    // Place tooltip to the left
+    tooltip.style.left =  mapRect.left + screenPosition.x - tooltipWidth - offset[0] + 'px';
+    tooltip.className = 'arrow-right';
+  }
+
+  tooltip.style.top = mapRect.top - offset[1] + screenPosition.y - tooltipHeight/2 + 'px';
+}
+
+// Function to hide the tooltip
+function hideTooltip() {
+  var tooltip = document.getElementById('map-tooltip');
+  tooltip.style.display = 'none';
+  clearSelection();
+}
+
+function showTooltipExt(e) {
+  let marker = e.target;
+  clearTimeout(tooltipShowTimer);
+  if (marker.getInfoWindow() && marker.getInfoWindow().isVisible()) return; // do not open popup if there's an info window
+  showTooltip(e);
+}
+
+function hideTooltipExt(e) {
+  let marker = e.target;
+  clearTimeout(tooltipShowTimer);
+  clearTimeout(tooltipHideTimer);
+  tooltipHideTimer = setTimeout(hideTooltip, tooltipHideDelay);
+}
+
+let activePolys = {};
+
+function selectPolygon(polygon, selected){
+  let name = polygon.feature?.properties?.name;
+  if (selected) {
+    polygon.updateSymbol({lineWidth: 4.0, lineOpacity: 0.75, polygonOpacity: 0.5, lineColor: polygon.options.color, polygonFill: polygon.options.color});
+    activePolys[name] = polygon;
+  } else {
+    polygon.updateSymbol({lineWidth: 4.0, lineOpacity: 0.5, polygonOpacity: 0.25, lineColor: polygon.options.color, polygonFill: polygon.options.color });
+    delete activePolys[name];
+  }
+}
+
+function ptInPoly(point, polyPoints) {
+  let [x,y] = [point.x, point.y];
+  let inside = false;
+  for (let i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+    var xi = polyPoints[i].x, yi = polyPoints[i].y;
+    var xj = polyPoints[j].x, yj = polyPoints[j].y;
+    var intersect = ((yi > y) != (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+function ptInPolyRaw(coordinates, polyPoints) {
+  let [x,y,z] = coordinates;
+  let inside = false;
+  for (let i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+    var xi = polyPoints[i][0], yi = polyPoints[i][1];
+    var xj = polyPoints[j][0], yj = polyPoints[j][1];
+    var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+function renderItem(feature, extended=false, t=false, caller='default') {
+  let o = feature.properties;
+  if (!t) t = getType2(o);
+  let info = {};
+
+  let cc = feature.geometry.coordinates;
+
+  let item = t.title;
+
+  if (o.spawns) {
+    if (blueprintsData[o.spawns]) {
+    item = translate(blueprintsData[o.spawns].item, caller);
+    } else {
+      let t1 = getType2({...o, 'type': o.spawns, 'name': o.name + ':spawns' });
+      item = translate(t1.name || t1.category || o.spawns, caller);
+    }
+  } else if (blueprintsData[o.type]) {
+    item = translate(blueprintsData[o.type].item, caller);
+  }
+
+  if (o.region) {
+    item = translate(o.region);
+  }
+
+  if (o.type == 'regionMarker') {
+    item = translate(o.name);
+  }
+
+  if (o.text_id) {
+    info.text = translate(o.text_id);
+
+    /*
+    if (info.text.length < 32) {
+      item = info.text;
+      delete info.text;
+    }
+    */
+  }
+
+  let title = translate(item || t.title || t.category || o.type || 'something', caller);
+
+  info.title = title;
+
+  info.height = formatZ(cc);
+
+  info.group = translate(t.group, caller);
+  info.category = translate(t.category, caller);
+
+  if (extended) {
+    for (poly of regionData.features) {
+      if (ptInPolyRaw(cc, poly.geometry.coordinates[0])) {
+        info.region = translate(poly.properties.name, caller);
+        break;
+      }
+    }
+  }
+
+  let id = (t.title||'').replaceAll(' ','_');
+  info.backlink = getMapURL(id);
+
+  info.slug = info.group;
+
+  if (info.category != info.group && info.category != info.title) {
+    info.slug = info.group + ' / ' + info.category;
+  }
+
+  if (o.unlocks) {
+    info.items = o.unlocks.map(translate);
+  }
+
+  return info;
+}
+
+function popupOnClick(e) {
+  //console.log('clicked', e.target.feature);
+  let marker = e.target;
+  activeMarker = marker; //for closing info window globally
+
+  let o = marker.feature.properties;
+  let info = renderItem(marker.feature, true);
+  let cc = marker.feature.geometry.coordinates;
+  let coords = cc.map(x=>x.toFixed(0)).map(String).join(', ');;
+
+  hideTooltipExt(e);
+
+  const popup = document.querySelector('#popup-template').content.cloneNode(true);
+
+  popup.querySelector('#popup-title').innerHTML = `<div style="white-space: nowrap;">${truncate(info.title)}</div>`;
+
+  popup.querySelector('#popup-title').title = `${info.title} (${o.type})`;
+
+  popup.querySelector('#popup-subtitle').innerHTML = `<div style="white-space: nowrap;">${info.slug}</div>`;
+
+  let note = info.region ? info.region : '';
+
+  let dir = getDirections(marker.feature);
+  if (dir) {
+    //note += `<hr><div style="white-space: nowrap; padding-bottom: 0px;" title="${coord}"><a title="Locate Player" href="javascript:locatePlayer()"><i class="fa fa-person"></i></a> &rarr; <a title="Copy To Clipboard (${coord})" href="javascript:copyToClipboard('${coord}')">${dir}</a></div>`;
+    note += `<hr><div style="white-space: nowrap; padding-bottom: 0px;" title="${coords}"><a title="${translate('Player Position')}" href="javascript:locatePlayer()"><i class="fa fa-person"></i></a> &rarr; <a title="${coords}" href="javascript:locatePlayer()">${dir}</a> ${info.height}</div>`;
+    //note += `${coords}`;
+  }
+
+  if (info.items) {
+    note += '<hr>' + info.items.join('<br>');
+  }
+
+  if (info.text) {
+    note += `<hr>${info.text}`;
+  }
+
+  popup.querySelector('#popup-note').innerHTML = note;
+
+  //popup.querySelector('#popup-data').innerHTML = '<hr/><pre>'+JSON.stringify({...o, _coordinates: cc}, null, 2) + '</pre>';
+
+  popup.querySelector('#popup-data').innerHTML = '<hr/><pre>'+JSON.stringify(o, null, 2) + '</pre>';
+
+  popup.querySelector('#popup-data-toggle').onclick = function(e) {
+    let data_id = document.querySelector('#popup-data-toggle').getAttribute('data-target');
+    settings.debugMode = !toggleClass(document.querySelector('#'+data_id),'collapsed');
+    saveSettings();
+  };
+
+  setClass(popup.querySelector('#popup-data'), settings.debugMode!=true, 'collapsed');
+
+  popup.querySelector('#popup-close').onclick = function() {  e.target._infoWindow.hide(); };
+
+  let teleport = `XTeleportTo ${cc[0]} ${cc[1]} ${cc[2]+100}` // 1M higher actually
+  c = popup.querySelector('#popup-marker-id-link')
+  c.href = '#' + teleport;
+  c.title = `Copy Coordinates (${teleport}) (z+100)`;
+  c.onclick = function(e){ copyToClipboard(e.target.href.split('#')[1].replaceAll('%20',' ')); return false; };
+
+  c = popup.querySelector('#popup-form-id-link');
+  c.href = '#' + o.name;
+  c.title = `Copy Name (${o.name})`;
+  c.onclick = function(e){ copyToClipboard(e.target.href.split('#')[1]); return false; };
+
+  c = popup.querySelector('#popup-map-link');
+  c.href = getMapURL(o.name);
+  c.title = `Copy Map URL (#${o.name})`
+  c.onclick = copyLink;
+  c.innerHTML = '<i class="fa fa-link"></i>';
+
+  c = popup.querySelector('#popup-wiki-link');
+  c.href = getWikiURL(info.title);
+  c.title = `Open Wiki ("${info.title}")`;
+  c.onclick = null;
+  c.innerHTML = '<i class="fa-brands fa-wikipedia-w"></i>';
+
+  c = popup.querySelector('#popup-found');
+  c.checked = settings.markedItems[getBaseName(o.name)]==true;
+  c.onclick = function() { toggleMarked(o.name) };
+
+  let contentElement = popup.firstElementChild;
+
+  let polygon = marker.options.ref_polygon;
+  if (polygon) selectPolygon(polygon, true);
+
+  marker._infoWindow.config({custom: true, dy: -12 });
+  marker._infoWindow.setContent(contentElement);
+
+  marker._infoWindow.on('hide', function(e) {
+    infoWindowOpen = false;
+    let polygon = e.target._owner.options.ref_polygon;
+    if (polygon) selectPolygon(polygon, false);
+  });
+
+  infoWindowOpen = true;
+
+  contentElement.addEventListener('contextmenu', function(e) { e.stopPropagation()}, true); // enable default context menu
+}
+
+
+function getBaseName(name) {
+  return name && name.split(':').shift();
+}
+
+function toggleMarked(id) {
+  let name = getBaseName(id);
+
+  if (settings.markedItems[name]) {
+    delete settings.markedItems[name];
+  } else {
+    settings.markedItems[name] = true;
+  }
+
+  let groupLayer = map.getLayer('GroupGLLayer');
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+      if (getBaseName(marker.feature.properties.name) == name) {
+        let opacity = settings.markedItems[name] ? markedOpacity : 1;
+        marker.updateSymbol({markerOpacity: opacity, lineOpacity: opacity });
+      }
+    }
+  }
+
+  saveSettings();
+}
+
+function applyHeightFactor(c, k=8) {
+  if (c.x) return [c.x, c.y, c.z/k];
+  return [c[0], c[1], c[2]/k];
+}
+
+function addMarker(feature, options) {
+  let o = feature.properties;
+  let t = getType(o);
+  let type = getBaseName(t.category);
+  let visible = settings.activeItems[type];
+
+  let getSymbol = function(feature,opacity=1) {
+
+    if (!iconImages[t.icon]) {
+      const v = iconData[t.icon];
+      if (v) {
+        iconImages[t.icon] = renderFAIconToImageURL(v.class, v.color, v.background, iconSize);
+      }
+    }
+
+    var symbol = 
+      {
+        markerFile   : iconImages[t.icon]||iconImages['misc'],
+        markerWidth  : iconSize,
+        markerHeight : iconSize,
+        markerDx     : 0,
+        markerDy     : 0,//-Math.round(iconSize/2),
+        markerOpacity: opacity,
+        //markerVerticalAlignment: 'middle',
+      };
+
+    if (feature.properties.type=='regionMarker') {
+        const textSymbol = {
+            textName : translate(feature.properties.name),
+            textFaceName : 'sans-serif',
+            textFill : '#fff',
+            textSize : 16,
+            textDx: 0,
+            textDy: -10,
+
+            textHaloFill      : '#000',
+            textHaloRadius    : 2,
+            textHaloOpacity   : 128,
+
+        };
+
+      //symbol = [ symbol, textSymbol, ];
+      symbol = textSymbol;
+    }
+
+    return symbol;
+  }
+
+  //if (t.group=='misc' || t.group=='actors') return;
+
+  const [x,y,z] = applyHeightFactor(feature.geometry.coordinates);
+
+  //console.log(feature.geometry.coordinates);
+
+  let [layers,counters,icons] = [options.layers, options.counters, options.icons];
+
+  let opacity = settings.markedItems[getBaseName(feature.properties.name)] ? markedOpacity : 1;
+
+  let line = new maptalks.LineString([[x,y,0],[x,y,z]], { symbol: { lineOpacity: opacity}, visible: visible });
+
+  layers.lines = layers.lines||[];
+  layers.lines.push(line);
+  line.feature = feature;
+
+  let draggable = feature.properties.type == playerMarkerType;
+
+  //nb! since it's mostly underwater, let's set marker Z to zero and avoid all the parallax isues
+  let marker = new maptalks.Marker([x,y,Math.max(0,z)], {
+    draggable: draggable,
+    symbol: getSymbol(feature, opacity),
+    cursor:'pointer',
+    eventsToStop: true,
+    visible: visible,
+  });
+
+  marker.feature = feature; // leaflet uses marker.feature after loading geojson
+
+  let layerName = t.group;
+  
+  if (o.type == 'regionMarker') layerName = 'labels';
+
+  layers[layerName] = layers[layerName] || [];
+  layers[layerName].push(marker);
+
+  marker.setInfoWindow({autoCloseOn: 'click', single: true})
+  .on('click', popupOnClick)
+  .on('contextmenu', e=> { if (!mouseMoved) toggleMarked(e.target.feature.properties.name)})
+  //.on('dragend', onDragEnd)
+
+  let info = renderItem(feature, false, t, 'popup');
+
+  let note = '';
+  if (info.text) {
+    note = ' - ' + info.text;
+  }
+
+  if (info.items) {
+    note = ' - ' + info.items.join(', ');
+  }
+
+  const tooltip = new maptalks.ui.ToolTip(truncate(`${info.title} ${info.height}${note}`), {
+      showTimeout: 100, // Delay in milliseconds before showing the tooltip
+      dx: 10,           // X-offset from the geometry
+      dy: -10           // Y-offset from the geometry
+  });
+
+  tooltip.addTo(marker);
+
+  function rotatePointsInPlace(points, centerX, centerY, angle) {
+      const rad = angle * Math.PI / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+    
+      for (let i = 0; i < points.length; i++) {
+          let px = points[i][0];
+          let py = points[i][1];
+        
+          // Translate to origin
+          const tx = px - centerX;
+          const ty = py - centerY;
+        
+          // Rotate
+          points[i][0] = tx * cos - ty * sin + centerX;
+          points[i][1] = tx * sin + ty * cos + centerY;
+          // z coordinate remains unchanged (points[i][2])
+      }
+  }
+
+  function assignPolygon(feature, polygon, marker, color) {
+    polygon.options.color = color;
+    polygon.options.ref_marker = marker;
+    marker.options.ref_polygon = polygon;
+    selectPolygon(polygon, false);
+
+    polygon.feature = {properties: {name: feature.properties.name +':poly'}};
+
+    if (feature.properties.type=='regionMarker') {
+      if (visible) setTimeout(function(e) { polygon.show(); }, 50)
+    }
+
+    polygon.on('click',function(e){
+      let zoom = map.getZoom();
+      //if (zoom<regionZoom) 
+      {
+        const marker = e.target.options.ref_marker;
+
+        if (marker && marker.feature.properties.type != 'regionMarker') {
+          marker.show();
+          popupOnClick({target: marker});
+          marker.openInfoWindow();
+        }
+
+        const extent = e.target.getExtent();
+        if (extent && zoom <= 4) {
+          //map.fitExtent(extent);
+          const center = extent.getCenter();
+          map.animateTo({center: center, zoom: regionZoom});
+          //selectPolygon(e.target, false);
+        }
+      }
+      return false;
+    });
+
+    // Add hover effects
+    polygon.on('mouseover', function(e) {
+      selectPolygon(e.target, true);
+    });
+
+    /*
+    polygon.on('mouseout', function(e) {
+      selectPolygon(e.target, false);
+    });
+    */
+
+    map.on('mousemove', function(e) {
+      for (const [name, polygon] of Object.entries(activePolys)) {
+        if (!ptInPoly(e.coordinate, polygon.getCoordinates()[0])) {
+          selectPolygon(polygon, false);
+        }
+      }
+    })
+
+    polygon.feature = feature;
+
+    return polygon;
+  }
+
+  function addRectangle(feature, x,y,z, w,h, angle, color, marker, visible) {
+
+    const defaultSymbol = {
+      lineColor: color,        // Border color
+      lineWidth: 2.0,          // Border width
+      polygonFill: color,      // Fill color
+      polygonOpacity: 0.1,     // Fill opacity
+      lineOpacity: 0.5,
+    };
+
+    let points = [];
+    points.push([x-w, y-h, z]);
+    points.push([x+w, y-h, z]);
+    points.push([x+w, y+h, z]);
+    points.push([x-w, y+h, z]);
+
+    if (angle!=0) {
+      rotatePointsInPlace(points, x,y, angle);
+    }
+
+    let polygon = new maptalks.Polygon(points, { symbol: defaultSymbol, visible: visible });
+
+    layers.rectangles = layers.rectangles||[];
+    layers.rectangles.push(polygon);
+
+    return assignPolygon(feature, polygon, marker, color);
+  }
+
+  if (o.type == 'UWEBoxWorldZone' && o.extent) {
+    let color = regionColors[o.region] || '#444a55';
+    addRectangle(feature, x,y,z-1, o.extent.X, o.extent.Y, 0, color, marker, visible);
+  }
+
+  if (o.type=='BP_EdgeOfWorldVolume_C' && o.rotation && o.scale) {
+    addRectangle(feature, x,y,z-1, o.scale.X*50, o.scale.Y*50, o.rotation.Yaw, '#f00', marker, visible);
+  }
+
+  if (o.type == 'regionMarker') {
+    for (const layer of map.getLayer('GroupGLLayer').getLayers()) {
+      if (layer._id != 'polygons') continue;
+      for (polygon of layer._geoList) {
+        if (polygon.properties.name != o.name) continue;
+        let color = regionColors[marker.feature.properties.name] || '#fff';
+        assignPolygon(marker.feature, polygon, marker, color);
+      }
+    }
+  }
+
+  icons[t.category] = iconData[t.icon];
+  counters[t.group] = counters[t.group] || {};
+
+  if (getBaseName(t.category)==t.category) {
+    counters[t.group][t.category] = (counters[t.group][t.category] || 0) + 1;
+  }
+
+  return marker;
+}
+
+function getRegionName(coord, polygons) {
+  if (!polygons || !coord) return null;
+  for (const polygon of polygons) {
+    if (ptInPoly(coord, polygon.getCoordinates()[0])) {
+      return polygon.properties.svgID.substring(1);
+    }
+  }
+}
+
+
+function scaleOrigin(coordinates, scaleFactor, origin) {
+  return coordinates.map(coord => {
+    const [x, y] = coord;
+    return [
+      origin[0] + x * scaleFactor + origin[0],
+      origin[1] + y * scaleFactor + origin[1],
+      -3, // sink region outline a bit (some markers are -3)
+    ];
+  });
+}
+
+function scaleGeoJSON(geojson, scaleFactor, origin) {
+  geojson.features.forEach(feature => {
+    if (feature.geometry) {
+    feature.geometry.coordinates = feature.geometry.coordinates.map(ring =>
+      scaleOrigin(ring, scaleFactor, origin)
+    );
+    }
+  });
+  return geojson;
+}
+
+
+function addRegions(geojson) {
+  const defaultSymbol = {
+    lineColor: '#fff',
+    polygonFill: '#fff',
+    polygonOpacity: 0.1,
+    lineOpacity: 0.5,
+    lineWidth: 2.0,
+  };
+
+  //geojson = scaleGeoJSON(geojson, 73 / 1, [-191800, 182900]);
+  //geojson = scaleGeoJSON(geojson, 1 / 1, [0,0]);
+  //geojson = scaleGeoJSON(geojson, 1 / 1, [0,0]);
+
+  var polygons = maptalks.GeoJSON.toGeometry(geojson);
+
+  polygons = polygons.filter(p => p);
+
+  polygons.forEach((polygon, index) => {
+    if (polygon.getType() !== 'Polygon') return;
+    polygon.setSymbol(defaultSymbol);
+    polygon.properties.svgID = '#poly_' + index;
+  });
+
+  let layerId = 'polygons';
+  let visible = true;
+
+  let layer = new maptalks.PolygonLayer(layerId, polygons, { visible });
+
+  for (marker of layer._geoList) {
+    marker.hide();
+  }
+
+  return layer;
+}
+
+
+
+function parabola(start, end, maxHeight = null, steps = 50) {
+  const [x0, y0, z0] = start;
+  const [x1, y1, z1] = end;
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const horizontalDistance = Math.sqrt(dx * dx + dy * dy);
+  const baseHeight = Math.max(z0, z1);
+  if (maxHeight === null) maxHeight = baseHeight + horizontalDistance / 8;
+  else maxHeight = Math.max(maxHeight, baseHeight + 0.001);
+  const points = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = x0 + dx * t;
+    const y = y0 + dy * t;
+    const z = z0 * (1 - t) + z1 * t + 4 * (maxHeight - baseHeight) * t * (1 - t);
+    //points.push([x, y, z]);
+    points.push({x:x, y:y, z:z}); // needed for simplify
+  }
+  return points;
+}
+
+function loadMarkersBatched(features, options) {
+  const batchSize = 1000;
+  let currentIndex = 0;
+  let result = [];
+  function processBatch() {
+    const batch = [];
+    const endIndex = Math.min(currentIndex + batchSize, features.length);
+    for (; currentIndex < endIndex; currentIndex++) {
+
+      let feature = features[currentIndex];
+      let marker = addMarker(feature, options);
+      batch.push(marker);
+
+      let o = feature.properties;
+      let t = getType(o);
+
+      if (o.spawns) {
+        //batch.push(addMarker({...feature, properties: {name: o.name +':spawns', type: o.spawns }}, options));
+      }
+
+      let targets = o.target ? [o.target] : (o.targets ? o.targets : []);
+      for (const target of targets) {
+        batch.push(addMarker({...feature, geometry: {coordinates: target}, properties: {name: o.name +':target', type: o.type + ':target' }}, options));
+
+        let start = applyHeightFactor(feature.geometry.coordinates);
+        let end = applyHeightFactor(target);
+        let opacity = settings.markedItems[o.name] ? markedOpacity : 1;
+
+        let points = parabola(start, end);
+
+        points = simplify(points, 2);
+
+        let line = new maptalks.LineString(points, { symbol: { lineOpacity: opacity, lineColor: getLineColor(t), lineWidth: 3 } });
+
+        let layers = options.layers;
+        layers.lines = layers.lines||[];
+        layers.lines.push(line);
+        line.feature = feature;
+      }
+
+      if (o.type == 'BP_StaticLifepod_Surface_C' && !settings.playerPosition) {
+        const t = feature.geometry.coordinates;
+        settings.playerPosition = [t[0]+1000,t[1],0];
+      }
+    }
+
+    result.push(...batch);
+
+    if (currentIndex < features.length) {
+      setTimeout(processBatch, 0); // Allow time for browser events
+    } else {
+      console.timeEnd('parsing markers');
+      addMarkers(result, options);
+    }
+
+    if (!playerMarker) {
+      //console.log('added player marker at', settings.playerPosition);
+      let feature = {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": settings.playerPosition,
+        },
+        "properties": {
+          "type": playerMarkerType,
+          "name": "Player Marker",
+          "text_id": "(draggable)",
+        }
+      };
+
+      playerMarker = addMarker(feature, options);
+      batch.push(playerMarker);
+
+      playerMarker.on('dragend', function(e) {
+        const marker = e.target;
+        const c = marker.getCoordinates();
+        const fc = marker.feature.geometry.coordinates;
+        fc[0] = c.x;
+        fc[1] = c.y;
+        settings.playerPosition = fc;
+        //console.log('updating player marker to', settings.playerPosition);
+        saveSettings();
+      });
+
+      playerMarker.on('dragstart', function(e) {
+        activeMarker?.closeInfoWindow();
+      })
+    }
+  }
+  setTimeout(processBatch, 0); // Start processing asynchronously
+
+  // preload polygons from regions.json, re-assign later with hit check
+  if (regionData) {
+    addRegions(regionData).addTo(map.getLayer('GroupGLLayer'));
+  }
+}
+
+function loadMarkers(data, mapId, legacy=true) {
+
+  let area = mapId;
+
+  counters = {};
+
+  let options = {layers: {}, counters: counters, icons: {}};
+
+  /*
+  if (legacy) {
+    let features = [];
+    for (o of data) {
+      let [x,y,z] = [o.lng, o.lat, o.alt];
+      let c = [x,y,z];
+      let feature = {type: 'Feature', geometry: {type: 'Point', coordinates: c}, properties: o};
+      if (o.type && typeof o.type === 'string' && o.type.includes(':')) o.type = o.type.split(':')[1]; // cut off ':' prefixes NB! new format?
+      features.push(feature);
+    }
+    data = features;
+  }
+  */
+
+  data = data.features;
+
+  console.time('parsing markers');
+  loadMarkersBatched(data, options);
+}
+
+
+function hideAll() {
+  settings.activeItems = {};
+  updateItems();
+  return false;
+}
+
+function showAll() {
+  settings.activeItems = {};
+  for (const groupName of Object.keys(counters)) {
+    for (const name of Object.keys(counters[groupName])) {
+      settings.activeItems[name] = true;
+    }
+  }
+  updateItems();
+  return false;
+}
+
+function showGroup(group) {
+  settings.activeItems = {};
+  for (const groupName of Object.keys(counters)) {
+    for (const name of Object.keys(counters[groupName])) {
+     if (group==groupName) settings.activeItems[name] = true;
+    }
+  }
+  updateItems();
+  return false;
+}
+
+function showItem(name) {
+  settings.activeItems = {};
+  settings.activeItems[name] = true;
+  updateItems();
+  return false;
+}
+
+function toggleGroup(group) {
+  let counter = 0;
+  let total = 0;
+
+  for (const name of Object.keys(counters[group])) {
+    if (settings.activeItems[name]!=true) counter += 1;
+    total += 1;
+  }
+
+  let selected = false;
+
+  if (counter==total) {
+    selected = true;
+  }
+
+  for (const name of Object.keys(counters[group])) {
+    if (selected) {
+      settings.activeItems[name] = true;
+    } else {
+      delete settings.activeItems[name];
+    }
+  }
+
+  updateItems();
+}
+
+function toggleItem(name) {
+  settings.activeItems[name] = !settings.activeItems[name];
+  updateItems();
+}
+
+function updateView() {
+  let zoom = map.getZoom();
+
+  if (settings.searchText) {
+    return;
+  }
+
+  for(const [layerName, zoomLevel] of Object.entries(zoomGroups)) {
+    let groupLayer = map.getLayer('GroupGLLayer');
+    let layer = groupLayer.getLayer(layerName);
+    if (layer) {
+      let [minZoom, maxZoom] = zoomLevel;
+      if (zoom>=minZoom+0.5 && zoom < maxZoom+0.5) {
+        layer.show();
+      } else {
+        layer.hide();
+      }
+    }
+  }
+}
+
+function addMarkers(markers, options) {
+
+  let [layers,counters,icons] = [options.layers, options.counters, options.icons];
+
+  console.time('adding control');
+  markersControl = new MarkersControl(counters, {theme: theme, icons: icons, weights:{}, groupCallback: toggleGroup, itemCallback: toggleItem, translate: translate });
+  console.timeEnd('adding control');
+
+  console.time('adding layers');
+
+  let groupLayer = map.getLayer('GroupGLLayer');
+
+  // add all helper layers first, then the rest of it, because order matters
+  for (const [name, geometries] of Object.entries(layers)) {
+    if (name=='lines') {
+      new maptalks.LineStringLayer(name, geometries, {
+        style: { filter: true, symbol: { lineColor: '#eee', lineWidth: 4, lineOpacity: 0.75 } },
+      }).addTo(groupLayer);
+    } else if (name=='rectangles') {
+      new maptalks.PolygonLayer(name, geometries, {
+        visible: true,
+      }).addTo(groupLayer);
+    }
+  }
+
+  for (const [name, geometries] of Object.entries(layers)) {
+    if (name!='rectangles' && name!='lines') {
+      new maptalks.PointLayer(name, geometries, {
+        sceneConfig: { depthFunc: '<='}, // <= fixes text halo
+      }).addTo(groupLayer);
+    }
+  }
+  console.timeEnd('adding layers');
+
+  // let tr = s=> typeData[s]?.title || (s[0].toUpperCase()+s.slice(1));
+  //let tr = s=> typeData[s]?.title || translate(s);
+  //let tr = s=> getType({"type": s}).title || s; //getType({"type": s}).title || translate(s)
+
+  //tr = s=> capitalize(getType({"type": s}).title || s);
+
+  updateView();
+
+  console.time('filtering markers');
+
+  let name = mapParam.markerName;
+  mapParam = {};
+  if (name) {
+    searchByTitle(name);
+  } else {
+    if (settings.filter) {
+      searchControl._input.value = settings.filter;
+      searchItems(settings.filter);
+    } else {
+      //updateItems(); // pre-filtered already
+
+      updateControls();
+      saveSettings();
+
+    }
+  }
+
+  console.timeEnd('filtering markers');
+
+
+  console.timeEnd('total time');
+}
+
+function parseSearchOptions(line) {
+  if (!line) line = '';
+
+  const terms = ['group', 'type', 'title'];
+  const result = {};
+
+  for (const key of terms) {
+    const match = line.match(new RegExp(`\\b${key}:([^\\s]+)`));
+    if (match) {
+      result[key] = match[1];
+      line = line.replace(match[0], ''); // strip from text
+    }
+  }
+
+  line = line.trim();
+  if (line) result.text = line;
+
+  return result;
+}
+
+function showRelatedMarkers(name) {
+  let groupLayer = map.getLayer('GroupGLLayer');
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+      let alias = getBaseName(name);
+      if (alias==getBaseName(marker.feature.properties.name)) {
+        marker.show();
+      }
+    }
+  }
+}
+
+function searchByTitle(title) {
+  let term = title.toLowerCase();
+  let selectedMarker = null;
+  let counter = 0;
+  let groupLayer = map.getLayer('GroupGLLayer');
+
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+
+      let res = false;
+      if (marker.feature) {
+        let t = getType(marker.feature);
+        let o = marker.feature.properties;
+
+        if (t.title) {
+          let src = t.title.toLowerCase();
+          res = src==term || src==term.replaceAll('_',' ');
+        }
+
+        if (!res) res = title == o.name;
+
+      }
+
+      if (res) {
+        marker.show();
+        if (marker.type != 'LineString') {
+          if (!selectedMarker) selectedMarker = marker;
+          counter += 1;
+        }
+      } else {
+        marker.hide();
+      }
+
+    }
+  }
+
+  if (counter==1 && selectedMarker) {
+    let marker = selectedMarker;
+    showRelatedMarkers(marker.feature.properties.name);
+    popupOnClick({target: marker});
+    marker.openInfoWindow();
+  }
+
+}
+
+
+function searchItems(text) {
+  let groupLayer = map.getLayer('GroupGLLayer');
+
+  settings.filter = text;
+
+  if (text=='') {
+    updateItems();
+    return;
+  }
+
+  saveSettings();
+
+  let terms = [];
+  if (text) {
+    terms = text.toLowerCase().split(/\s+/);
+  }
+
+  let counter = 0
+  let lastMarker = null;
+
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+
+      let res = false;
+
+      if (marker.feature) {
+
+        let o = marker.feature.properties;
+        let t = getType2(o);
+        res = false;
+
+        let mask = {};
+        if (!res && terms.length) {
+
+          let searchStrings = {};
+          let props = [t.type, t.title, t.category];
+          if (o.unlocks) props = [...props, ...o.unlocks];
+
+          for (let s of [...props.map(translate), ...Object.values(o).map(translate), ...Object.values(o), ...Object.keys(o)]) {
+            if (!s) continue;
+            searchStrings[String(s).toLowerCase()] = true;
+          }
+
+          for (const s of Object.keys(searchStrings)) {
+            for (const term of terms) {
+              if (mask[term]) continue;
+              if (s.includes(term)) {
+                mask[term] = true;
+              }
+            }
+          }
+          res = terms.every(term=>mask[term]);
+        }
+      }
+
+      if (res) {
+        if (marker.type != 'LineString') counter += 1;
+        marker.show();
+      } else {
+        marker.hide();
+      }
+    }
+  }
+
+  searchControl._input.title = `${counter} markers`;
+
+  return false;
+}
+
+function setMarkerZRecursive(layer) {
+  if (layer instanceof maptalks.VectorLayer || layer instanceof maptalks.PointLayer) {
+    layer.getGeometries().forEach(g => {
+      if (g instanceof maptalks.Marker) {
+        //console.log(g);
+        g.setZIndex(0);
+      }
+    });
+  } else {
+    if (layer.getLayers) layer.getLayers().forEach(setMarkerZRecursive);
+  }
+}
+
+
+function setHeight() {
+  map.getLayers().forEach(setMarkerZRecursive);
+}
+
+
+function loadMap(mapId) {
+  let config = maps[mapId];
+  let area = mapId;
+
+  for (id in maps) {
+    localData[id] = localData[id] || {};
+    localData[id].markedItems = localData[id].markedItems || {};
+    localData[id].activeLayers = localData[id].activeLayers || {};
+    localData[id].filter = localData[id].filter!==undefined ? localData[id].filter : '';
+    localData[id].activeItems = localData[id].activeItems || {
+      'playerPosition': true,
+      'regionMarker': true, 
+      'BP_StaticLifepod_Surface_C':true,
+      'BP_Blackbox_Clickable_01a_C': true,
+      'BP_Nrtv_QuartzChip_C':true, 
+      'BP_RecipeGainDataCard_Button_C':true,
+      'BP_AbandonedBaseSign_C':true,
+      'BP_EdgeOfWorldVolume_C': true,
+      };
+  }
+
+  settings = localData[mapId];
+
+  //console.log('ver', config.versions && Object.keys(config.versions)[Object.keys(config.versions).length-1])
+
+  settings.version = settings.version || config.versions && Object.keys(config.versions)[Object.keys(config.versions).length-1];
+
+  let version = config.versions?.[settings.version] || {};
+
+  let tileSize = version.tileSize || config.tileSize;
+  let bounds = version.bounds || config.bounds;
+  let center = version.center || config.center;
+
+  let mapSize = bounds.right - bounds.left;
+  let maxZoom = version.maxZoom || config.maxZoom || 8;
+
+  let tiles = version.tiles || config.tiles;
+
+  gameTitle = config.title;
+
+  if (config.versions) {
+    document.querySelector('.version').innerHTML = `<select>${Object.entries(config.versions).sort((a,b)=>b[0]-a[0]).map(([key,value])=>`<option value="${key}"${key==settings.version?' selected':''}>Version ${key} (${new Date(value.date).toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"})})</option>`).join('')}</select>`;
+    document.querySelector('.version select').onchange = e=> {
+      settings.version = e.target.value;
+      saveSettings();
+      location.reload();
+    }
+  } else {
+    document.querySelector('.version').textContent = '';
+  }
+
+  if (map) map.remove();
+
+
+  let tileLayers = Object.entries(maps).map(([name, config])=>
+    new maptalks.TileLayer(name, {
+      maxAvailableZoom: maxZoom,
+      urlTemplate: tiles,
+      repeatWorld: false,
+      tileSize: tileSize,
+      tileSystem: [1, -1, bounds.left, bounds.top],
+      visible: name==area,
+    })
+  )
+
+
+  map = new maptalks.Map('map', {
+    zoom: 0,
+    center: [center.left, center.top],
+    maxZoom: maxZoom,
+    spatialReference: {
+      projection: 'identity',
+      resolutions: Array.from({length: maxZoom + 1},(_,i) => mapSize / tileSize / (1<<i)),
+      fullExtent: bounds,
+    },
+    zoomControl: {
+      position  : {bottom: 70, right: 20},
+      zoomLevel : false,
+    },
+    doubleClickZoom: true,
+
+    //heightFactor: 0.01, // optional (doesn't really work? messes up infowindow)
+
+    enableAltitude: false,
+
+    baseLayer: new maptalks.GroupTileLayer('baseLayers', tileLayers),
+
+  });
+
+  let gap = mapSize/2;
+  let extent = new maptalks.Extent(bounds.left-gap, bounds.top-gap, bounds.right+gap, bounds.bottom+gap);
+  map.setMaxExtent(extent);
+
+  // Beacon: expose the map so beacon-live.js can overlay live online players.
+  window.beaconMap = map;
+
+  let layerSwitcher = new maptalks.control.LayerSwitcher({
+    position  : 'bottom-left',
+    //baseTitle : 'Base Layers',
+    //overlayTitle : 'Overlays',
+    containerClass : 'maptalks-layer-switcher',
+  });
+
+  map.addControl(layerSwitcher);
+
+  layerSwitcher.getContainer().addEventListener('click', e => {
+    let id = e.target.nextSibling.innerText.trim();
+    if (Object.keys(maps).includes(id)){
+      loadMap(id);
+    }
+  });
+
+/*
+  layerSwitcher.on('layerchange', function(event) {
+    const baseLayerGroup = map.getBaseLayer(); // Returns the group, not the active layer
+    let currentBaseLayer;
+    baseLayerGroup.getLayers().forEach(layer => {
+        if (layer.isVisible()) {
+          if (Object.keys(maps).includes(layer.getId())){
+            loadMap(layer.getId());
+          }
+        }
+    });
+  });
+*/
+
+  map.on('mousedown touchstart', function(e) {
+    document.getElementById('map').focus(); // needs tabindex on the map element
+  });
+
+  function resetTitle() {
+    document.title = "Joric's Subnautica 2";
+  }
+
+  let mmTimeout = 0;
+  map.on('mousemove', function(e){
+    const p = e.coordinate;
+     //z: ${map.getZoom().toFixed(0)}
+    document.title = `${p.x.toFixed(0)} ${p.y.toFixed(0)}`;
+    clearTimeout(mmTimeout);
+    mmTimeout = setTimeout(resetTitle, 5000);
+  });
+
+  map.on('mouseleave',resetTitle);
+
+  map.on('zooming', function(e) {
+    updateView();
+  });
+
+  map.on('click', function(e){
+    const p = e.coordinate;
+    if (playerMarker) {
+      let c = [p.x, p.y, 0];
+      //settings.playerPosition = c;
+      //playerMarker.setCoordinates(c);
+      //console.log('setting player coordinates to', c);
+    }
+  });
+
+  //map.config({heightFactor: 0.00001}); // doesn't help, messes up infowindow
+
+  map.on('layerchange', function (event) {
+      console.log('Base layer changed:', event.layer);
+  });
+
+  map.on('viewchange', e=> {
+    settings.center = [e.new.center[0],e.new.center[1]];
+    settings.bearing = e.new.bearing;
+    settings.pitch = e.new.pitch;
+    settings.zoom = e.new.zoom;
+    //if (enableAltitude && autoAltitude) {
+      //groupLayer.setOptions({enableAltitude: map.getPitch()!=0});
+    //}
+    //console.log('zoom', settings.zoom);
+    saveSettings();
+  });
+
+  settings.center = settings.center || [center.left, center.top];
+
+  map.setView({
+    center: settings.center,
+    zoom: settings.zoom || 0,
+    bearing: settings.bearing || 0,
+    pitch: settings.pitch || 0,
+  })
+
+  localData.mapId = mapId;
+
+  let compassControl = new maptalks.control.Compass({position  : 'bottom-right'}).addTo(map)._compass.onclick = compassOnClick;
+
+  searchControl = new SearchControl(null, {theme:theme});
+  searchControl._handleSubmit = function() {
+    location.hash = '';
+    searchItems(searchControl._input.value);
+  }
+
+  searchControl._input.setAttribute('placeholder', gameTitle);
+
+  if (!config.versions?.[settings.version]) {
+    console.log('version data not found, setting to the last one');
+    settings.version = config.versions && Object.keys(config.versions)[Object.keys(config.versions).length-1];
+  }
+
+  let groupLayer = new maptalks.GroupGLLayer('GroupGLLayer').addTo(map);
+}
+
+function renderFAIconToImageURL(fa_class, bg, fg='white', size=48) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  function drawFAIcon(prefix, iconName, color, pixelSize, dy = 0) {
+    let icon = FontAwesome.icon({ prefix, iconName });
+
+    if (!icon) icon = FontAwesome.icon({ prefix:'fa', iconName: 'question-circle' });
+
+    const [w, h, , , path] = icon.icon;
+    const scale = pixelSize / h;
+    const iconWidthPx = w * scale;
+    const dx = (size - iconWidthPx) / 2;
+    const dyPx = (size - pixelSize) / 2 + dy;
+    ctx.setTransform(scale, 0, 0, scale, dx, dyPx);
+    ctx.fillStyle = color;
+    ctx.fill(new Path2D(path));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  function parseFAClass(faClass) {
+    const parts = faClass.trim().split(/\s+/);
+    const prefix = parts.find(p => p.startsWith('fa-') || p === 'fa')?.replace('fa-', '') || 'solid';
+    const iconName = parts.find(p => p.startsWith('fa-') && p !== 'fa' && p !== `fa-${prefix}`)?.replace('fa-', '');
+    const prefixMap = { solid: 'fas', regular: 'far', light: 'fal', thin: 'fat', duotone: 'fad', brands: 'fab' };
+    return { prefix: prefixMap[prefix] || 'fas', iconName };
+  }
+
+  fg = fg || 'white';
+  bg = bg || 'grey';
+  let t = parseFAClass(fa_class);
+  drawFAIcon('fas', 'location-pin', 'black', size * 1.0);
+  drawFAIcon('fas', 'location-pin', bg, size * 0.976);
+  drawFAIcon(t.prefix, t.iconName, fg, size * 0.45, -size/8);
+  return canvas.toDataURL('image/png');
+}
+
+function saveSettings() {
+  localStorage.setItem(localDataName, JSON.stringify(localData));
+}
+
+function resetLocalData() {
+  if (confirm('Are you sure you want to reset settings?')) {
+    localStorage.removeItem(localDataName);
+    location.reload();
+  }
+}
+
+function loadLocalDataExt() {
+  var file = document.querySelector("#file").files[0];
+  if (file) {
+    var reader = new FileReader();
+    reader.readAsText(file, "UTF-8");
+    reader.onload = function (evt) {
+      let data = evt.target.result;
+      evt.target.value = null;
+      try {
+        localData = JSON.parse(data);
+        settings = localData[mapId];
+        console.log('New settings loaded.');
+        saveSettings();
+        location.reload();
+      } catch(e) {
+        console.log(e);
+      }
+    }
+    reader.onerror = function (evt) {
+      alert('error reading file');
+    }
+  }
+}
+
+function loadLocalData() {
+  document.querySelector('#file').onchange = function(e) {
+    loadLocalDataExt();
+  }
+  document.querySelector('#file').value = null;
+  document.querySelector('#file').accept = '.json';
+  document.querySelector('#file').click();
+}
+
+function saveLocalData() {
+  let data = localStorage.getItem(localDataName);
+  if (window.showSaveFilePicker) {
+    window.showSaveFilePicker({suggestedName: localDataName+'.json'}).then(f=>f.createWritable()).then(f=>f.write(data).then(()=>f.close()));
+  } else {
+    let filename = localDataName+'.json';
+    let blob = new Blob([data], {type: "text/json"});
+    if(navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+        var a = document.body.appendChild(document.createElement("a"));
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        a.remove();
+    }
+  }
+}
+
+function updateControls() {
+  document.querySelectorAll('.markers-control-group').forEach(group => {
+    const items = group.parentElement.querySelectorAll('.markers-control-item');
+    let anySelected = false;
+    items.forEach(item => {
+      let type = getBaseName(item.dataset.name);
+      const selected = settings.activeItems[type]==true;
+      item.classList.toggle('selected', selected);
+      anySelected ||= selected;
+    });
+    group.classList.toggle('selected', anySelected);
+  });
+}
+
+function updateItems() {
+  searchControl._input.value='';
+
+  let groupLayer = map.getLayer('GroupGLLayer');
+
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+
+      let t = getType(marker.feature.properties);
+      let type = getBaseName(t.category);
+
+      if (settings.activeItems[type]) {
+        marker.show();
+        //console.log('show', marker.feature.properties.name);
+      } else {
+        marker.hide();
+      }
+
+    }
+  }
+  updateControls();
+  saveSettings();
+}
+
+function markItems() {
+  let groupLayer = map.getLayer('GroupGLLayer');
+  for (const layer of groupLayer.getLayers()) {
+    for (marker of layer._geoList) {
+      let name = getBaseName(marker.feature.properties.name);
+      let opacity =  (settings.markedItems[name] || settings.markedItems[name+':spawns']) ? markedOpacity : 1;
+      marker.updateSymbol({markerOpacity: opacity, lineOpacity: opacity });
+    }
+  }
+}
+
+function importSaveFileExt2() {
+  var file = document.querySelector("#game_file").files[0];
+  if (file) {
+
+    var reader = new FileReader();
+    reader.readAsArrayBuffer(file, "UTF-8");
+    reader.onload = function (evt) {
+
+    let data = evt.target.result;
+    evt.target.value = null;
+
+    let loadedSave;
+
+    try {
+
+      loadedSave = new UESaveObject(evt.target.result);
+
+/////////////
+    let count = 0;
+    for (let section of ["ThingsToRemove", "ThingsToActivate", "ThingsToOpenForever"]) {
+      for (o of loadedSave.Properties) {
+        if (o.name != section) {
+          continue;
+        }
+        for(x of o.value.value) {
+          let name = x.split(".").pop();
+          let area = x.split("/").pop().split('.')[0];
+          if (name != "None") {
+            name = name.charAt(0).toUpperCase() + name.slice(1);
+            //let id = area + ':' + name;
+            let id = name; // NB! we don't really need area name in subnautica
+            if (!settings.markedItems[name]) count += 1;
+            settings.markedItems[id] = true;
+          }
+        }
+      }
+    }
+
+/////////
+        markItems();
+        saveSettings();
+
+        setTimeout(()=>alert(`Marked ${count} items.`),0);
+
+      } catch(e) {
+        console.log(e);
+      }
+
+    }
+    reader.onerror = function (evt) {
+      alert('error reading file');
+    }
+  }
+}
+
+function importSaveFileExt() {
+  var file = document.querySelector("#game_file").files[0];
+  if (file) {
+    var reader = new FileReader();
+    reader.readAsText(file, "UTF-8");
+    reader.onload = function (evt) {
+      let data = evt.target.result;
+      evt.target.value = null;
+
+      try {
+
+        gameData = JSON.parse(data);
+        console.log('Save file loaded.');
+
+        let count = 0;
+
+        for(const [key,o] of Object.entries(gameData.dynamicSaveData.ObjectData)) {
+          if (o.ItemIsTaken || o.bFound || o.Active || o.bPickedUp || o.Exists==false || o.State>1 || o.State===0 || o.bUnlocked || o.bIsBroken) {
+            let name = key.split('.').pop();
+            if (!settings.markedItems[name]) count += 1;
+            settings.markedItems[name] = true;
+          }
+        }
+
+        markItems();
+        saveSettings();
+
+        setTimeout(()=>alert(`Marked ${count} items.`),0);
+
+      } catch(e) {
+        console.log(e);
+      }
+
+
+    }
+    reader.onerror = function (evt) {
+      alert('error reading file');
+    }
+  }
+}
+
+let savePath = '%LocalAppData%\\Subnautica2\\Saved\\SaveGames';
+
+function copySavePath(e) {
+  copyToClipboard(savePath);
+}
+
+function importSaveFile() {
+  let binarySave = settings.version=='10596';
+  document.querySelector('#game_file').onchange = function(e) {
+    binarySave ? importSaveFileExt2() : importSaveFileExt();
+  }
+  document.querySelector('#game_file').value = null;
+  document.querySelector('#game_file').accept = binarySave ? '.sav' : '.json';
+  document.querySelector('#game_file').click();
+}
+
+function prerenderIcons() {
+  console.time('rendering icons');
+  iconImages = Object.fromEntries(Object.entries(iconData).map(([k,v]) => [k, renderFAIconToImageURL(v.class, v.color, v.background, iconSize)]));
+  console.timeEnd('rendering icons');
+}
+
+function pointInPolygonFast(x, y, vertices) {
+    let inside = false;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const xi = vertices[i][0], yi = vertices[i][1];
+        const xj = vertices[j][0], yj = vertices[j][1];
+        if (((yi > y) !== (yj > y)) &&
+            (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+function prerenderMarkers() {
+  console.time('rendering markers');
+  for (const feature of markersData.features) {
+    //console.log(feature);
+
+    const o = feature.properties;
+    const t = getType2(o);
+    let info = renderItem(feature, true, t, 'prerender');
+
+    o._info = info;
+
+    //console.log(o);
+
+  }
+  console.timeEnd('rendering markers');
+}
+
+window.onload = function(event) {
+
+  console.time('total time');
+
+  if (location.hash.length>1) {
+    let param = decodeURIComponent(location.hash.slice(1));
+    mapParam.markerName = param;
+  }
+
+  try {
+  // clear location hash
+    history.pushState('', document.title, window.location.pathname + window.location.search);
+  } catch(error) {
+    console.log('handled error', error);
+  }
+
+  window.addEventListener("keydown", function (e) {
+
+    if (e.target.className=='search-input') {
+      return;
+    }
+
+    if (e.code=='KeyR' && !e.ctrlKey) {
+      compassOnClick();
+    }
+
+    switch (e.code) {
+      case 'Digit1': loadMap(Object.keys(maps)[0]); break;
+      case 'Digit2': loadMap(Object.keys(maps)[1]); break;
+      case 'Digit3': loadMap(Object.keys(maps)[2]); break;
+      case 'Digit4': loadMap(Object.keys(maps)[3]); break;
+    }
+
+  });
+
+  localData.mapId = localData.mapId || Object.keys(maps)[0];
+  let mapId = localData.mapId;
+
+  document.querySelector('#load_data').onclick = loadLocalData; 
+  document.querySelector('#save_data').onclick = saveLocalData;
+  document.querySelector('#reset_data').onclick = resetLocalData;
+  document.querySelector('#copy_path').onclick = copySavePath;
+  //document.querySelector('#import_save').onclick = importSaveFile;
+  document.querySelector('#show_all').onclick = showAll;
+  document.querySelector('#hide_all').onclick = hideAll;
+
+  loadMap(mapId);
+
+  settings.language = settings.language || 'en';
+
+  let lang_list = {
+    "en": "en",
+    "de": "de-DE",
+    "es": "es-419",
+    "fr": "fr-FR",
+    "it": "it",
+    "ja": "ja-JP",
+    "ko": "ko-KR",
+    "pt": "pt-BR",
+    "ru": "ru-RU",
+    "uk": "uk-UA",
+    "zh": "zh-Hans"
+  };
+
+  let langSelect = document.querySelector('#language-selector select');
+  langSelect.innerHTML = Object.entries(lang_list).map(([key, value])=>`<option value="${key}"${settings.language==key?' selected':''}>${key}</option>`).join('');
+  langSelect.onchange = e=> {
+    settings.language = e.target.value;
+    saveSettings();
+    location.reload();
+  };
+
+  fetch(`data/Localization/Game/${lang_list[settings.language]}/Game.json`).then(r=>r.json()).then(data=>{
+    lang = data;
+    //searchControl._input.setAttribute('placeholder', lang['sid_misc_hint_loot'] +'...');
+
+    //document.getElementById('load').textContent = lang['sid_misc_pausemenu_load'];
+    //document.getElementById('save').textContent = lang['sid_misc_pausemenu_save'];
+    //document.getElementById('reset').textContent = lang['sid_misc_settingsGeneral_resetDefault'];
+    //document.getElementById('add-note').textContent = lang['sid_misc_pda_hint_CreatePlayerLandmark'];
+
+    let promises = [
+      'data/types.json',
+      'data/icons.json',
+      'data/strings.json',
+      'data/regions.json',
+      'data/items.json',
+      'data/blueprints.json',
+      'data/markers.json',
+    ].map(url=>fetch(url).then(r=>r.json()));
+
+    console.time('loading files');
+
+    Promise.all(promises).then(data => {
+
+      console.timeEnd('loading files');
+
+      [typeData, iconData, stringData, regionData, itemsData, blueprintsData, markersData] = data;
+
+      iconData['misc'] = {"class": "fa-solid fa-circle-question", "bg": "grey"};
+
+      //prerenderIcons(); // doesn't seem to speed up loading
+      //prerenderMarkers(); // may be slow
+
+      for (const feature of regionData.features) {
+        regionColors[feature.properties.name] = feature.properties.color;
+        markersData.features.push(
+          {
+            "type": "feature",
+            "geometry": { "type": "Point", "coordinates": getCentroidRaw2(feature.geometry.coordinates[0]) },
+            "properties": {
+              type: "regionMarker",
+              color: feature.properties.color,
+              name: feature.properties.name,
+            }
+          }
+        );
+      }
+
+      loadMarkers(markersData, mapId, true);
+
+      // Beacon: in the live-player view (?datasrc / ?beacon), default to a clean
+      // but useful marker set — show the Points of Interest landmarks (the
+      // 'locations' group) and leave the resource-node spam (plants / minerals /
+      // animals) off. One-time per default version so a player's later toggles
+      // stick; the v2 bump re-applies for anyone an earlier default had hidden.
+      if (/[?&](datasrc|beacon)=/.test(location.search)) {
+        try {
+          if (localStorage.getItem('beacon_livemap_default_v2') !== '1') {
+            showGroup('locations');
+            try { saveSettings(); } catch (e) {}
+            localStorage.setItem('beacon_livemap_default_v2', '1');
+            localStorage.removeItem('beacon_livemap_defaulted');
+          }
+        } catch (e) {}
+      }
+
+    });
+  });
+}
+
+</script>
+<!-- Beacon: live online-player overlay (reads the connected server's /api/v1/map/state) -->
+<script src="js/beacon-live.js"></script>
+</body>
+</html>

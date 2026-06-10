@@ -1,0 +1,210 @@
+{
+  "locations": "ST_Databank/Points_of_Interest",
+  "minerals": "ST_AutomatedLockerNames/Minerals",
+  "plants": "ST_BaseMenuCategories/Plants",
+  "blueprints": "ST_Databank/Blueprints",
+  "animals": "ST_Databank/Mobile_Life",
+  "resources": "ST_Databank/Resources",
+
+  "regionMarker": "ST_Databank/Biomes",
+  "playerPosition": "ST_BaseFeedback/Player",
+  "basePieces": "ST_BaseMenuCategories/BasePieces",
+
+  "BP_EdgeOfWorldVolume_C": "ST_Notifications/EdgeOfWorldThankyouTitle",
+
+  "fish": "ST_Databank_Motile/Fish",
+
+  "BP_UpgradeTerminal_C": "ST_ScannerStation/UpgradeTerminals",
+  "BP_ActivateConsoleButton_C": "ST_Databank/Alien_Data",
+  "BP_AbandonedBaseSign_C": "ST_BaseSignal/BaseSignal",
+  "BP_AxumGlyph_C": "ST_Ruins_Databanks/AxumGlyph_title",
+  "BP_AngelCombCore_C": "ST_BlightCore/AngelComb",
+  "BP_SupplyCrate_C": "ST_InventoryNames/SupplyCrate",
+  "BP_WorldSupplyLocker_C": "ST_AutomatedLockerNames/Locker",
+  "BP_BlackBox_Clickable_01a_C": "ST_Databank/BlackBoxes",
+  "BP_RecipeGainDataCard_Button_C": "ST_Databank/Your_Files",
+  "BP_Nrtv_QuartzChip_C": "ST_Databank/Data_Downloads",
+  "BP_ComputerTextInterface_Terminal_C": "ST_Buildables/NoATerminal",
+  "BP_StaticLifepod_Surface_C": "ST_Lifepod/LifepodPingName",
+  "BP_BioBed_Scan_C": "ST_Buildables/Biobed",
+  "BP_BioBed_C": "ST_Buildables/Biobed",
+  "BP_BioLab_Fragment_C": "ST_Buildables/Biolab",
+  "BP_Planetary_C": "ST_Ruins_Databanks/Observatory_title",
+  "BP_WorldBuildable_C": "ST_Ruins_Databanks/PowerPlant_title",
+  "BP_CoralPad_01c_C": "ST_Databank_Sessile/Pent",
+  "BP_MinorThreat_PoisonTubeCluster_C": "ST_Databank_Sessile/PoisonTubeCluster",
+
+  "BP_NarrativeSignal_C": "ST_Databank/Field_Reports",
+  "BP_ScannerStationSignal_C": "ST_ScannerStation/SelectedSignal",
+
+  "misc": {
+    "en": "Misc",
+    "de": "Verschiedenes",
+    "es": "Varios",
+    "fr": "Divers",
+    "it": "Varie",
+    "ja": "その他",
+    "ko": "기타",
+    "pt": "Diversos",
+    "ru": "Разное",
+    "uk": "Різне",
+    "zh": "其他"
+  },
+
+  "(draggable)": {
+    "en": "(draggable)",
+    "de": "(verschiebbar)",
+    "es": "(arrastrable)",
+    "fr": "(déplaçable)",
+    "it": "(trascinabile)",
+    "ja": "(ドラッグ可能)",
+    "ko": "(드래그 가능)",
+    "pt": "(arrastável)",
+    "ru": "(перетаскиваемый)",
+    "uk": "(перетягуваний)",
+    "zh": "(可拖拽)"
+  },
+
+  "DA_AR-Observatory": "ST_Ruins_Databanks/Observatory_title", 
+  "DA_AR-PowerPlant": "ST_Ruins_Databanks/PowerPlant_title",
+
+  "DA_CGShallows": {
+    "en": "Shallows",
+    "de": "Flachwasser",
+    "es": "Aguas someras",
+    "fr": "Eaux peu profondes",
+    "it": "Acque basse",
+    "ja": "浅瀬",
+    "ko": "여울",
+    "pt": "Águas rasas",
+    "ru": "Мель",
+    "uk": "Мілина",
+    "zh": "浅滩"
+  },
+
+  "DA_CGPlateaus": {
+    "en": "Plateaus",
+    "de": "Plateaus",
+    "es": "Mesetas",
+    "fr": "Plateaux",
+    "it": "Altopiani",
+    "ja": "高原",
+    "ko": "고원",
+    "pt": "Platôs",
+    "ru": "Плато",
+    "uk": "Плато",
+    "zh": "高原"
+  },
+
+  "DA_CGGraveyard": {
+    "en": "Graveyard",
+    "de": "Friedhof",
+    "es": "Cementerio",
+    "fr": "Cimetière",
+    "it": "Cimitero",
+    "ja": "墓地",
+    "ko": "묘지",
+    "pt": "Cemitério",
+    "ru": "Кладбище",
+    "uk": "Кладовище",
+    "zh": "墓地"
+  },
+
+  "DA_CGAnemoneHills": {
+    "en": "Anemone Hills",
+    "de": "Anemonenhügel",
+    "es": "Colinas de anémonas",
+    "fr": "Collines d'anémones",
+    "it": "Colline di anemoni",
+    "ja": "アネモネの丘",
+    "ko": "아네모네 언덕",
+    "pt": "Colinas de anêmonas",
+    "ru": "Холмы анемонов",
+    "uk": "Пагорби анемонів",
+    "zh": "海葵山丘"
+  },
+
+  "DA_CGTufaTowers": {
+    "en": "Tufa Towers",
+    "de": "Tufftürme",
+    "es": "Torres de toba",
+    "fr": "Tours de tuf",
+    "it": "Torri di tufo",
+    "ja": "トゥファタワー",
+    "ko": "응회암 탑",
+    "pt": "Torres de tufo",
+    "ru": "Туфовые башни",
+    "uk": "Туфові вежі",
+    "zh": "凝灰岩塔"
+  },
+
+  "DA_CGNorthRaceway": {
+    "en": "North Raceway",
+    "de": "Nordrennbahn",
+    "es": "Pista norte",
+    "fr": "Piste nord",
+    "it": "Pista nord",
+    "ja": "ノースレースウェイ",
+    "ko": "북부 경주로",
+    "pt": "Pista norte",
+    "ru": "Северная трасса",
+    "uk": "Північна траса",
+    "zh": "北赛道"
+  },
+
+  "DA_CGSouthRaceway": {
+    "en": "South Raceway",
+    "de": "Südrennbahn",
+    "es": "Pista sur",
+    "fr": "Piste sud",
+    "it": "Pista sud",
+    "ja": "サウスレースウェイ",
+    "ko": "남부 경주로",
+    "pt": "Pista sul",
+    "ru": "Южная трасса",
+    "uk": "Південна траса",
+    "zh": "南赛道"
+  },
+
+  "DA_CGBlightedCoral": {
+    "en": "Blighted Coral",
+    "de": "Verderbtes Korallenriff",
+    "es": "Coral devastado",
+    "fr": "Corail flétri",
+    "it": "Corallo avvizzito",
+    "ja": "荒廃した珊瑚",
+    "ko": "황폐한 산호",
+    "pt": "Coral devastado",
+    "ru": "Увядшие кораллы",
+    "uk": "Зів'ялі корали",
+    "zh": "枯萎珊瑚"
+  },
+
+  "DA_CGLeadzone": {
+    "en": "Leadzone",
+    "de": "Bleizone",
+    "es": "Zona de plomo",
+    "fr": "Zone de plomb",
+    "it": "Zona del piombo",
+    "ja": "鉛地帯",
+    "ko": "납 지대",
+    "pt": "Zona de chumbo",
+    "ru": "Свинцовая зона",
+    "uk": "Свинцева зона",
+    "zh": "铅区"
+  },
+
+  "DA_AR-RootCanyon": {
+    "en": "Root Canyon",
+    "de": "Wurzelcanyon",
+    "es": "Cañón de las raíces",
+    "fr": "Canyon des racines",
+    "it": "Canyon delle radici",
+    "ja": "ルートキャニオン",
+    "ko": "뿌리 협곡",
+    "pt": "Canhão das raízes",
+    "ru": "Каньон корней",
+    "uk": "Каньйон коріння",
+    "zh": "根峡谷"
+  }
+}

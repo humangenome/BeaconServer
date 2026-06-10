@@ -3,7 +3,7 @@ using MessagePack;
 namespace Beacon.Protocol;
 
 /// <summary>
-/// Wire protocol between Beacon.dll (UE4SS plugin loaded into the Subnautica 2
+/// Wire protocol between Beacon.dll (UE4SS plugin loaded into the SN2
 /// process) and BeaconServer.exe (.NET 8 supervisor). Bumped on any
 /// breaking schema change.
 /// </summary>
@@ -42,13 +42,13 @@ public enum FrameType : byte
     Goodbye = 51,
 
     // Mod-host plugin API (Phase 3+). Beacon supports two mod surfaces:
-    //   1. Reserved: server-side native mods loaded by Beacon.dll inside the game
+    //   1. Server-side native (C++) mods loaded by Beacon.dll inside SN2's
     //      process. They observe game events (player join, chat, world tick)
     //      and can call back into UE5 via UE4SS reflection.
     //   2. Server-side scripted (Lua) mods, also loaded by Beacon.dll,
     //      sandboxed via sol2/LuaJIT. Limited surface: game events + a
     //      curated UE5 helper API.
-    //   3. Client-side mods, loaded by Beacon into the customer's Subnautica 2
+    //   3. Client-side mods, loaded by BeaconLauncher into the customer's SN2
     //      via a Beacon-installed UE4SS dropper. The server tells the client
     //      via ModManifest which mods to load — the client refuses to join
     //      otherwise (hash-pinned manifest).
@@ -96,7 +96,7 @@ public record HeartbeatMessage(
     [property: Key(3)] int ServerPasswordConfigured = 0,
     // 1 = native ApproveLogin hook installed and ready to gate joins,
     // 0 = native hook failed to install OR legacy 3-field heartbeat.
-    // Server fails closed (stop Subnautica 2) when Configured=1 && HookReady=0.
+    // Server fails closed (stop SN2) when Configured=1 && HookReady=0.
     [property: Key(4)] int ServerPasswordHookReady = 0);
 
 [MessagePackObject]
@@ -128,7 +128,17 @@ public record PlayerSnapshot(
     [property: Key(1)] string DisplayName,
     [property: Key(2)] long ConnectedAtUnixMs,
     [property: Key(3)] long LastPacketUnixMs,
-    [property: Key(4)] int PingMs);
+    [property: Key(4)] int PingMs,
+    // Pawn world position (UE units). Appended-only and defaulted so legacy
+    // 5-field producers (the roster.json file-watcher path, older plugins)
+    // still deserialize and simply report 0,0,0 — they carry no position.
+    // NEVER reorder or insert before Key(4): MessagePack decodes these records
+    // positionally, so a shorter array just leaves the trailing fields at their
+    // defaults. The native PlayerListSnapshot emitter fills these.
+    [property: Key(5)] double PosX = 0,
+    [property: Key(6)] double PosY = 0,
+    [property: Key(7)] double PosZ = 0,
+    [property: Key(8)] int PlayerId = 0);
 
 [MessagePackObject]
 public record JoinTicketRequestMessage(
@@ -183,11 +193,11 @@ public record GoodbyeMessage(
 /// <summary>Mod surface — what kind of mod runtime hosts this artifact.</summary>
 public enum ModRuntime : byte
 {
-    /// <summary>Reserved server-side native mod surface.</summary>
+    /// <summary>Server-side C++ native mod. .dll loaded by Beacon.dll inside SN2.</summary>
     ServerNative = 1,
     /// <summary>Server-side Lua mod. .lua loaded into Beacon's sol2 sandbox.</summary>
     ServerLua = 2,
-    /// <summary>Client-side mod installed by Beacon into the customer's Subnautica 2 install.</summary>
+    /// <summary>Client-side mod. .pak/.dll installed by BeaconLauncher into the customer's SN2 install.</summary>
     Client = 3,
 }
 

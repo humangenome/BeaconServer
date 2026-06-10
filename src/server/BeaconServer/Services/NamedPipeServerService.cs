@@ -206,6 +206,19 @@ public sealed class NamedPipeServerService : BackgroundService
                     var newConn = new PipeConnection(hs.InstanceId, hs.Pid, hs.PluginVersion, codec, write);
                     _state.SetConnection(newConn);
                     _state.LastHeartbeatAt = DateTimeOffset.UtcNow;
+                    // Stale-status invalidation is done by
+                    // BeaconServerRuntime/main.lua at the very start of
+                    // its Lua execution, BEFORE BeaconAuth runs. Doing
+                    // it here on handshake races BeaconAuth - the
+                    // handshake fires AFTER Beacon.dll loads, which is
+                    // AFTER UE4SS Lua mods run, which means BeaconAuth
+                    // may have already written the current-process
+                    // status by the time the handshake arrives. The
+                    // runtime-side ready=0 marker guarantees the file
+                    // cannot carry a previous process's ready=1 state:
+                    // BeaconAuth either overwrites it with current
+                    // status, or it remains not-ready and the watchdog
+                    // fail-closes after grace.
                     _log.LogInformation("Handshake accepted: instance={Instance} pid={Pid} ver={Ver} proto={Proto}",
                         hs.InstanceId, hs.Pid, hs.PluginVersion, $"{hs.ProtocolMajor}.{hs.ProtocolMinor}.{hs.ProtocolPatch}");
                     return newConn;

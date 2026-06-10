@@ -52,6 +52,37 @@ public class SourceQueryTests
     }
 
     [Fact]
+    public async Task A2S_INFO_drops_when_unavailable()
+    {
+        var info = new ServerInfoSnapshot("Beacon Test", "Awake", "Beacon", "Subnautica 2",
+            1962700, 0, 8, false, false, "0.1.0", 27015, "beacon,sn2");
+        using var server = new SourceQueryServer(0,
+            () => info,
+            () => Array.Empty<PlayerInfoEntry>(),
+            () => Array.Empty<KeyValuePair<string, string>>(),
+            () => false);
+        await server.StartAsync(CancellationToken.None);
+
+        try
+        {
+            using var client = new UdpClient(0);
+            var req = new byte[29];
+            BinaryPrimitives.WriteInt32LittleEndian(req.AsSpan(0, 4), -1);
+            req[4] = 0x54;
+            Encoding.ASCII.GetBytes("Source Engine Query\0").CopyTo(req, 5);
+            await client.SendAsync(req, req.Length, "127.0.0.1", server.BoundPort);
+
+            var receiveTask = client.ReceiveAsync();
+            var done = await Task.WhenAny(receiveTask, Task.Delay(300));
+            done.Should().NotBe((Task)receiveTask, "unavailable BeaconServer should look offline to A2S callers");
+        }
+        finally
+        {
+            await server.StopAsync();
+        }
+    }
+
+    [Fact]
     public async Task A2S_PLAYER_requires_challenge_then_returns_list()
     {
         var info = new ServerInfoSnapshot("X", "Y", "Beacon", "SN2", 0L, 1, 8, false, false, "0", 27015, "");

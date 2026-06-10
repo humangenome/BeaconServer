@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using BeaconServer.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,19 +31,16 @@ public sealed class SnProcessSupervisorService : BackgroundService
     private static readonly string[][] Sn2ExeRelativePaths =
     [
         ["Subnautica2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
+        ["Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
         ["Subnautica 2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
         ["Subnautica2", "Content", "Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
         ["Subnautica 2", "Content", "Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+        ["Content", "Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+        ["Subnautica2", "Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+        ["Binaries", "WinGDK", "Subnautica2-WinGDK-Shipping.exe"],
+        ["Subnautica2-WinGDK-Shipping.exe"],
+        ["Subnautica2-Win64-Shipping.exe"],
     ];
-    private static readonly string[] Sn2SaveSlotUrlKeys =
-    [
-        "slotname",
-        "SlotName",
-        "SaveSlot",
-        "LoadGame",
-        "SaveGame",
-    ];
-
     public SnProcessSupervisorService(
         ILogger<SnProcessSupervisorService> log,
         IOptions<BeaconServerOptions> opts,
@@ -57,13 +55,16 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (string.IsNullOrEmpty(_opts.SnInstallRoot) || !OperatingSystem.IsWindows())
+        if ((string.IsNullOrEmpty(_opts.SnInstallRoot) && string.IsNullOrEmpty(_opts.SnExecutablePath))
+            || !OperatingSystem.IsWindows())
         {
-            _log.LogWarning("Process supervisor idle: Subnautica 2 install root not configured or not on Windows");
+            _log.LogWarning("Process supervisor idle: Subnautica 2 executable not configured or not on Windows");
             return;
         }
 
         var backoffSeconds = 1;
+        var consecutiveBootFailures = 0;
+        const int maxConsecutiveBootFailures = 6;
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -75,6 +76,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 await _coordinator.WaitForNoRestoreAsync(stoppingToken).ConfigureAwait(false);
 
                 ApplyEngineIniPatch();
+                StageUe4ss();
                 EmitPluginConfig();
                 var start = DateTime.UtcNow;
 
@@ -101,11 +103,28 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 if (uptime.TotalSeconds >= MinHealthyUptimeSeconds)
                 {
                     backoffSeconds = 1; // stable run — reset backoff
+                    consecutiveBootFailures = 0;
                 }
                 else
                 {
+                    consecutiveBootFailures++;
+                    if (consecutiveBootFailures >= maxConsecutiveBootFailures)
+                    {
+                        // Hard stop instead of relaunching forever. After the headless
+                        // launch args (-nullrhi) + Steam/EOS-disabled Engine.ini, an
+                        // immediate exit this many times means a real problem the loop
+                        // can't fix — most often the game files aren't installed.
+                        _log.LogError(
+                            "Subnautica 2 exited in under {Healthy}s {Count} times in a row — aborting the relaunch loop. " +
+                            "Most common cause on a headless server: the game files are not installed under SnInstallRoot " +
+                            "(install Subnautica 2 there via SteamCMD app 1962700, or copy the steamapps\\common\\Subnautica2 tree). " +
+                            "Fix the underlying issue and restart BeaconServer.",
+                            MinHealthyUptimeSeconds, consecutiveBootFailures);
+                        return;
+                    }
                     backoffSeconds = Math.Min(MaxBackoffSeconds, backoffSeconds * 2);
-                    _log.LogWarning("Boot-loop suspected — backing off {Seconds}s before restart", backoffSeconds);
+                    _log.LogWarning("Boot-loop suspected ({Count}/{Max}) — backing off {Seconds}s before restart",
+                        consecutiveBootFailures, maxConsecutiveBootFailures, backoffSeconds);
                     try { await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), stoppingToken).ConfigureAwait(false); }
                     catch (OperationCanceledException) { return; }
                 }
@@ -131,6 +150,15 @@ public sealed class SnProcessSupervisorService : BackgroundService
             "-unattended",
             $"-port={_opts.GameplayPort}",
             "-log",
+            // Headless server args. -nullrhi lets SN2 boot without a D3D12 adapter
+            // on a GPU-less host (VPS / dedicated box) — without it UE5.6 RHI init
+            // fails ("Failed to choose a D3D12 Adapter") and the game exits in ~1s,
+            // which the supervisor would relaunch forever. -SaveToUserDir keeps
+            // saves under -USERDIR; -NoVerifyGC matches the panel launch path.
+            "-nullrhi",
+            "-NoSplash",
+            "-SaveToUserDir",
+            "-NoVerifyGC",
             BuildHostTravelUrl());
 
         var psi = new ProcessStartInfo
@@ -154,7 +182,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
         if (LooksLikeVanillaSn2Path(_opts.SnUserDir))
         {
             _log.LogError("Engine.ini patch refused: SnUserDir={Dir} looks like a vanilla Subnautica 2 install path. " +
-                          "Beacon's user dir must be a separate folder (e.g. C:\\Beacon\\userdir).",
+                          "Beacon's user dir must be a separate folder (e.g. C:\\Beacon\\UserDir).",
                           _opts.SnUserDir);
             return;
         }
@@ -163,8 +191,109 @@ public sealed class SnProcessSupervisorService : BackgroundService
         Directory.CreateDirectory(configDir);
         var enginePath = Path.Combine(configDir, "Engine.ini");
 
+        var content = BuildEngineIniContent(_opts.GameplayPort, BuildHostTravelOptions());
+        File.WriteAllText(enginePath, content);
+        _log.LogInformation("Patched Engine.ini at {Path}", enginePath);
+    }
+
+    // Stage the UE4SS install + dwmapi proxy + Beacon.dll into the game install so
+    // SN2 loads UE4SS -> BeaconLoader -> Beacon.dll (password gate, roster, chat,
+    // lifepod fix). Mirrors the managed-host deploy. Panel deploys keep
+    // SnInstallRoot empty so this service is idle there; this only runs for
+    // standalone self-hosts. Idempotent — safe to re-run on every launch.
+    private void StageUe4ss()
+    {
+        string exe, gameBinDir;
+        try
+        {
+            exe = ResolveSn2ExecutablePath(_opts);
+            gameBinDir = Path.GetDirectoryName(exe)!;
+        }
+        catch (Exception ex) { _log.LogError(ex, "UE4SS staging: cannot resolve game path"); return; }
+
+        // The Beacon server package extracts as <root>\BeaconServer\BeaconServer.exe
+        // with the ue4ss\ folder + Beacon.dll alongside at <root>\.
+        var bundleRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
+        var srcUe4ss = Path.Combine(bundleRoot, "ue4ss");
+        var srcProxy = Path.Combine(srcUe4ss, "dwmapi.dll");
+        var srcBeaconDll = Path.Combine(bundleRoot, "Beacon.dll");
+
+        if (!File.Exists(Path.Combine(srcUe4ss, "UE4SS.dll")))
+        {
+            _log.LogError(
+                "UE4SS not found at {Dir} — Beacon's runtime (password gate, roster, chat, lifepod fix) will NOT load and " +
+                "the server runs as a plain Subnautica 2 listen server. Re-extract the full Beacon-Server zip so the ue4ss\\ " +
+                "folder + Beacon.dll sit next to the BeaconServer\\ folder.", srcUe4ss);
+            return;
+        }
+
+        try
+        {
+            // 1. UE4SS install (UE4SS.dll + settings + Mods) -> <gameBinDir>\ue4ss\
+            var dstUe4ss = Path.Combine(gameBinDir, "ue4ss");
+            CopyDirectory(srcUe4ss, dstUe4ss);
+
+            // 2. Server-tune the staged UE4SS settings (no console/GUI on a headless host).
+            var settingsPath = Path.Combine(dstUe4ss, "UE4SS-settings.ini");
+            if (File.Exists(settingsPath))
+                File.WriteAllText(settingsPath, PatchUe4ssServerSettings(File.ReadAllText(settingsPath)));
+
+            // 3. dwmapi proxy -> adjacent to the game exe (the hijack that loads UE4SS).
+            if (File.Exists(srcProxy))
+                File.Copy(srcProxy, Path.Combine(gameBinDir, "dwmapi.dll"), overwrite: true);
+            else
+                _log.LogError("UE4SS dwmapi proxy missing at {Proxy} — UE4SS cannot load. Re-extract the full server zip.", srcProxy);
+
+            // 4. Beacon.dll -> the install root, where BeaconLoader walks up to find it
+            //    (<root>\Subnautica2\Binaries\Win64 -> <root>\Beacon.dll).
+            var installRoot = Path.GetFullPath(Path.Combine(gameBinDir, "..", "..", ".."));
+            if (File.Exists(srcBeaconDll))
+                File.Copy(srcBeaconDll, Path.Combine(installRoot, "Beacon.dll"), overwrite: true);
+            else
+                _log.LogError("Beacon.dll missing at {Src} — runtime hooks cannot load. Re-extract the full server zip.", srcBeaconDll);
+
+            _log.LogInformation("Staged UE4SS + Beacon.dll into {GameBinDir}", gameBinDir);
+        }
+        catch (Exception ex) { _log.LogError(ex, "UE4SS staging failed"); }
+    }
+
+    private static void CopyDirectory(string src, string dst)
+    {
+        Directory.CreateDirectory(dst);
+        foreach (var file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
+        {
+            var target = Path.Combine(dst, Path.GetRelativePath(src, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target, overwrite: true);
+        }
+    }
+
+    // Pure transform (testable). Force the UE4SS console/GUI off and a safe
+    // graphics API for a headless dedicated server, matching the managed host.
+    internal static string PatchUe4ssServerSettings(string iniText)
+    {
+        var server = new (string Key, string Val)[]
+        {
+            ("ConsoleEnabled", "0"),
+            ("GuiConsoleEnabled", "0"),
+            ("GuiConsoleVisible", "0"),
+            ("GraphicsAPI", "d3d11"),
+        };
+        var text = iniText;
+        foreach (var (k, v) in server)
+        {
+            var pattern = $@"(?m)^\s*{Regex.Escape(k)}\s*=.*$";
+            text = Regex.IsMatch(text, pattern)
+                ? Regex.Replace(text, pattern, $"{k} = {v}")
+                : text + Environment.NewLine + $"{k} = {v}";
+        }
+        return text;
+    }
+
+    internal static string BuildEngineIniContent(int gameplayPort, string hostTravelOptions)
+    {
         const string driver = "/Script/OnlineSubsystemUtils.IpNetDriver";
-        var content = $"""
+        return $"""
         ; Beacon-managed Engine.ini override — rewritten on every host launch.
         [OnlineSubsystem]
         DefaultPlatformService=Null
@@ -172,12 +301,34 @@ public sealed class SnProcessSupervisorService : BackgroundService
         [OnlineSubsystemNull]
         bSimulateForwarded=true
 
+        ; Disable the Steam + EOS online subsystems. The SN2 binary has a Steam
+        ; app id baked in; OnlineSubsystemSteam's startup calls
+        ; SteamAPI_RestartAppIfNecessary when Steam isn't running, which force-exits
+        ; a headless server. Disabling Steam (and EOS) is required for a
+        ; Steam-less / headless host to boot.
+        [OnlineSubsystemSteam]
+        bEnabled=False
+        SteamDevAppId=0
+
+        [OnlineSubsystemEOS]
+        bEnabled=False
+
+        ; FMOD on a host with no audio device: force a silent mixer (TYPE_NOSOUND)
+        ; so FMOD Studio initializes instead of crashing in fmodstudio.dll on the
+        ; first played event. Do NOT pass the -nosound CLI flag — that skips Studio
+        ; init entirely and NPEs on first play; TYPE_NOSOUND is the correct path.
+        [/Script/FMODStudio.FMODSettings]
+        OutputType=TYPE_NOSOUND
+        bLoadAllBanks=False
+        bLoadAllSampleData=False
+        bEnableLiveUpdate=False
+
         [/Script/Engine.GameEngine]
         !NetDriverDefinitions=ClearArray
         +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="{driver}",DriverClassNameFallback="{driver}")
 
         [/Script/EngineSettings.GameMapsSettings]
-        LocalMapOptions={BuildHostTravelOptions()}
+        LocalMapOptions={hostTravelOptions}
 
         [/Script/UWESaveSystem.UWESaveGameSubsystem]
         slotname={Sn2CanonicalSaveSlot}
@@ -197,17 +348,35 @@ public sealed class SnProcessSupervisorService : BackgroundService
         AllowPeerConnections=false
         AllowPeerVoice=false
         bClampListenServerTickRate=true
-        NetServerMaxTickRate=60
-        MaxClientRate=15000
-        MaxInternetClientRate=10000
+        NetServerMaxTickRate=30
+        MaxClientRate=2097152
+        MaxInternetClientRate=2097152
+        ServerDesiredSocketReceiveBufferBytes=4194304
+        ServerDesiredSocketSendBufferBytes=4194304
+        ClientDesiredSocketReceiveBufferBytes=2097152
+        ClientDesiredSocketSendBufferBytes=2097152
         NetConnectionTimeout=60
+        InitialConnectTimeout=300.0
+        ConnectionTimeout=60.0
         ServerTravelPause=4
 
+        [/Script/Engine.Player]
+        ConfiguredInternetSpeed=2097152
+        ConfiguredLanSpeed=2097152
+
+        [/Script/Engine.GameNetworkManager]
+        TotalNetBandwidth=16777216
+        MaxDynamicBandwidth=2097152
+        MinDynamicBandwidth=524288
+
+        [ConsoleVariables]
+        net.UseAdaptiveNetUpdateFrequency=1
+        net.TrackQueuedActorThreshold=1
+        net.TrackQueuedActorThresholdOwner=1
+
         [URL]
-        Port={_opts.GameplayPort}
+        Port={gameplayPort}
         """;
-        File.WriteAllText(enginePath, content);
-        _log.LogInformation("Patched Engine.ini at {Path}", enginePath);
     }
 
     private void EmitPluginConfig()
@@ -218,12 +387,25 @@ public sealed class SnProcessSupervisorService : BackgroundService
         Directory.CreateDirectory(pluginDir);
         var configPath = Path.Combine(pluginDir, "beacon.config.json");
 
+        // ServerPassword is INTENTIONALLY emitted empty as of v0.3.55.
+        // The native Beacon.dll ApproveLogin hook would otherwise try to
+        // enforce, but SN2's stock GameMode races with it and fatal-
+        // crashes the dedicated process on host spawn (the ?Password=
+        // option in the launch URL is dropped by SN2's internal map
+        // travel from Awake -> L_Main, leaving the host's URL with no
+        // password while the native check still expects one). Password
+        // enforcement now lives in BeaconAuth.lua's K2_PostLogin hook,
+        // which gates remote clients only and exempts the listen host.
+        // Plugin sees no ServerPassword -> treats the server as open ->
+        // no native enforcement -> no crash loop. _opts.ServerPassword
+        // is the legacy field; _opts.BeaconAuthPassword is what
+        // BeaconAuth.lua reads from appsettings.json directly.
         var payload = new
         {
             InstanceId = _opts.InstanceId,
             PipePath = $@"\\.\pipe\{_opts.PipeName}",
             HmacKeyHex = Convert.ToHexString(_hmac.Key),
-            ServerPassword = _opts.ServerPassword,
+            ServerPassword = "",
         };
         File.WriteAllText(configPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
         _log.LogInformation("Emitted plugin config at {Path}", configPath);
@@ -247,8 +429,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
             }
         }
 
-        var defaultRelativePath = Sn2ExeRelativePaths[0];
-        return Path.Combine([opts.SnInstallRoot, .. defaultRelativePath]);
+        return Path.Combine([opts.SnInstallRoot, .. Sn2ExeRelativePaths[0]]);
     }
 
     public static string BuildHostTravelUrl(string saveSlot = Sn2CanonicalSaveSlot)
@@ -258,7 +439,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
     {
         var slot = string.IsNullOrWhiteSpace(saveSlot) ? Sn2CanonicalSaveSlot : saveSlot.Trim();
         var escapedSlot = Uri.EscapeDataString(slot);
-        return "?listen" + string.Concat(Sn2SaveSlotUrlKeys.Select(key => $"?{key}={escapedSlot}"));
+        return $"?listen?LaunchType=LoadGame?SaveSlotName={escapedSlot}";
     }
 
     /// <summary>

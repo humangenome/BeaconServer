@@ -19,7 +19,12 @@ public sealed class SourceQueryServer : IDisposable
     private readonly Func<ServerInfoSnapshot> _infoProvider;
     private readonly Func<IReadOnlyList<PlayerInfoEntry>> _playerProvider;
     private readonly Func<IReadOnlyList<KeyValuePair<string, string>>> _rulesProvider;
+    private readonly Func<bool> _availabilityProvider;
     private readonly Dictionary<IPEndPoint, int> _challenges = new();
+    // A2S challenge requests come from unauthenticated public UDP; without a cap
+    // _challenges grows per unique source forever. Bound it — clear when full so
+    // a flood can't exhaust memory (legit clients simply re-challenge).
+    private const int MaxChallenges = 1024;
     private readonly Random _challengeRng = new();
     private CancellationTokenSource? _cts;
     private Task? _loop;
@@ -28,12 +33,14 @@ public sealed class SourceQueryServer : IDisposable
         int port,
         Func<ServerInfoSnapshot> infoProvider,
         Func<IReadOnlyList<PlayerInfoEntry>> playerProvider,
-        Func<IReadOnlyList<KeyValuePair<string, string>>> rulesProvider)
+        Func<IReadOnlyList<KeyValuePair<string, string>>> rulesProvider,
+        Func<bool>? availabilityProvider = null)
     {
         _udp = new UdpClient(port);
         _infoProvider = infoProvider;
         _playerProvider = playerProvider;
         _rulesProvider = rulesProvider;
+        _availabilityProvider = availabilityProvider ?? (() => true);
     }
 
     public int BoundPort => ((IPEndPoint)_udp.Client.LocalEndPoint!).Port;
@@ -86,6 +93,7 @@ public sealed class SourceQueryServer : IDisposable
         if (payload.Length < 5) return null;
         var marker = BinaryPrimitives.ReadInt32LittleEndian(payload);
         if (marker != -1) return null;
+        if (!_availabilityProvider()) return null;
         var header = payload[4];
 
         switch (header)
@@ -143,6 +151,8 @@ public sealed class SourceQueryServer : IDisposable
         if (challenge == -1)
         {
             var issued = _challengeRng.Next();
+            if (_challenges.Count >= MaxChallenges && !_challenges.ContainsKey(from))
+                _challenges.Clear();
             _challenges[from] = issued;
             using var msc = new MemoryStream();
             using var wc = new BinaryWriter(msc);
