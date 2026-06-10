@@ -5,35 +5,34 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-blue.svg)](#requirements)
 [![Game](https://img.shields.io/badge/Game-Subnautica_2-darkgreen.svg)](https://store.steampowered.com/app/1962700/)
 
-BeaconServer is the open-source host supervisor for Beacon multiplayer in **Subnautica 2**. It starts and watches the hosted game process, tracks saves, exposes admin APIs, answers Source query, and runs RCON.
+BeaconServer is the open-source host supervisor for Beacon multiplayer in **Subnautica 2**. It starts and watches the hosted game process, takes and restores save snapshots, exposes an admin HTTP API, answers Source A2S query, and runs Source RCON.
 
-BeaconServer is not the full product by itself. Players still join with the [Beacon client app](https://github.com/HumanGenome/Beacon), and playable hosts should install the server package from the Beacon release page.
+BeaconServer is not the full product by itself. Players join with the [Beacon launcher](https://github.com/HumanGenome/Beacon), and a playable host also needs Beacon's in-game runtime (a `ue4ss\` folder with Beacon's server mods, plus the native `Beacon.dll`) next to the `BeaconServer\` folder — see [Installation](#installation).
 
 ## Features
 
 ### 🖥 Host supervision
-Starts Subnautica 2 with the Beacon runtime, monitors the game process, tracks plugin heartbeat, and coordinates restarts.
+Starts Subnautica 2 with the Beacon runtime, monitors the game process, tracks the plugin heartbeat, and coordinates restarts.
 
 ### 💾 Save snapshots
-Creates scheduled and admin-triggered snapshots. Restore swaps the save atomically so a failed restore does not leave a half-written world.
+Snapshots the world automatically on every game auto-save (when `SnapshotsEnabled` is on) and on admin trigger. Restore swaps the save directory atomically so a failed restore does not leave a half-written world, and a pre-restore snapshot is taken first so the operation is reversible.
 
 ### 📡 Source query
-Answers standard Source A2S query on the configured query port so monitoring tools can read server name, map, player count, and player list.
+Answers standard Source A2S query on the configured query port so monitoring tools can read server name, map, player count, and the player list.
 
 ### 🛠 Source RCON
-Runs a Source-compatible RCON listener for `help`, `status`, `players`, `ping`, `save snapshot`, and `save list`.
+Runs a Source-compatible RCON listener with `help`, `status`, `players`, `ping`, `save snapshot`, `save list`, `say`, `announce`, and `motd`, plus slash commands registered by server mods.
 
 ### 🔐 Admin HTTP API
-Exposes snapshot, restore, transfer, health, and roster endpoints signed with the server's admin password.
+Exposes snapshot list/upload/download/restore, save import, health, player list, mod manifest, chat, and live-map endpoints. Admin routes are HMAC-signed with a key derived from the RCON password.
 
 ### 🧩 Mod surface
-Loads UE4SS Lua and C++ mods through the Beacon runtime layout.
+Loads UE4SS Lua and C++ mods through the Beacon runtime layout, and publishes the server's mod manifest at `GET /api/v1/manifest` for the launcher to install on join.
 
 ## Requirements
 
 - Windows 10/11 or Windows Server x64
-- Subnautica 2 installed on the host machine
-- A Beacon release package from [HumanGenome/BeaconServer](https://github.com/HumanGenome/BeaconServer/releases/latest)
+- Subnautica 2 game files installed on the host machine (BeaconServer launches them; it does not ship the game)
 - Open/forwarded ports for gameplay, query, RCON, and admin HTTP as needed
 
 Release builds are self-contained; a separate .NET install is not required for normal use.
@@ -41,38 +40,49 @@ Release builds are self-contained; a separate .NET install is not required for n
 ## Installation
 
 ### Managed hosting
-[SurvivalServers.com Subnautica 2 hosting](https://www.survivalservers.com/services/game_servers/subnautica_2/?utm_source=github&utm_medium=readme_install&utm_campaign=beaconserver) ships Beacon already installed and handles ports, updates, and panel integration.
+[SurvivalServers.com Subnautica 2 hosting](https://www.survivalservers.com/services/game_servers/subnautica_2/?utm_source=github&utm_medium=readme_install&utm_campaign=beaconserver) ships the complete Beacon server runtime already installed and handles ports, updates, and panel integration.
 
 ### Self-host
-1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [BeaconServer latest release](https://github.com/HumanGenome/BeaconServer/releases/latest).
-2. Extract it somewhere stable, such as `C:\Beacon\`.
-3. Edit `BeaconServer\appsettings.json`.
-4. Open/forward the ports listed below.
-5. Run `BeaconServer\BeaconServer.exe`.
+1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [latest release](https://github.com/HumanGenome/BeaconServer/releases/latest). The zip contains `BeaconServer.exe` and `appsettings.json` at its root.
+2. Extract it into a `BeaconServer` folder under a stable root, such as `C:\Beacon\BeaconServer\`.
+3. Install the Subnautica 2 game files under the folder set as `SnInstallRoot` (default `C:\Beacon\game`) — copy your `steamapps\common\Subnautica2` folder there, or install with SteamCMD (app `1962700`). The server runs headless; no GPU is required.
+4. Edit `appsettings.json` (see below).
+5. Open/forward the ports listed below.
+6. Run `BeaconServer.exe`.
 
-Players connect with the Beacon client app to `<host>:<GameplayPort>`.
+Players connect with the Beacon launcher to `<host>:<GameplayPort>`.
+
+> **Note:** this repo's release zip contains the MIT-licensed supervisor binaries only. The in-game runtime BeaconServer stages at launch — the `ue4ss\` folder (UE4SS + Beacon's server mods) and the native `Beacon.dll` — must sit next to the `BeaconServer\` folder. Without it, BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server: no password gate, chat, roster, or live map. Managed hosting includes this runtime.
 
 ## Server Settings
 
-BeaconServer reads `BeaconServer\appsettings.json` under the `Beacon` section.
+BeaconServer reads `appsettings.json` (next to `BeaconServer.exe`) under the `Beacon` section.
 
 | Setting | Default | Purpose |
 |---|---:|---|
-| `InstanceId` | `default` | Stable instance name used in logs and generated defaults. |
-| `ServerName` | empty | Public name shown in Beacon and Source query. Empty falls back to the instance id. |
+| `InstanceId` | `default` | Stable instance name used in logs, query rules, and API responses. |
+| `ServerName` | empty | Public name shown in the launcher and Source query. Empty falls back to the instance id. |
 | `SnInstallRoot` | `C:\Beacon\game` | Subnautica 2 install folder. Beacon auto-detects Steam/Epic Win64 and Xbox WinGDK layouts under this root. |
 | `SnExecutablePath` | empty | Optional direct path to the Subnautica 2 executable, for example an Xbox install's `Subnautica2-WinGDK-Shipping.exe`. |
-| `SnUserDir` | `C:\Beacon\userdir` | User directory used by the hosted game process. |
-| `SaveDir` | `C:\Beacon\saves` | Snapshot metadata and archived saves. |
+| `SnUserDir` | `C:\Beacon\userdir` | User directory used by the hosted game process; the live save lives under `Saved\SaveGames`. |
+| `SaveDir` | `C:\Beacon\saves` | Snapshot zips and archived saves. |
 | `GameplayPort` | `27015` | UDP port players join through Beacon. |
+| `BeaconControlPort` | `27016` | Reserved (the gameplay+1 slot of the per-instance port block). |
 | `QueryPort` | `27017` | UDP Source A2S query port. |
 | `RconPort` | `27018` | TCP Source RCON port. RCON is disabled when `RconPassword` is empty. |
-| `HttpPort` | `27019` | TCP admin HTTP API port. Set to `0` to disable. |
-| `RconPassword` | empty | Admin password for RCON and HTTP signing. Set this before exposing RCON or HTTP. |
-| `ServerPassword` | empty | Optional join password players enter in Beacon. |
-| `MaxPlayers` | `4` | Slot count reported to Beacon and query clients. |
-| `SnapshotsEnabled` | `true` | Enables automatic save snapshots and restore support. |
+| `HttpPort` | `27019` | TCP admin HTTP API port. Set to `0` to disable. Also requires `RconPassword` to be set. |
+| `RconPassword` | empty | Admin password for RCON; the HTTP API signing key is derived from it. Set this before exposing RCON or HTTP. |
+| `ServerPassword` | empty | **Legacy — ignored since v0.3.55.** Do not set; use `BeaconAuthPassword`. |
+| `BeaconAuthPassword` | empty | Join password enforced server-side for remote players. Empty means an open server. Also sets the password flag in Source query. |
+| `Admins` | `[]` | Identities (SteamID64, Beacon user id, or display name) treated as admin when running mod slash commands from in-game chat. RCON callers are always admin. |
+| `MaxPlayers` | `4` | Slot count reported to the launcher and query clients. |
+| `SnapshotsEnabled` | `true` | Auto-snapshot on every game auto-save. When `false`, only admin-triggered snapshots run. |
+| `MaxUploadBytes` | 2 GB | Size cap for snapshot uploads and save imports over the HTTP API. |
 | `PluginHeartbeatTimeoutSeconds` | `30` | Seconds before BeaconServer treats the game runtime as unresponsive. |
+| `Chat:Enabled` | `true` | In-game chat. When `false`, the chat overlay is dropped from the published mod manifest. |
+| `Mods` | empty | Mod manifest published at `GET /api/v1/manifest`: `Required`, `Recommended`, and `Blocked` lists. Re-read on edit; no restart needed. |
+| `Map:Enabled` | `true` | Live web map served at `/map/` on the admin HTTP port. |
+| `Map:Public` | `false` | When `true`, `/api/v1/map/state` is readable without auth, so the browser map shows live players to anyone with the URL. |
 
 Keep the ports unique for each server instance. The standard layout is:
 
@@ -82,6 +92,8 @@ Keep the ports unique for each server instance. The standard layout is:
 | `GameplayPort + 2` | UDP | Source A2S query |
 | `GameplayPort + 3` | TCP | Source RCON |
 | `GameplayPort + 4` | TCP | Admin HTTP API |
+
+The launcher derives the RCON and admin HTTP ports as gameplay+3 and gameplay+4, so keep those offsets if you want the launcher's Console and world tools to work against your server. The query port is editable per-server in the launcher.
 
 ## Source Query Example
 
@@ -106,18 +118,23 @@ The same port works with tools such as GameDig, LGSM monitors, and Discord statu
 
 ## RCON
 
-Connect to `RconPort` with the configured `RconPassword`.
+Connect to `RconPort` with the configured `RconPassword` (RCON is disabled while the password is empty).
 
 ```text
-status
 help
+status
 players
 ping
 save snapshot
 save list
+say <message>
+announce <message>
+motd [message]
 ```
 
-See [docs/ADMIN.md](docs/ADMIN.md) for the HTTP API signing recipe and full admin endpoint list.
+Mod-registered slash commands also run over RCON, with or without the leading `/`. Restoring a snapshot is **not** an RCON command — use the launcher's World backups dialog or the HTTP API.
+
+See [docs/ADMIN.md](docs/ADMIN.md) for exact command output, the HTTP API signing recipe, and the endpoint list.
 
 ## Build From Source
 
@@ -137,7 +154,7 @@ Beacon is a community project and is not affiliated with or endorsed by the deve
 
 ## Contributing
 
-Issues and pull requests for BeaconServer are welcome. For bug reports, include the BeaconServer version, Subnautica 2 build, and relevant logs from `logs\beaconserver-*.ndjson`.
+Issues and pull requests for BeaconServer are welcome. For bug reports, include the BeaconServer version, Subnautica 2 build, and relevant logs from `logs\beacon-*.log` (one JSON object per line, rolled daily).
 
 ## License
 

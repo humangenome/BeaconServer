@@ -6,10 +6,10 @@ Short and to the point.
 
 Open an issue. Include:
 
-- BeaconServer version (`status` over RCON, or `/api/v1/health`)
+- BeaconServer version (`beacon_version` from `GET /api/v1/health`, or `status` over RCON)
 - Subnautica 2 build ID
 - Steps to reproduce
-- Server log excerpt (`logs/beaconserver-*.ndjson`)
+- Server log excerpt (`logs/beacon-*.log` — one JSON object per line, rolled daily)
 - Whether anyone else can reproduce on a clean server
 
 If your issue is about specific managed hosting (panel, billing, support), please contact your host directly. BeaconServer's GitHub issues are for the open-source server itself.
