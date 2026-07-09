@@ -270,6 +270,19 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
     // Pure transform (testable). Force the UE4SS console/GUI off and a safe
     // graphics API for a headless dedicated server, matching the managed host.
+    // Also re-asserts the keys the SERVER profile depends on, so a client-
+    // profile UE4SS-settings.ini (older bundle layouts shipped one file for
+    // both roles; the client profile disables hot-path hooks) staged onto a
+    // self-host is healed back to server semantics:
+    //   * bUseUObjectArrayCache=true — server Lua mods poll FindAllOf/
+    //     FindFirstOf; without the cache every call walks the full
+    //     GUObjectArray on the game thread.
+    //   * HookProcessInternal / HookProcessLocalScriptFunction — BeaconAuth's
+    //     K2_PostLogin password gate and BeaconRoster's join/leave hooks are
+    //     script-function RegisterHooks; Beacon.dll's lifepod-gate override
+    //     also jumps through UE4SS's ProcessInternal detour. Without these
+    //     the auth hook fails and the fail-closed watchdog kills SN2.
+    //   * HookEngineTick — ExecuteInGameThread (EngineTick method) queue.
     internal static string PatchUe4ssServerSettings(string iniText)
     {
         var server = new (string Key, string Val)[]
@@ -278,6 +291,10 @@ public sealed class SnProcessSupervisorService : BackgroundService
             ("GuiConsoleEnabled", "0"),
             ("GuiConsoleVisible", "0"),
             ("GraphicsAPI", "d3d11"),
+            ("bUseUObjectArrayCache", "true"),
+            ("HookProcessInternal", "1"),
+            ("HookProcessLocalScriptFunction", "1"),
+            ("HookEngineTick", "1"),
         };
         var text = iniText;
         foreach (var (k, v) in server)
@@ -355,9 +372,9 @@ public sealed class SnProcessSupervisorService : BackgroundService
         ServerDesiredSocketSendBufferBytes=4194304
         ClientDesiredSocketReceiveBufferBytes=2097152
         ClientDesiredSocketSendBufferBytes=2097152
-        NetConnectionTimeout=60
+        NetConnectionTimeout=300
         InitialConnectTimeout=300.0
-        ConnectionTimeout=60.0
+        ConnectionTimeout=300.0
         ServerTravelPause=4
 
         [/Script/Engine.Player]
@@ -370,6 +387,13 @@ public sealed class SnProcessSupervisorService : BackgroundService
         MinDynamicBandwidth=524288
 
         [ConsoleVariables]
+        ; Frame cap WITHOUT a fixed timestep. Deliberately no
+        ; bUseFixedFrameRate/FixedFrameRate here (parity with the managed
+        ; host): a fixed timestep hands the game a constant delta even when
+        ; a frame runs long, so slow frames dilate game time (slow motion)
+        ; instead of passing real deltas. t.MaxFPS only sleeps when frames
+        ; are fast, so the host idles without ever distorting time.
+        t.MaxFPS=30
         net.UseAdaptiveNetUpdateFrequency=1
         net.TrackQueuedActorThreshold=1
         net.TrackQueuedActorThresholdOwner=1

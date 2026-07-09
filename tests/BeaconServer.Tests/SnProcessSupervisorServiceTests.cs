@@ -47,6 +47,21 @@ public sealed class SnProcessSupervisorServiceTests
     }
 
     [Fact]
+    public void BuildEngineIniContentCapsFrameRateWithoutFixedTimestep()
+    {
+        // t.MaxFPS caps host CPU while still passing REAL frame deltas.
+        // bUseFixedFrameRate must never appear: a fixed timestep makes slow
+        // frames dilate game time (slow motion) instead of dropping rate.
+        var ini = SnProcessSupervisorService.BuildEngineIniContent(10177, "?listen");
+
+        Assert.Contains("t.MaxFPS=30", ini);
+        // Key=value forms only — the explanatory ini comment mentions the
+        // key names without '='.
+        Assert.DoesNotContain("bUseFixedFrameRate=", ini);
+        Assert.DoesNotContain("\nFixedFrameRate=", ini);
+    }
+
+    [Fact]
     public void BuildEngineIniContentDisablesSteamEosAndFmodForHeadless()
     {
         // A headless / GPU-less host must disable Steam (SteamAPI_RestartAppIfNecessary
@@ -78,6 +93,27 @@ public sealed class SnProcessSupervisorServiceTests
         Assert.Contains("GraphicsAPI = d3d11", patched);
         Assert.DoesNotContain("ConsoleEnabled = 1", patched);
         Assert.DoesNotContain("GraphicsAPI = dx12", patched);
+    }
+
+    [Fact]
+    public void PatchUe4ssServerSettingsHealsClientProfileToServerSemantics()
+    {
+        // If the slimmed CLIENT UE4SS profile (hot-path hooks off, object
+        // cache off) ever gets staged onto a self-host, the patch must flip
+        // back the keys the server stack depends on: BeaconAuth/BeaconRoster
+        // RegisterHook on K2_PostLogin needs ProcessInternal +
+        // ProcessLocalScriptFunction; ExecuteInGameThread needs EngineTick;
+        // server mods need the UObject array cache for cheap FindAllOf.
+        var ini = "[General]\r\nbUseUObjectArrayCache = false\r\n" +
+                  "[Hooks]\r\nHookProcessInternal = 0\r\nHookProcessLocalScriptFunction = 0\r\nHookEngineTick = 0\r\n";
+        var patched = SnProcessSupervisorService.PatchUe4ssServerSettings(ini);
+
+        Assert.Contains("bUseUObjectArrayCache = true", patched);
+        Assert.Contains("HookProcessInternal = 1", patched);
+        Assert.Contains("HookProcessLocalScriptFunction = 1", patched);
+        Assert.Contains("HookEngineTick = 1", patched);
+        Assert.DoesNotContain("bUseUObjectArrayCache = false", patched);
+        Assert.DoesNotContain("HookProcessInternal = 0", patched);
     }
 
     [Fact]

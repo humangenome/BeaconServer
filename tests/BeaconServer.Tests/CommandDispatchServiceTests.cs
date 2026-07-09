@@ -70,6 +70,7 @@ public class CommandDispatchServiceTests : IDisposable
         if (!File.Exists(queuePath)) return;
         var doc = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(queuePath));
         if (!doc.TryGetProperty("queue", out var queue) || queue.ValueKind != JsonValueKind.Array) return;
+        if (queue.GetArrayLength() == 0) return;
         foreach (var entry in queue.EnumerateArray())
         {
             var id = entry.GetProperty("id").GetString() ?? "";
@@ -90,10 +91,10 @@ public class CommandDispatchServiceTests : IDisposable
 
     // Background "ModKit" that polls the queue until it sees an entry, replies,
     // and clears — mirrors the 250ms Lua loop so DispatchAsync's await resolves.
-    private CancellationTokenSource StartModKitPoller(Func<string, string[], string> handler)
+    private PollerHandle StartModKitPoller(Func<string, string[], string> handler)
     {
         var cts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
+        var task = Task.Run(async () =>
         {
             while (!cts.IsCancellationRequested)
             {
@@ -101,7 +102,7 @@ public class CommandDispatchServiceTests : IDisposable
                 try { await Task.Delay(20, cts.Token); } catch { return; }
             }
         });
-        return cts;
+        return new PollerHandle(cts, task);
     }
 
     // ---- registry ----
@@ -285,5 +286,28 @@ public class CommandDispatchServiceTests : IDisposable
         public T Get(string? name) => CurrentValue;
         public IDisposable OnChange(Action<T, string?> listener) => new NullDisposable();
         private sealed class NullDisposable : IDisposable { public void Dispose() { } }
+    }
+
+    private sealed class PollerHandle : IDisposable
+    {
+        private readonly CancellationTokenSource _cts;
+        private readonly Task _task;
+        private int _cancelled;
+
+        public PollerHandle(CancellationTokenSource cts, Task task)
+        {
+            _cts = cts;
+            _task = task;
+        }
+
+        public void Cancel() => Dispose();
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _cancelled, 1) == 1) return;
+            _cts.Cancel();
+            try { _task.Wait(TimeSpan.FromSeconds(1)); } catch { }
+            _cts.Dispose();
+        }
     }
 }

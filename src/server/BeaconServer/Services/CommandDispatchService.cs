@@ -316,9 +316,34 @@ public sealed class CommandDispatchService : BackgroundService
 
     private static void WriteAtomic(string path, string content)
     {
-        var tmp = path + ".tmp";
-        File.WriteAllText(tmp, content, new UTF8Encoding(false));
-        File.Move(tmp, path, overwrite: true);
+        var tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllText(tmp, content, new UTF8Encoding(false));
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    File.Move(tmp, path, overwrite: true);
+                    return;
+                }
+                catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && attempt < 7)
+                {
+                    Thread.Sleep(TimeSpan.FromMilliseconds(10 * (attempt + 1)));
+                }
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(tmp)) File.Delete(tmp);
+            }
+            catch
+            {
+                // Best-effort cleanup only; a later write will use a fresh temp name.
+            }
+        }
     }
 
     // ---------- DTOs ----------

@@ -26,7 +26,18 @@ public static class Program
         {
             PrintStartupBanner();
 
-            var builder = Host.CreateApplicationBuilder(args);
+            // Pin the content root to the executable's directory so
+            // appsettings.json is read from next to BeaconServer.exe no
+            // matter what working directory the process is launched from.
+            // The default CreateApplicationBuilder content root is the launch
+            // cwd, which silently ignored a self-hoster's edited
+            // appsettings.json when the server was started from another
+            // directory (issue #9).
+            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+            {
+                Args = args,
+                ContentRootPath = AppContext.BaseDirectory,
+            });
             builder.Services.AddSerilog();
 
             builder.Services.Configure<BeaconServerOptions>(builder.Configuration.GetSection("Beacon"));

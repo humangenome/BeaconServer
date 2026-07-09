@@ -3,6 +3,34 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.122] - 2026-07-08
+
+### Synced to current source
+
+- Source caught up to Beacon 0.3.122 (this repo was previously synced at
+  0.3.102).
+- Config now loads from next to `BeaconServer.exe` regardless of the working
+  directory the server is started from, so an edited `appsettings.json` is
+  always honored (fixes #9).
+- Server performance: the generated `Engine.ini` caps the headless host at
+  `t.MaxFPS=30` (real frame deltas — no fixed timestep, no time dilation) and
+  raises net connection timeouts to 300s for slow-loading clients.
+- The UE4SS server settings patcher now re-asserts the keys the server stack
+  depends on (`bUseUObjectArrayCache`, `HookProcessInternal`,
+  `HookProcessLocalScriptFunction`, `HookEngineTick`), healing a client-profile
+  settings file back to server semantics.
+- Generated listen-host player names (`server-<hex>`, `ns<digits>-<hex>`,
+  `WIN-*`) are detected more precisely so they stay out of player lists without
+  ever filtering real player names.
+- Command-queue file writes use unique temp names with retry, fixing rare
+  file-in-use races on busy hosts.
+
+### Fixed
+
+- `dotnet restore` no longer fails with security-advisory errors
+  (NU1902/NU1903): MessagePack updated to 3.1.7. This had broken the automated
+  release builds after 0.3.120.
+
 ## [0.3.102] - 2026-06-10
 
 ### Synced to current source

@@ -372,11 +372,40 @@ public sealed class Sn2LogTailService : BackgroundService
         return address.Length > 0;
     }
 
-    private static bool IsGeneratedPlayerName(string value)
+    internal static bool IsGeneratedPlayerName(string value)
     {
-        return value.StartsWith("ns", StringComparison.OrdinalIgnoreCase)
-               || value.StartsWith("WIN-", StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        value = value.Trim();
+
+        var dash = value.LastIndexOf('-');
+        if (dash <= 0 || dash + 1 >= value.Length) return false;
+
+        var prefix = value[..dash];
+        var suffix = value[(dash + 1)..];
+        if (suffix.Length < 16 || !suffix.All(IsHexDigit)) return false;
+
+        if (prefix.Length > 2 &&
+            prefix.StartsWith("ns", StringComparison.OrdinalIgnoreCase) &&
+            prefix[2..].All(char.IsDigit))
+        {
+            return true;
+        }
+
+        if (string.Equals(prefix, "server", StringComparison.Ordinal)) return true;
+        if (prefix.StartsWith("WIN-", StringComparison.OrdinalIgnoreCase)) return true;
+        return suffix.Length == 32 && prefix.All(IsMachineNameChar);
     }
+
+    private static bool IsHexDigit(char c) =>
+        (c >= '0' && c <= '9') ||
+        (c >= 'a' && c <= 'f') ||
+        (c >= 'A' && c <= 'F');
+
+    private static bool IsMachineNameChar(char c) =>
+        (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') ||
+        c == '_' ||
+        c == '-';
 
     private sealed record PendingLogin(string PlayerId, string DisplayName, string? Address);
 }

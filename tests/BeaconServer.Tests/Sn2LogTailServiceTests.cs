@@ -10,6 +10,28 @@ namespace BeaconServer.Tests;
 public class Sn2LogTailServiceTests
 {
     [Theory]
+    [InlineData("server-37FB85D64BD7D9149C078BB47E84A17E")]
+    [InlineData("server-afe38f523f13079aa3f196e0e8053834")]
+    [InlineData("ns123-0123456789ABCDEF")]
+    [InlineData("WIN-SERVER-0123456789ABCDEF0123456789ABCDEF")]
+    [InlineData("SERVER-0123456789ABCDEF0123456789ABCDEF")]
+    public void IsGeneratedPlayerName_recognizes_listen_host_names(string name)
+    {
+        Sn2LogTailService.IsGeneratedPlayerName(name).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("PlayerOne")]
+    [InlineData("server-admin")]
+    [InlineData("server-1234")]
+    [InlineData("nsplayer")]
+    [InlineData("friendly-name-0123456789ABCDEF")]
+    public void IsGeneratedPlayerName_keeps_normal_player_names(string name)
+    {
+        Sn2LogTailService.IsGeneratedPlayerName(name).Should().BeFalse();
+    }
+
+    [Theory]
     [InlineData("[2026.05.22-19.54.11:411][123]LogNet: NotifyAcceptingConnection accepted from: 1.2.3.4:5555", "1.2.3.4:5555")]
     [InlineData("[2026.05.22-19.54.11:411][123]LogNet: Server accepting post-challenge connection from: 1.2.3.4:5555", "1.2.3.4:5555")]
     public void TryExtractAcceptedAddress_handles_current_sn2_join_lines(string line, string expected)
