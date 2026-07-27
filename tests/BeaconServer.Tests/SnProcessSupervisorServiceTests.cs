@@ -152,4 +152,52 @@ public sealed class SnProcessSupervisorServiceTests
 
         Assert.Equal(Path.GetFullPath(explicitPath), resolved);
     }
+
+    [Fact]
+    public void PlatformCheckExitIsRecognisedFromTheGameLog()
+    {
+        // A host whose Steam client cannot confirm the copy of the game: Steam
+        // refuses, the game asks to quit on its own, and the world never comes up.
+        var tail = string.Join("\n",
+            "LogSteamShared: Warning: SteamAPI failed to initialize, conditions not met.",
+            "LogOnline: OSS: Created online subsystem instance for: NULL",
+            "LogWorld: Bringing World /Game/Maps/L_ClientLobby.L_ClientLobby up for play",
+            "LogGenericPlatformMisc: FPlatformMisc::RequestExit(0, <NoCallSiteInfo>)");
+
+        Assert.True(SnProcessSupervisorService.IsPlatformCheckExitLog(tail));
+    }
+
+    [Fact]
+    public void PlatformCheckExitIsRecognisedFromTheMessageItself()
+    {
+        Assert.True(SnProcessSupervisorService.IsPlatformCheckExitLog(
+            "The game was not started via the platform launcher and will be closed."));
+    }
+
+    [Fact]
+    public void AHealthyHostIsNotMistakenForThePlatformCheck()
+    {
+        // Steam is unavailable here too, but the world came up, so this is a normal
+        // headless run and the supervisor must keep its usual restart behaviour.
+        var tail = string.Join("\n",
+            "LogSteamShared: Warning: SteamAPI failed to initialize, conditions not met.",
+            "LogWorld: Bringing World /Game/Maps/Main/L_Main up for play",
+            "LogGenericPlatformMisc: FPlatformMisc::RequestExit(0, <NoCallSiteInfo>)");
+
+        Assert.False(SnProcessSupervisorService.IsPlatformCheckExitLog(tail));
+    }
+
+    [Fact]
+    public void ACrashIsNotMistakenForThePlatformCheck()
+    {
+        Assert.False(SnProcessSupervisorService.IsPlatformCheckExitLog(
+            "LogWindows: Error: === Critical error: ===\nAssertion failed"));
+        Assert.False(SnProcessSupervisorService.IsPlatformCheckExitLog(string.Empty));
+    }
+
+    [Fact]
+    public void Sn2SteamAppIdIsTheShippingApplicationId()
+    {
+        Assert.Equal("1962700", SnProcessSupervisorService.Sn2SteamAppId);
+    }
 }

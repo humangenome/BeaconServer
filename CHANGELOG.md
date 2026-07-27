@@ -3,6 +3,38 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.125] - 2026-07-27
+
+### Fixed
+
+- Subnautica 2 no longer closes itself with "The game was not started via the
+  platform launcher" on hosts that have a Steam client available. The server now
+  writes `steam_appid.txt` next to the game executable and passes the same
+  application id to the game through the environment, which is what Steam itself
+  supplies when it starts a game.
+- When the game does close itself over that check, the server says so in one line
+  and stops relaunching instead of boot-looping.
+- Haul chassis and Cicada debris deconstruct now resolve to their recipes, so both
+  tadpole chassis appear in the blueprint list and the Vehicle Fabricator.
+
+### Changed
+
+- Source synced to Beacon 0.3.125. The 0.3.122–0.3.124 tags on this repo all
+  pointed at the 0.3.122 source snapshot; this release closes that gap.
+
+## [0.3.124] - 2026-07-27
+
+### Fixed
+
+- Scout Ray chassis progression now follows its scanned recipe correctly on hosted
+  worlds.
+
+## [0.3.123] - 2026-07-22
+
+### Changed
+
+- No server-side changes. Released alongside launcher update-handling fixes.
+
 ## [0.3.122] - 2026-07-08
 
 ### Synced to current source

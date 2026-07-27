@@ -151,7 +151,17 @@ Published output lands under `src/server/BeaconServer/bin/Release/net8.0/win-x64
 ## Known Issues
 
 ### "The game was not started via the platform launcher and will be closed."
-Recent Subnautica 2 builds run a storefront check on startup. A headless host can fail it, which pops this dialog inside the hosted game process and then boot-loops the server: BeaconServer sees the game exit with code 0 and relaunches it. The workaround that has worked for most reporters is to keep the Steam client running on the host, in offline mode, signed in to an account that owns Subnautica 2. It does not work in every setup. Tracked at [HumanGenome/Beacon#8](https://github.com/HumanGenome/Beacon/issues/8).
+Subnautica 2 asks the Steam client to confirm the copy of the game it is running. On a headless host that answer often does not come back, and the game closes itself with exit code 0, which leaves BeaconServer relaunching it in a loop.
+
+Three things have to be true on the server machine:
+
+- The Steam client is running and signed in to an account that owns Subnautica 2. Offline mode is fine.
+- Steam is signed in as the same Windows user, in the same session, as the one running BeaconServer. A Steam client in another session is not visible to the game.
+- `steam_appid.txt` containing the single line `1962700` sits next to `Subnautica2-Win64-Shipping.exe`.
+
+From v0.3.125 BeaconServer writes `steam_appid.txt` itself on every launch and passes the same id to the game through the environment, so the part left to you is the Steam client. If the game still closes itself, BeaconServer now says so in its log and stops relaunching instead of looping.
+
+Tracked at [HumanGenome/Beacon#8](https://github.com/HumanGenome/Beacon/issues/8).
 
 ### Game build must match between client and server
 After a Subnautica 2 update, a client on a newer build joining an older server hangs at the main menu with no error. Update the server's game files whenever the game updates.

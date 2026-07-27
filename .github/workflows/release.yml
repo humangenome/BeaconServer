@@ -58,12 +58,14 @@ jobs:
           $content = Get-Content CHANGELOG.md -Raw
           $pattern = "(?ms)## \[$([regex]::Escape($version))\][^\n]*\n(.*?)(?=\n## |\z)"
           $match = [regex]::Match($content, $pattern)
-          if ($match.Success) {
-            $notes = $match.Groups[1].Value.Trim()
-          } else {
-            $notes = "See CHANGELOG.md for details."
+          if (-not $match.Success) {
+            throw "CHANGELOG.md has no '## [$version]' section. Add one before tagging — a release body that points at a missing changelog section is worse than no release."
           }
-          $hostingUrl = "https://www.survivalservers.com/games/subnautica_2/?utm_source=github&utm_medium=release_notes&utm_campaign=beaconserver-$version"
+          $notes = $match.Groups[1].Value.Trim()
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "CHANGELOG.md section '## [$version]' is empty. Write the release notes before tagging."
+          }
+          $hostingUrl = "https://www.survivalservers.com/services/game_servers/subnautica_2/?utm_source=github&utm_medium=release_notes&utm_campaign=beaconserver-$version"
           $hosting = "`n`n---`n`nHosting: [SurvivalServers.com]($hostingUrl) runs Beacon for you.`n"
           $body = $notes + $hosting
           $body | Out-File -FilePath release-body.md -Encoding utf8

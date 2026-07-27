@@ -27,6 +27,13 @@ public sealed class SnProcessSupervisorService : BackgroundService
     private const int MinHealthyUptimeSeconds = 60;
     private const int MaxBackoffSeconds = 300;
     public const string Sn2CanonicalSaveSlot = "savegame_0";
+    // Subnautica 2's Steam application id. Subnautica 2 asks the Steam client to
+    // confirm the copy it is running, and that call only works when the app id is
+    // discoverable. Steam normally supplies it as an environment variable when it
+    // starts the game; a headless host started by BeaconServer has to supply it
+    // itself, either through steam_appid.txt next to the executable or through the
+    // same environment variables. Beacon writes both.
+    internal const string Sn2SteamAppId = "1962700";
     private const string Sn2MapPath = "/Game/Maps/Awake";
     private static readonly string[][] Sn2ExeRelativePaths =
     [
@@ -77,6 +84,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
 
                 ApplyEngineIniPatch();
                 StageUe4ss();
+                WriteSteamAppIdFile();
                 EmitPluginConfig();
                 var start = DateTime.UtcNow;
 
@@ -108,6 +116,23 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 else
                 {
                     consecutiveBootFailures++;
+                    if (LooksLikePlatformCheckExit())
+                    {
+                        // Subnautica 2 closed itself because the Steam client could not
+                        // confirm the copy of the game on this machine. Relaunching
+                        // cannot fix that, so stop instead of looping forever and say
+                        // exactly what has to change.
+                        _log.LogError(
+                            "Subnautica 2 closed itself with \"The game was not started via the platform launcher\". " +
+                            "The game asks the Steam client to confirm this copy and the answer did not come back. " +
+                            "For a headless host that means all of the following have to be true on the server machine: " +
+                            "the Steam client is running (offline mode is fine) and signed in to an account that owns " +
+                            "Subnautica 2, it is signed in as the same Windows user and in the same session that runs " +
+                            "BeaconServer, and steam_appid.txt sits next to Subnautica2-Win64-Shipping.exe. " +
+                            "Beacon writes steam_appid.txt for you, so the part left to check is the Steam client. " +
+                            "Not relaunching — start Steam on the server and restart BeaconServer.");
+                        return;
+                    }
                     if (consecutiveBootFailures >= maxConsecutiveBootFailures)
                     {
                         // Hard stop instead of relaunching forever. After the headless
@@ -170,7 +195,82 @@ public sealed class SnProcessSupervisorService : BackgroundService
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         psi.EnvironmentVariables["BEACON_INSTANCE"] = _opts.InstanceId;
+        // Tell the Steam client which application this process is. Steam sets these
+        // when it starts a game; a headless host launched by BeaconServer has to set
+        // them itself or the game's ownership check gets no answer and Subnautica 2
+        // closes with "The game was not started via the platform launcher".
+        // The environment variables work regardless of the working directory;
+        // steam_appid.txt (written by WriteSteamAppIdFile) covers the same ground for
+        // builds that only read the file.
+        psi.EnvironmentVariables["SteamAppId"] = Sn2SteamAppId;
+        psi.EnvironmentVariables["SteamGameId"] = Sn2SteamAppId;
         return Process.Start(psi) ?? throw new InvalidOperationException("Process.Start returned null");
+    }
+
+    // Write steam_appid.txt next to the Subnautica 2 executable. Steam reads it from
+    // the game's working directory, and BeaconServer launches the game with its own
+    // folder as the working directory, so that is where it goes. Idempotent: only
+    // writes when the file is missing or holds a different id.
+    private void WriteSteamAppIdFile()
+    {
+        string path;
+        try
+        {
+            path = Path.Combine(Path.GetDirectoryName(ResolveSn2ExecutablePath(_opts))!, "steam_appid.txt");
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "steam_appid.txt: cannot resolve the game folder yet");
+            return;
+        }
+
+        try
+        {
+            if (File.Exists(path) && File.ReadAllText(path).Trim() == Sn2SteamAppId) return;
+            File.WriteAllText(path, Sn2SteamAppId);
+            _log.LogInformation("Wrote steam_appid.txt ({AppId}) at {Path}", Sn2SteamAppId, path);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex,
+                "Could not write steam_appid.txt at {Path}. Without it Subnautica 2 may close with " +
+                "\"The game was not started via the platform launcher\". Create the file by hand with the " +
+                "single line {AppId}.", path, Sn2SteamAppId);
+        }
+    }
+
+    // Read the tail of Subnautica 2's own log and decide whether the last exit was the
+    // storefront check closing the game rather than a crash or a missing install.
+    private bool LooksLikePlatformCheckExit()
+    {
+        if (string.IsNullOrEmpty(_opts.SnUserDir)) return false;
+        try
+        {
+            var logDir = Path.Combine(_opts.SnUserDir, "Saved", "Logs");
+            var log = new DirectoryInfo(logDir).Exists
+                ? new DirectoryInfo(logDir).GetFiles("Subnautica2*.log")
+                    .OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault()
+                : null;
+            if (log is null) return false;
+            using var stream = new FileStream(log.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            if (stream.Length > 512 * 1024) stream.Seek(-512 * 1024, SeekOrigin.End);
+            using var reader = new StreamReader(stream);
+            return IsPlatformCheckExitLog(reader.ReadToEnd());
+        }
+        catch { return false; }
+    }
+
+    // Pure form of the log check so it can be tested without a game install.
+    // The storefront exit has a recognisable shape: Steam could not confirm the copy,
+    // the game asked to quit on its own, and the world never came up.
+    internal static bool IsPlatformCheckExitLog(string logTail)
+    {
+        if (string.IsNullOrEmpty(logTail)) return false;
+        if (logTail.Contains("not started via the platform launcher", StringComparison.OrdinalIgnoreCase)) return true;
+        var steamRefused = logTail.Contains("SteamAPI failed to initialize", StringComparison.OrdinalIgnoreCase);
+        var selfRequestedExit = logTail.Contains("RequestExit", StringComparison.Ordinal);
+        var reachedTheWorld = logTail.Contains("/Game/Maps/Main", StringComparison.OrdinalIgnoreCase);
+        return steamRefused && selfRequestedExit && !reachedTheWorld;
     }
 
     private void ApplyEngineIniPatch()
