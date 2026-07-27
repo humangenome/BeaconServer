@@ -63,8 +63,8 @@ jobs:
           } else {
             $notes = "See CHANGELOG.md for details."
           }
-          $hostingUrl = "https://www.survivalservers.com/games/subnautica_2/?utm_source=github&utm_medium=release&utm_campaign=beaconserver-$version"
-          $hosting = "`n`n----`n### Official Hosting`n`nBeaconServer is officially supported by [SurvivalServers.com]($hostingUrl) — managed hosting with Beacon pre-installed and kept on the latest pinned release.`n"
+          $hostingUrl = "https://www.survivalservers.com/games/subnautica_2/?utm_source=github&utm_medium=release_notes&utm_campaign=beaconserver-$version"
+          $hosting = "`n`n---`n`nHosting: [SurvivalServers.com]($hostingUrl) runs Beacon for you.`n"
           $body = $notes + $hosting
           $body | Out-File -FilePath release-body.md -Encoding utf8
 
