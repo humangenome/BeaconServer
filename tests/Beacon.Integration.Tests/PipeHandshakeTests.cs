@@ -26,7 +26,7 @@ public class PipeHandshakeTests
         var pipeName = $"Beacon.Test.{Guid.NewGuid():N}";
         var opts = Options.Create(new BeaconServerOptions
         {
-            InstanceId = "AdminTest",
+            InstanceId = "ReefRunners",
             PipeName = pipeName,
             HmacKeyPath = Path.Combine(Path.GetTempPath(), $"hmac-{Guid.NewGuid():N}.key"),
             PluginHeartbeatTimeoutSeconds = 30,
@@ -53,7 +53,7 @@ public class PipeHandshakeTests
 
             var handshake = new HandshakeMessage(
                 ProtocolVersion.Major, ProtocolVersion.Minor, ProtocolVersion.Patch,
-                "AdminTest", "0.0.1-test", 12345);
+                "ReefRunners", "0.0.1-test", 12345);
             var hsBytes = codec.Encode(FrameType.Handshake, FrameFlags.RequiresAck, 1, handshake);
             await client.WriteAsync(hsBytes);
             await client.FlushAsync();
@@ -74,7 +74,7 @@ public class PipeHandshakeTests
             await client.FlushAsync();
 
             await WaitFor(() => state.Connection is not null && state.LastReportedPlayerCount == 3, TimeSpan.FromSeconds(2));
-            state.Connection!.InstanceId.Should().Be("AdminTest");
+            state.Connection!.InstanceId.Should().Be("ReefRunners");
             state.Connection.PluginPid.Should().Be(12345);
             state.LastReportedPlayerCount.Should().Be(3);
         }
@@ -97,7 +97,7 @@ public class PipeHandshakeTests
             await client.ConnectAsync(5_000);
             var codec = new FrameCodec(hmacKey);
 
-            // Configured InstanceId is "AdminTest", plugin claims "Imposter".
+            // Configured InstanceId is "ReefRunners", plugin claims "Imposter".
             var hs = new HandshakeMessage(
                 ProtocolVersion.Major, ProtocolVersion.Minor, ProtocolVersion.Patch,
                 "Imposter", "0.0.1-test", 9999);
@@ -136,7 +136,7 @@ public class PipeHandshakeTests
             var badCodec = new FrameCodec(wrongKey);
             var handshake = new HandshakeMessage(
                 ProtocolVersion.Major, ProtocolVersion.Minor, ProtocolVersion.Patch,
-                "AdminTest", "0.0.1-test", 12345);
+                "ReefRunners", "0.0.1-test", 12345);
             var hsBytes = badCodec.Encode(FrameType.Handshake, FrameFlags.RequiresAck, 1, handshake);
             await client.WriteAsync(hsBytes);
             await client.FlushAsync();

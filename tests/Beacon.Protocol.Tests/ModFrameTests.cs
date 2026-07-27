@@ -66,7 +66,7 @@ public class ModFrameTests
                 new ModDescriptor("a.ui",   "1.0", ModRuntime.Client, "11", "u1", true),
                 new ModDescriptor("a.hud",  "2.1", ModRuntime.Client, "22", "u2", true),
             },
-            ServerName: "Beacon — AdminTest",
+            ServerName: "Beacon — ReefRunners",
             Map: "Awake",
             Players: 0,
             MaxPlayers: 8);
@@ -76,7 +76,7 @@ public class ModFrameTests
         round.RequiredClientMods.Should().HaveCount(2);
         round.RequiredClientMods[0].ModId.Should().Be("a.ui");
         round.RequiredClientMods[1].RequiredOnClient.Should().BeTrue();
-        round.ServerName.Should().Be("Beacon — AdminTest");
+        round.ServerName.Should().Be("Beacon — ReefRunners");
     }
 
     [Fact]

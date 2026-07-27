@@ -148,6 +148,14 @@ dotnet publish src/server/BeaconServer/BeaconServer.csproj -c Release -r win-x64
 
 Published output lands under `src/server/BeaconServer/bin/Release/net8.0/win-x64/publish/`.
 
+## Known Issues
+
+### "The game was not started via the platform launcher and will be closed."
+Recent Subnautica 2 builds run a storefront check on startup. A headless host can fail it, which pops this dialog inside the hosted game process and then boot-loops the server: BeaconServer sees the game exit with code 0 and relaunches it. The workaround that has worked for most reporters is to keep the Steam client running on the host, in offline mode, signed in to an account that owns Subnautica 2. It does not work in every setup. Tracked at [HumanGenome/Beacon#8](https://github.com/HumanGenome/Beacon/issues/8).
+
+### Game build must match between client and server
+After a Subnautica 2 update, a client on a newer build joining an older server hangs at the main menu with no error. Update the server's game files whenever the game updates.
+
 ## Community Note
 
 Beacon is a community project and is not affiliated with or endorsed by the developers of Subnautica 2.

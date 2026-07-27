@@ -13,7 +13,7 @@ public class FrameCodecTests
     public void Encode_then_decode_recovers_payload()
     {
         var codec = new FrameCodec(NewKey());
-        var hs = new HandshakeMessage(0, 1, 0, "AdminTest", "0.0.1", 12345);
+        var hs = new HandshakeMessage(0, 1, 0, "ReefRunners", "0.0.1", 12345);
         var bytes = codec.Encode(FrameType.Handshake, FrameFlags.None, 42, hs);
 
         var ok = codec.TryDecode(bytes, out var consumed, out var type, out var flags, out var seq, out var payload);

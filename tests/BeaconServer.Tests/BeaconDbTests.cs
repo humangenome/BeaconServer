@@ -90,7 +90,7 @@ public class BeaconDbTests : IDisposable
     [Fact]
     public void Audit_log_round_trip()
     {
-        _db.Audit("AdminTest", "rcon.exec", target: null, detailJson: "{\"cmd\":\"status\"}", unixSeconds: 1_000);
+        _db.Audit("ReefRunners", "rcon.exec", target: null, detailJson: "{\"cmd\":\"status\"}", unixSeconds: 1_000);
         _db.Audit("Drew", "ban.add", target: "u1", detailJson: null, unixSeconds: 2_000);
 
         var entries = _db.RecentAudit(10);
