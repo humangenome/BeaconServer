@@ -34,20 +34,15 @@ jobs:
       - name: Test
         run: dotnet test BeaconServer.sln --configuration Release --no-build --verbosity normal
 
+      # Proves the published source builds. The output is deliberately NOT
+      # attached to the release: this repo carries the supervisor source only,
+      # so anything it can zip is a supervisor-only artifact. Publishing that
+      # under the release's server-zip name is what put a runtime-less zip on
+      # a run of older release pages. The complete bundle -- supervisor plus
+      # the UE4SS runtime and the Beacon server mods -- is built once, in the
+      # Beacon build, and attached to this release from there.
       - name: Publish BeaconServer (self-contained)
         run: dotnet publish src/server/BeaconServer/BeaconServer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:PublishTrimmed=false
-
-      - name: Stage release artifact
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          $publish = "src/server/BeaconServer/bin/Release/net8.0/win-x64/publish"
-          if (-not (Test-Path "$publish/BeaconServer.exe")) { throw "server publish missing at $publish" }
-          Compress-Archive -Path "$publish/*" -DestinationPath "artifacts/Beacon-Server-Windows-x64-$tag.zip"
-          Get-FileHash artifacts/*.zip -Algorithm SHA256 | ForEach-Object {
-            "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf)
-          } | Out-File -FilePath artifacts/checksums.txt -Encoding ascii
 
       - name: Extract changelog section
         id: changelog
@@ -73,9 +68,51 @@ jobs:
       - name: Create GitHub release (BeaconServer)
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/*.zip
-            artifacts/checksums.txt
           body_path: release-body.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+
+  # Fail-closed backstop. The release page is only correct once the full bundle
+  # is attached to it, and that attachment happens from the Beacon build. If it
+  # never arrives -- a missing cross-publish token, a tag pushed here on its own
+  # -- this job fails loudly instead of leaving a release that looks finished
+  # and hands self-hosters a server that players bounce straight off.
+  verify-bundle:
+    name: Verify the published server bundle
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for the bundle and verify it
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          ASSET="Beacon-Server-Windows-x64-${TAG}.zip"
+
+          found=""
+          for attempt in $(seq 1 20); do
+            if gh release view "$TAG" -R "${{ github.repository }}" \
+                 --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "$ASSET"; then
+              found=1
+              break
+            fi
+            echo "waiting for $ASSET to be attached to $TAG (attempt $attempt/20)"
+            sleep 30
+          done
+
+          if [[ -z "$found" ]]; then
+            echo "ERROR: $TAG has no $ASSET after 10 minutes." >&2
+            echo "       The server bundle is built in the Beacon build and attached from there." >&2
+            echo "       Check that the cross-publish step ran and had a token." >&2
+            exit 1
+          fi
+
+          gh release download "$TAG" -R "${{ github.repository }}" -p "$ASSET" -D verify --clobber
+          python3 scripts/verify-server-bundle.py "verify/$ASSET"
