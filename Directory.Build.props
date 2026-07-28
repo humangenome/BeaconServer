@@ -22,5 +22,106 @@
     <Version>0.3.125</Version>
     <AssemblyVersion>0.3.125.0</AssemblyVersion>
     <FileVersion>0.3.125.0</FileVersion>
+    <!-- Strip the absolute checkout path from compiled output. Without a
+         PathMap the compiler embeds the build machine's source path into the
+         assembly (the PDB path record and [CallerFilePath] strings), leaking
+         the build host's directory layout into shipped binaries. -->
+    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
+    <!-- The SDK's implicit SourceLink writes a JSON document map into every
+         PDB (embedded or external) whose key is the absolute checkout path —
+         the exact string PathMap exists to keep out — plus the repository URL
+         and commit. Shipped .pdb files carry all of it, so it stays off. -->
+    <EnableSourceLink>false</EnableSourceLink>
   </PropertyGroup>
+
+  <!-- Assertion for the PathMap above: fail any Release build whose output
+       assembly (or its .pdb) still contains this checkout's absolute path.
+       Scans ASCII and UTF-16LE, because .NET string tables store UTF-16 and
+       an ASCII-only scan reports a leaking binary as clean. Embedded portable
+       PDBs are deflate-compressed inside the assembly, so those blobs are
+       inflated and scanned as well — a raw byte scan cannot see into them.
+       Diagnostic escape hatch: -p:SkipBuildPathLeakCheck=true (never in a
+       release pipeline). -->
+  <UsingTask TaskName="AssertNoBuildPathInAssembly"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <FilesToScan ParameterType="System.String" Required="true" />
+      <BuildRoot ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        int Find(byte[] hay, byte[] nee, int from)
+        {
+            int limit = hay.Length - nee.Length;
+            for (int i = from; i <= limit; i++)
+            {
+                if (hay[i] != nee[0]) continue;
+                int j = 1;
+                while (j < nee.Length && hay[i + j] == nee[j]) j++;
+                if (j == nee.Length) return i;
+            }
+            return -1;
+        }
+        string root = BuildRoot.TrimEnd('/', '\\');
+        var variants = new string[] { root.Replace('\\', '/'), root.Replace('/', '\\') };
+        byte[] mpdb = new byte[] { 0x4D, 0x50, 0x44, 0x42 }; // "MPDB": embedded portable PDB magic
+        foreach (string file in FilesToScan.Split(';'))
+        {
+            if (file.Length == 0 || !File.Exists(file)) continue;
+            byte[] raw = File.ReadAllBytes(file);
+            var regions = new System.Collections.Generic.List<byte[]>();
+            regions.Add(raw);
+            for (int at = Find(raw, mpdb, 0); at >= 0; at = Find(raw, mpdb, at + 4))
+            {
+                try
+                {
+                    using (var ms = new MemoryStream(raw, at + 8, raw.Length - at - 8))
+                    using (var ds = new System.IO.Compression.DeflateStream(ms, System.IO.Compression.CompressionMode.Decompress))
+                    using (var outMs = new MemoryStream())
+                    {
+                        ds.CopyTo(outMs);
+                        regions.Add(outMs.ToArray());
+                    }
+                }
+                catch (Exception) { /* not a real embedded-PDB blob; skip */ }
+            }
+            foreach (byte[] data in regions)
+            {
+                bool inflated = !ReferenceEquals(data, raw);
+                foreach (string variant in variants)
+                {
+                    foreach (Encoding enc in new Encoding[] { Encoding.UTF8, Encoding.Unicode })
+                    {
+                        byte[] needle = enc.GetBytes(variant);
+                        if (needle.Length == 0 || needle.Length > data.Length) continue;
+                        if (Find(data, needle, 0) >= 0)
+                        {
+                            string encName = enc == Encoding.Unicode ? "UTF-16LE" : "ASCII/UTF-8";
+                            string where = inflated ? " (inside the embedded PDB)" : "";
+                            Log.LogError("Build-path leak: '" + variant + "' (" + encName + ") is embedded in " + file + where + ". Keep <PathMap> and <EnableSourceLink>false</EnableSourceLink> in Directory.Build.props intact so shipped binaries do not carry the build machine's directory layout.");
+                        }
+                    }
+                }
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="AssertNoBuildPathInAssembly"
+          AfterTargets="CoreBuild"
+          Condition="'$(Configuration)' == 'Release' and '$(SkipBuildPathLeakCheck)' != 'true' and '$(TargetPath)' != ''">
+    <!-- Belt half: the property itself. A portable PDB stores document names
+         as segmented blobs, so a byte scan alone cannot prove an unmapped
+         build — assert the mapping is in force before trusting the scan. -->
+    <Error Condition="!$(PathMap.Contains('$(MSBuildThisFileDirectory)'))"
+           Text="PathMap no longer maps this checkout ('$(MSBuildThisFileDirectory)') — shipped binaries would carry the build machine's directory layout. Restore the &lt;PathMap&gt; in Directory.Build.props." />
+    <AssertNoBuildPathInAssembly FilesToScan="$(TargetPath);$(TargetDir)$(TargetName).pdb"
+                                 BuildRoot="$(MSBuildThisFileDirectory)" />
+  </Target>
+
 </Project>
