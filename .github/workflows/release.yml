@@ -68,6 +68,11 @@ jobs:
       - name: Create GitHub release (BeaconServer)
         uses: softprops/action-gh-release@v2
         with:
+          # HUMANGENOME_PAT so the release object is authored by the account,
+          # not github-actions[bot]. Falls back to GITHUB_TOKEN if the secret
+          # is ever removed — the release still publishes, only the author
+          # byline degrades.
+          token: ${{ secrets.HUMANGENOME_PAT || secrets.GITHUB_TOKEN }}
           body_path: release-body.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
