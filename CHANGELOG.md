@@ -3,6 +3,17 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.126] - 2026-07-30
+
+### Changed
+
+- Rebuild of the v0.3.125 server bundle with no functional change. The binaries no
+  longer carry the build machine's directory layout or a debug link back to where they
+  were compiled, and the build now fails if either comes back.
+- The bundled server mod's comments no longer name an internal hosting-side function.
+  The mod ships as readable source, so its comments are part of what this release
+  publishes; behaviour is unchanged.
+
 ## [0.3.125] - 2026-07-27
 
 ### Fixed
