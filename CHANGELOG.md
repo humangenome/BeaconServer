@@ -3,6 +3,26 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.127] - 2026-08-01
+
+### Fixed
+
+- Diving deep no longer gets a player teleported back to the escape pod. The
+  deep-start recovery treated anyone below 400 m as stranded at the start of the
+  game, so on a world that had been played for a while it kept pulling divers
+  back to the surface. It now only lifts a player who genuinely spawned at the
+  deep start and could not get out, and it does that once.
+- Riding a creature no longer confuses that recovery. The mount was being treated
+  as a player and moved along with the rider.
+- The server no longer freezes while the recovery runs. A pass with nobody to
+  rescue does no work at all, and the work it does do is spread over several
+  frames instead of blocking one.
+
+### Added
+
+- The server records whether save-handle protection resolved on the current game
+  build, so a host can check it per server.
+
 ## [0.3.126] - 2026-07-30
 
 ### Changed
