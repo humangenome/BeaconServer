@@ -97,6 +97,38 @@ public class Sn2LogTailServiceTests
         }
     }
 
+    [Theory]
+    [InlineData("[2026.10.07-03.35.48:343][ 42]LogNet: Login request: ?Name=bert?Password=hunter2??SonarPlayerId=1_A?PlatformUserId=1",
+                "[2026.10.07-03.35.48:343][ 42]LogNet: Login request: ?Name=bert?Password=<redacted>??SonarPlayerId=1_A?PlatformUserId=1")]
+    [InlineData("LogNet: Join request: /Game/Maps/Main/L_Main?Name=a b?password=x y?Sonar=1",
+                "LogNet: Join request: /Game/Maps/Main/L_Main?Name=a b?password=<redacted>?Sonar=1")]
+    [InlineData("travel ?ServerPassword=abc&x=1", "travel ?ServerPassword=<redacted>&x=1")]
+    [InlineData("LogNet: Login request: ?Name=bert??SonarPlayerId=1_A", "LogNet: Login request: ?Name=bert??SonarPlayerId=1_A")]
+    public void RedactSecrets_masks_password_options(string line, string expected)
+    {
+        Sn2LogTailService.RedactSecrets(line).Should().Be(expected);
+    }
+
+    [Fact]
+    public void TryParseLoginRequest_keeps_display_names_with_spaces()
+    {
+        const string line = "[2026.10.07-03.51.43:381][288]LogNet: Login request: ?Name=The God-Emperor of Mankind?Password=<redacted>??SonarPlayerId=76561198328204762_303327E1D3F41A8F?PlatformUserId=76561198328204762?PlatformProvider=STEAM userId: NULL";
+
+        Sn2LogTailService.TryParseLoginRequest(line, out var name, out var sonar).Should().BeTrue();
+        name.Should().Be("The God-Emperor of Mankind");
+        sonar.Should().Be("76561198328204762_303327E1D3F41A8F");
+    }
+
+    [Fact]
+    public void TryParseLoginRequest_still_reads_single_word_names()
+    {
+        const string line = "[2026.05.22-21.00.35:672][274]LogNet: Login request: ?Name=HumanGenome??SonarPlayerId=76561197966093888_A4E6F67EAD6BCF60?PlatformUserId=76561197966093888?PlatformProvider=STEAM userId: NULL:RYZEN platform: NULL";
+
+        Sn2LogTailService.TryParseLoginRequest(line, out var name, out var sonar).Should().BeTrue();
+        name.Should().Be("HumanGenome");
+        sonar.Should().Be("76561197966093888_A4E6F67EAD6BCF60");
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
     {
         var deadline = DateTimeOffset.UtcNow + timeout;

@@ -54,8 +54,20 @@ public sealed class Sn2LogTailService : BackgroundService
         @"(?:UNetConnection::Close|UNetConnection::Tick: Connection TIMED OUT|UChannel::Close|UChannel::CleanUp).*RemoteAddr:\s*(?<addr>[^\s,]+)|UNetDriver::RemoveClientConnection - Removed address\s+(?<addr2>[^\s,]+)",
         RegexOptions.Compiled);
     private static readonly Regex TravelRegex = new(@"UEngine::Browse Started Browse:\s*""(?<url>[^""]+)""",    RegexOptions.Compiled);
+    // Display names may contain spaces ("The Captain"); URL options are split on
+    // '?', so the name runs to the next '?'. Cutting it at the first space left
+    // the login unmatched with the later join line, so the player lost their
+    // Steam id in the roster and could linger there after leaving.
     private static readonly Regex LoginRequestRegex = new(
-        @"LogNet:\s+Login request:\s+\?Name=(?<name>[^?\s]+).*?(?:\?SonarPlayerId=(?<sonar>[^?\s]+))?",
+        @"LogNet:\s+Login request:\s+\?Name=(?<name>[^?]+)(?:.*?\?SonarPlayerId=(?<sonar>[^?\s]+))?",
+        RegexOptions.Compiled);
+    // The game prints the full login URL, including the join password, into its
+    // own log. Mask any *Password= option before the line reaches BeaconServer's
+    // log so a log posted for support does not carry the server password. The
+    // value runs to the next option separator, so a password with spaces is
+    // masked whole.
+    private static readonly Regex PasswordOptionRegex = new(
+        @"(?i)(password=)[^?&""\r\n]*",
         RegexOptions.Compiled);
     private static readonly Regex JoinSucceededRegex = new(
         @"LogNet:\s+Join succeeded:\s*(?<name>.+?)\s*$",
@@ -170,6 +182,7 @@ public sealed class Sn2LogTailService : BackgroundService
     private void EmitLine(string line, bool trackPlayerEvents)
     {
         if (string.IsNullOrEmpty(line)) return;
+        line = RedactSecrets(line);
 
         // Existing logs can survive game updates, so keep the newest build
         // banner seen during the initial catch-up pass instead of pinning the
@@ -199,10 +212,9 @@ public sealed class Sn2LogTailService : BackgroundService
             _log.LogInformation("[Subnautica 2] player connection accepted from {Addr}", addr);
             return;
         }
-        var loginMatch = LoginRequestRegex.Match(line);
-        if (trackPlayerEvents && loginMatch.Success)
+        if (trackPlayerEvents && TryParseLoginRequest(line, out var loginName, out var loginSonar))
         {
-            TrackLoginRequest(loginMatch.Groups["name"].Value, loginMatch.Groups["sonar"].Value);
+            TrackLoginRequest(loginName, loginSonar);
         }
         var joinSucceededMatch = JoinSucceededRegex.Match(line);
         if (joinSucceededMatch.Success)
@@ -353,6 +365,23 @@ public sealed class Sn2LogTailService : BackgroundService
     }
 
     private static string CleanName(string value) => value.Trim().Trim('"');
+
+    internal static string RedactSecrets(string line)
+    {
+        if (line.IndexOf("password=", StringComparison.OrdinalIgnoreCase) < 0) return line;
+        return PasswordOptionRegex.Replace(line, "$1<redacted>");
+    }
+
+    internal static bool TryParseLoginRequest(string line, out string displayName, out string sonarPlayerId)
+    {
+        displayName = string.Empty;
+        sonarPlayerId = string.Empty;
+        var match = LoginRequestRegex.Match(line);
+        if (!match.Success) return false;
+        displayName = match.Groups["name"].Value.Trim();
+        sonarPlayerId = match.Groups["sonar"].Success ? match.Groups["sonar"].Value : string.Empty;
+        return displayName.Length > 0;
+    }
 
     internal static bool TryExtractAcceptedAddress(string line, out string address)
     {

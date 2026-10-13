@@ -36,6 +36,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
     private readonly Sn2RestartCoordinator _coordinator;
     private readonly BeaconServerOptions _opts;
     private readonly TimeSpan _timeout;
+    private readonly Func<DateTimeOffset> _now;
 
     // Grace period after we first see the plugin connect before we'll
     // start fail-closing. The plugin's bootstrap thread installs the
@@ -53,12 +54,28 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         PipeServerState state,
         Sn2RestartCoordinator coordinator,
         IOptions<BeaconServerOptions> options)
+        : this(log, state, coordinator, options, static () => DateTimeOffset.UtcNow)
+    {
+    }
+
+    // Test seam: the clock is injectable so the grace and repeat windows can be
+    // exercised without waiting minutes. Dependency injection only sees the
+    // public constructor above.
+    internal HeartbeatWatchdogService(
+        ILogger<HeartbeatWatchdogService> log,
+        PipeServerState state,
+        Sn2RestartCoordinator coordinator,
+        IOptions<BeaconServerOptions> options,
+        Func<DateTimeOffset> now)
     {
         _log = log;
         _state = state;
         _coordinator = coordinator;
         _opts = options.Value;
         _timeout = TimeSpan.FromSeconds(options.Value.PluginHeartbeatTimeoutSeconds);
+        _now = now;
+        _serverStartedAt = now();
+        _noConnSince = _serverStartedAt;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,16 +84,21 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         using var timer = new PeriodicTimer(period);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
-            try
-            {
-                CheckHeartbeatStale();
-                CheckServerPasswordReady();
-                CheckBeaconAuthLuaReady();
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "HeartbeatWatchdog tick error");
-            }
+            RunChecks();
+        }
+    }
+
+    internal void RunChecks()
+    {
+        try
+        {
+            CheckHeartbeatStale();
+            CheckServerPasswordReady();
+            CheckBeaconAuthLuaReady();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "HeartbeatWatchdog tick error");
         }
     }
 
@@ -88,8 +110,19 @@ public sealed class HeartbeatWatchdogService : BackgroundService
     // BeaconServer concludes UE4SS / BeaconLoader / Beacon.dll never
     // loaded successfully and fail-closes.
     private static readonly TimeSpan NoConnectionFailClosedGrace = TimeSpan.FromSeconds(180);
+    // The no-connection state can last for hours (a game process that exited
+    // on a panel-managed host stays down until the panel starts it again). The
+    // fail-closed kill still runs on every tick; only the log line repeats on
+    // this slower interval so a stopped server does not write a Critical line
+    // every few seconds.
+    internal static readonly TimeSpan NoConnectionRepeatInterval = TimeSpan.FromMinutes(10);
     private DateTimeOffset _lastLuaFailClosedWarnAt = DateTimeOffset.MinValue;
-    private readonly DateTimeOffset _serverStartedAt = DateTimeOffset.UtcNow;
+    private DateTimeOffset _lastNoConnWarnAt = DateTimeOffset.MinValue;
+    private readonly DateTimeOffset _serverStartedAt;
+    // True once Beacon.dll has connected at least once in this BeaconServer
+    // process, so a later drop is reported as a lost connection rather than
+    // as a plugin that never loaded.
+    private bool _everConnected;
 
     // The "no-connection-window-started-at" anchor. Reset whenever we observe
     // a live connection. Without this reset, a long-lived BeaconServer that
@@ -99,7 +132,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
     // even though the new SN2 process needs its own 30-60s cold launch.
     // Initialized to _serverStartedAt so the very first SN2 launch gets the
     // full grace window from BeaconServer process startup.
-    private DateTimeOffset _noConnSince = DateTimeOffset.UtcNow;
+    private DateTimeOffset _noConnSince;
 
     private void CheckBeaconAuthLuaReady()
     {
@@ -133,28 +166,44 @@ public sealed class HeartbeatWatchdogService : BackgroundService
             // long-running BeaconServer would skip grace on a later SN2
             // restart and immediately fail-closed during the new SN2's
             // legitimate cold-launch window.
-            _noConnSince = DateTimeOffset.UtcNow;
+            _noConnSince = _now();
+            _everConnected = true;
+            _lastNoConnWarnAt = DateTimeOffset.MinValue;
         }
         if (conn is null)
         {
             // Grace window since we last had a connection (or since
             // BeaconServer process startup if we've never had one).
-            var sinceConnLost = DateTimeOffset.UtcNow - _noConnSince;
+            var noConnNow = _now();
+            var sinceConnLost = noConnNow - _noConnSince;
             if (sinceConnLost < NoConnectionFailClosedGrace) return;
 
-            var noConnNow = DateTimeOffset.UtcNow;
-            var noConnSinceWarn = noConnNow - _lastLuaFailClosedWarnAt;
-            if (noConnSinceWarn > TimeSpan.FromSeconds(15))
+            if (noConnNow - _lastNoConnWarnAt >= NoConnectionRepeatInterval)
             {
-                _log.LogCritical(
-                    "FAIL-CLOSED: BeaconAuthPassword is configured but Beacon.dll has NEVER connected to BeaconServer's IPC " +
-                    "pipe past {Grace}s grace. UE4SS / BeaconLoader / Beacon.dll likely did not load. Without the plugin and " +
-                    "the Lua gate, the passworded server cannot enforce its password. Stopping SN2 (path-scoped only — " +
-                    "panel-managed deploys with empty SnInstallRoot will see this log but require panel-side recovery, " +
-                    "PluginPid path is unavailable without a connection). " +
-                    "Diagnose: check sn2-stdout.log for UE4SS bootstrap, BeaconAuth.log absent, BeaconServerRuntime.log absent.",
-                    NoConnectionFailClosedGrace.TotalSeconds);
-                _lastLuaFailClosedWarnAt = noConnNow;
+                if (_everConnected)
+                {
+                    _log.LogCritical(
+                        "FAIL-CLOSED: BeaconAuthPassword is configured and Beacon.dll has not reconnected to BeaconServer's IPC " +
+                        "pipe for {Seconds}s since its last connection dropped. The Subnautica 2 process exited or was started " +
+                        "without the plugin. A passworded server must not run without the Lua gate, so Subnautica 2 is kept " +
+                        "stopped (path-scoped only; panel-managed deploys with empty SnInstallRoot need the panel to start it " +
+                        "again). Check the end of Subnautica2.log for a crash and sn2-stdout.log for UE4SS bootstrap. " +
+                        "This line repeats every {Repeat} minutes while the connection is down.",
+                        (long)sinceConnLost.TotalSeconds, NoConnectionRepeatInterval.TotalMinutes);
+                }
+                else
+                {
+                    _log.LogCritical(
+                        "FAIL-CLOSED: BeaconAuthPassword is configured but Beacon.dll has NEVER connected to BeaconServer's IPC " +
+                        "pipe past {Grace}s grace. UE4SS / BeaconLoader / Beacon.dll likely did not load. Without the plugin and " +
+                        "the Lua gate, the passworded server cannot enforce its password. Stopping SN2 (path-scoped only — " +
+                        "panel-managed deploys with empty SnInstallRoot will see this log but require panel-side recovery, " +
+                        "PluginPid path is unavailable without a connection). " +
+                        "Diagnose: check sn2-stdout.log for UE4SS bootstrap, BeaconAuth.log absent, BeaconServerRuntime.log absent. " +
+                        "This line repeats every {Repeat} minutes while the connection is down.",
+                        NoConnectionFailClosedGrace.TotalSeconds, NoConnectionRepeatInterval.TotalMinutes);
+                }
+                _lastNoConnWarnAt = noConnNow;
             }
             try
             {
@@ -166,7 +215,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
             }
             return;
         }
-        var sinceConnect = DateTimeOffset.UtcNow - conn.ConnectedAt;
+        var sinceConnect = _now() - conn.ConnectedAt;
         if (sinceConnect < LuaStatusBootstrapGrace) return;
 
         // Status file lives next to appsettings.json, which sits in
@@ -205,7 +254,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         // freshness check needed.
         if (exists && passwordConfigured && ready) return;
 
-        var now = DateTimeOffset.UtcNow;
+        var now = _now();
         var sinceWarn = now - _lastLuaFailClosedWarnAt;
         if (sinceWarn > TimeSpan.FromSeconds(15))
         {
@@ -332,7 +381,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         if (conn is null) return;
         var last = _state.LastHeartbeatAt;
         if (last is null) return;
-        var age = DateTimeOffset.UtcNow - last.Value;
+        var age = _now() - last.Value;
         if (age > _timeout)
         {
             _log.LogWarning("Plugin heartbeat stale: instance={Instance} pid={Pid} age={Age}s",
@@ -356,7 +405,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         // Wait for the bootstrap-grace window after first contact. The
         // plugin's bootstrap thread populates the heartbeat fields
         // shortly after the handshake; first heartbeat or two can race.
-        var sinceConnect = DateTimeOffset.UtcNow - conn.ConnectedAt;
+        var sinceConnect = _now() - conn.ConnectedAt;
         if (sinceConnect < AuthGraceWindow) return;
 
         // Plugin reporting Configured=0 is the expected steady state.
@@ -369,7 +418,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         // from a previous deploy, a manually-edited plugin-config.json,
         // or a Beacon update that regressed EmitPluginConfig. Stop SN2
         // before native + Lua enforcement layers race into the crash.
-        var now = DateTimeOffset.UtcNow;
+        var now = _now();
         var sinceWarn = now - _lastFailClosedWarnAt;
         if (sinceWarn > TimeSpan.FromSeconds(15))
         {

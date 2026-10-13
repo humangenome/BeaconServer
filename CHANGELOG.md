@@ -3,6 +3,19 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.130] - 2026-10-12
+
+### Changed
+
+- Versions 0.3.128 and 0.3.129 were not released here. Their server changes (spreading out the periodic world checks so they no longer land in the same frame) are included in this bundle.
+
+### Fixed
+
+- The release carries the full server bundle again (`Beacon-Server-Windows-x64-v0.3.130.zip`). Versions 0.3.127 to 0.3.129 were published without it.
+- When the game process stops on a password-protected server, the log now says the game's connection was lost and repeats that every 10 minutes. It used to report that the plugin had never loaded, every few seconds, until the server was started again.
+- Join passwords are masked in the copy of the game log BeaconServer writes, so a log shared for help no longer shows the server password.
+- Players whose name contains a space are matched to their account in the player list and leave the list when they disconnect.
+
 ## [0.3.127] - 2026-08-01
 
 ### Fixed
