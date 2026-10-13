@@ -3,6 +3,18 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.132] - 2026-10-13
+
+### Fixed
+
+- A restore no longer turns automatic snapshots on when `SnapshotsEnabled` is `false`.
+- An imported save whose world is in another slot (for example `savegame_2.sav`) now loads as the server's world instead of a new one: after the swap the newest slot becomes `savegame_0.sav`, the slot the server loads.
+
+### Changed
+
+- Restore and import are refused with HTTP 409 when BeaconServer does not start the game itself (`SnInstallRoot` and `SnExecutablePath` both empty), because nothing would start the game again after the swap. `/api/v1/health` reports this as `world_restore`, and the Beacon app shows its restore and import controls only when it is `true`.
+- SQLite and System.Text.Json updated to versions with no known security advisories.
+
 ## [0.3.131] - 2026-10-13
 
 ### Fixed

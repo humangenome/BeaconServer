@@ -60,10 +60,19 @@ public sealed class SnProcessSupervisorService : BackgroundService
         _coordinator = coordinator;
     }
 
+    /// <summary>
+    /// True when this BeaconServer starts the game itself and relaunches it after it
+    /// exits. A host that starts the game some other way (SnInstallRoot and
+    /// SnExecutablePath both empty) gets no relaunch, so a world restore there would
+    /// stop the game and leave it stopped.
+    /// </summary>
+    public static bool SupervisesGame(BeaconServerOptions opts) =>
+        OperatingSystem.IsWindows()
+        && (!string.IsNullOrEmpty(opts.SnInstallRoot) || !string.IsNullOrEmpty(opts.SnExecutablePath));
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if ((string.IsNullOrEmpty(_opts.SnInstallRoot) && string.IsNullOrEmpty(_opts.SnExecutablePath))
-            || !OperatingSystem.IsWindows())
+        if (!SupervisesGame(_opts))
         {
             _log.LogWarning("Process supervisor idle: Subnautica 2 executable not configured or not on Windows");
             return;

@@ -127,9 +127,12 @@ identity is what decides which world data you get back.
 
 BeaconServer watches the save directory and takes snapshots on change. A restore
 is not a live patch: the supervisor stops the game, swaps the save directory with
-an atomic rename, re-arms the file watcher against the new directory (the old
-watcher holds the renamed-away one) and relaunches. Anyone connected is
-disconnected for the duration.
+an atomic rename, moves the newest save slot to `savegame_0.sav`, re-arms the file
+watcher against the new directory when `SnapshotsEnabled` is on (the old watcher
+holds the renamed-away one) and relaunches. Anyone connected is disconnected for
+the duration. Restore and import run only in self-hosted mode (below); in managed
+mode nothing would relaunch the game, so the HTTP API refuses them with 409 and
+`/api/v1/health` reports `"world_restore": false`.
 
 ## Self-hosted versus managed
 

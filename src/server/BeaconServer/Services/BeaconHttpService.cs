@@ -220,6 +220,12 @@ public sealed class BeaconHttpService : BackgroundService
         _log.LogInformation("HTTP API stopped");
     }
 
+    // A restore stops the game to swap the world. Only a BeaconServer that starts the
+    // game itself brings it back afterwards, so anywhere else a restore would leave the
+    // server down.
+    internal const string NoRelaunchMessage =
+        "restore and import are off: this server's game is started by its host, not by BeaconServer";
+
     private async Task HandleRequestAsync(HttpListenerContext ctx, CancellationToken ct)
     {
         var req = ctx.Request;
@@ -265,6 +271,10 @@ public sealed class BeaconHttpService : BackgroundService
                     player_count = _pipeState.EffectivePlayerCount,
                     plugin_connected = _pipeState.Connection is not null,
                     last_heartbeat_age_seconds = heartbeatAgeSeconds,
+                    // True when a snapshot restore or save import brings the world
+                    // back up by itself (this BeaconServer starts the game). The app
+                    // shows restore and import only when this is true.
+                    world_restore = SnProcessSupervisorService.SupervisesGame(_opts),
                 });
                 return;
             }
@@ -627,6 +637,11 @@ public sealed class BeaconHttpService : BackgroundService
             if (method == "POST" && path.StartsWith("/api/v1/snapshots/") && path.EndsWith("/restore"))
             {
                 body.Dispose();
+                if (!SnProcessSupervisorService.SupervisesGame(_opts))
+                {
+                    await WriteJsonAsync(res, 409, new { ok = false, error = NoRelaunchMessage });
+                    return;
+                }
                 var id = path["/api/v1/snapshots/".Length..^"/restore".Length];
                 var ok = await _saves.RestoreSnapshotAsync(id, "http-api", ct).ConfigureAwait(false);
                 await WriteJsonAsync(res, ok ? 200 : 500, new { ok });
@@ -635,6 +650,12 @@ public sealed class BeaconHttpService : BackgroundService
 
             if (method == "POST" && path == "/api/v1/snapshots/import-restore")
             {
+                if (!SnProcessSupervisorService.SupervisesGame(_opts))
+                {
+                    body.Dispose();
+                    await WriteJsonAsync(res, 409, new { ok = false, error = NoRelaunchMessage });
+                    return;
+                }
                 if (body.SizeBytes == 0)
                 {
                     body.Dispose();

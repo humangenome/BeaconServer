@@ -8,10 +8,12 @@ If you save the server's admin password (the `RconPassword` from `appsettings.js
 
 | Surface | What it does |
 |---|---|
-| **World** button → *World backups* dialog | Lists the server's snapshots with timestamps and sizes, downloads a snapshot zip, restores a selected snapshot, imports a save (a vanilla Subnautica 2 save zipped up, or a previously downloaded snapshot), and migrates the newest snapshot from another of your servers. |
+| **World** button → *World backups* dialog | Lists the server's snapshots with their local times and sizes, and downloads a snapshot zip. On a server where BeaconServer 0.3.132 or newer starts the game itself, it also restores a selected snapshot, imports a save (a zip of a Subnautica 2 SaveGames folder, or a previously downloaded snapshot) and migrates the newest snapshot from another of your servers, each after a confirmation. Before 0.3.132 the dialog showed only the password row. |
 | **Console** tab | A Source RCON console with history and command autocomplete. Use `save snapshot` here to take a snapshot on demand. |
 
-Restore and import stop the Subnautica 2 process, take a pre-restore snapshot (so the operation is reversible), swap the save directory atomically, and relaunch the game. Connected players are dropped and can reconnect.
+Restore and import stop the Subnautica 2 process, take a pre-restore snapshot (so the operation is reversible), swap the save directory atomically, and relaunch the game. Connected players are dropped and can reconnect. An imported world can be in any `savegame_N.sav` slot: the newest one becomes `savegame_0.sav`, the slot the server loads.
+
+Restore and import need BeaconServer to start the game itself (`SnInstallRoot` or `SnExecutablePath` set), because only then does the world come back up after the swap. A server whose game is started by a hosting panel answers both with HTTP 409 and reports `"world_restore": false` in `/api/v1/health`; use the host's own backups there. Downloading snapshots works on both.
 
 Snapshots are also taken automatically on every game auto-save (Subnautica 2 auto-saves about once a minute; Beacon debounces to at most one snapshot per ~45 seconds) while `SnapshotsEnabled` is on, and are rotated out after 30 days. You usually don't need to snapshot manually before normal play.
 

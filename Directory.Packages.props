@@ -1,6 +1,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Pin transitive packages to the versions listed below, so a patched version
+         reaches every project that only pulls it in indirectly. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <!-- Hosting -->
@@ -26,6 +29,13 @@
     <!-- Persistence -->
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="8.0.0" />
     <PackageVersion Include="Dapper" Version="2.1.35" />
+    <!-- Transitive security pins: SQLite before 3.50.2 is GHSA-2m69-gcr7-jv3q (fixed in
+         SQLitePCLRaw 2.1.12+); System.Text.Json 8.0.0 is GHSA-hh2w-p6rv-4g7w (fixed in 8.0.5). -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.13" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.6" />
 
     <!-- Web (local admin API only, loopback) -->
     <PackageVersion Include="Microsoft.AspNetCore.App.Ref" Version="8.0.0" />

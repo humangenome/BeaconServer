@@ -425,6 +425,12 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
                 throw;
             }
 
+            // The game loads savegame_0 only. An imported SaveGames folder can carry its
+            // world in another slot (savegame_2.sav from a player's own PC), so make the
+            // newest slot savegame_0 now, the same way a BeaconServer start does.
+            try { SaveSlotNormalizer.Normalize(saveGamesDir, _log); }
+            catch (Exception ex) { _log.LogWarning(ex, "Save slot normalization after restore failed"); }
+
             var nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             _db.Audit(requestedBy, auditAction, target: pre.SnapshotId,
                 detailJson: $"{{\"pre_snapshot\":\"{pre.SnapshotId}\",\"source\":\"{Path.GetFileName(zipPath)}\"}}",
@@ -434,9 +440,12 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             // the ORIGINAL SaveGames dir; Directory.Move above replaced
             // that inode. Tear it down and re-arm against the new dir or
             // future auto-snapshots stop firing until BeaconServer restart.
+            // Only when auto-snapshots are on: re-arming unconditionally turned
+            // them on after every restore on a host configured with
+            // SnapshotsEnabled=false, until BeaconServer restarted.
             try { _watcher?.Dispose(); } catch { }
             _watcher = null;
-            TryStartFileWatcher();
+            if (_opts.SnapshotsEnabled) TryStartFileWatcher();
 
             _log.LogInformation("Restore complete from {Zip}; pre-snapshot {Id}", zipPath, pre.SnapshotId);
             return true;
