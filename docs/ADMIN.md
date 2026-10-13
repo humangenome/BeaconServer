@@ -23,7 +23,7 @@ Beacon listens on a [Source-protocol RCON](https://developer.valvesoftware.com/w
 
 - **Host:** your server's IP
 - **Port:** `RconPort` from `appsettings.json` (default `27018`; by convention `<gameplay port> + 3`, e.g. gameplay `27015` → RCON `27018`)
-- **Password:** the `RconPassword` you set in `appsettings.json` — RCON is disabled while it is empty
+- **Password:** the `RconPassword` you set in `appsettings.json`; RCON is disabled while it is empty
 
 ### Commands
 
@@ -67,21 +67,21 @@ Routes, all under `/api/v1` unless noted:
 
 **Public (no signature):**
 
-- `GET /health` — instance, version, ports, player count, plugin status
-- `GET /players` — connected players as JSON
-- `GET /manifest` — the server's mod manifest
-- `GET /chat/recent`, `GET /chat/motd` — chat feed and MOTD
-- `POST /chat/player` — player chat ingest (rate-limited)
-- `POST /map/position` — client-reported player position for the live map
-- `GET /map/` (top-level path) — the live web map page; its live state endpoint is public only when `Beacon:Map:Public` is `true`
+- `GET /health`: instance, version, ports, player count, plugin status
+- `GET /players`: connected players as JSON
+- `GET /manifest`: the server's mod manifest
+- `GET /chat/recent`, `GET /chat/motd`: chat feed and MOTD
+- `POST /chat/player`: player chat ingest (rate-limited)
+- `POST /map/position`: client-reported player position for the live map
+- `GET /map/` (top-level path): the live web map page; its live state endpoint is public only when `Beacon:Map:Public` is `true`
 
 **Signed:**
 
-- `GET /info` — instance metadata
-- `GET /map/state` — live map state (when not public)
-- `GET /snapshots` — list snapshots
-- `GET /snapshots/{id}/download` — download a snapshot zip
-- `POST /snapshots` — upload a zip and store it as a snapshot
-- `POST /snapshots/{id}/restore` — restore a stored snapshot
-- `POST /snapshots/import-restore` — upload a save zip and restore it in one shot
-- `POST /chat/say`, `POST /chat/motd` — broadcast chat / set MOTD
+- `GET /info`: instance metadata
+- `GET /map/state`: live map state (when not public)
+- `GET /snapshots`: list snapshots
+- `GET /snapshots/{id}/download`: download a snapshot zip
+- `POST /snapshots`: upload a zip and store it as a snapshot
+- `POST /snapshots/{id}/restore`: restore a stored snapshot
+- `POST /snapshots/import-restore`: upload a save zip and restore it in one shot
+- `POST /chat/say`, `POST /chat/motd`: broadcast chat / set MOTD

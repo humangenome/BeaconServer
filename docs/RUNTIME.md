@@ -9,13 +9,13 @@ mods around it. Everything below follows from that one fact.
 
 ## The two processes
 
-**BeaconServer.exe** — a .NET 8 supervisor. It owns configuration, the admin
+**BeaconServer.exe**: a .NET 8 supervisor. It owns configuration, the admin
 surfaces (Source A2S query, Source RCON, an HMAC-signed HTTP API), save snapshots
-and restores, and — for a self-hosted install — the game process itself. It reads
+and restores, and, for a self-hosted install, the game process itself. It reads
 `appsettings.json` from its own folder, not from the working directory it was
 started in.
 
-**Subnautica2-Win64-Shipping.exe** — the retail game, launched headless. UE4SS is
+**Subnautica2-Win64-Shipping.exe**: the retail game, launched headless. UE4SS is
 injected through a `dwmapi.dll` proxy in the game's `Binaries\Win64\`, UE4SS loads
 the Lua mod stack, and one of those mods brings `Beacon.dll` into the process.
 
@@ -32,7 +32,7 @@ Subnautica2-Win64-Shipping.exe
 
 - `-nullrhi` is what lets the game boot on a machine with no GPU. Without it UE
   fails to pick a D3D12 adapter and the game exits in about a second.
-- The travel URL is the host trigger. `?listen` is required — a map URL without
+- The travel URL is the host trigger. `?listen` is required; a map URL without
   it comes up standalone and rejects remote clients entirely.
 - `?LaunchType=LoadGame?SaveSlotName=` is the only key pair the game honours for
   loading an existing world on a listen boot. Anything else silently starts a new
@@ -46,7 +46,7 @@ Subnautica2-Win64-Shipping.exe
 `Engine.ini` in the user directory is rewritten on every launch, because the
 engine wipes the user-scope file at shutdown. It sets the null online subsystem,
 the IpNetDriver, the bandwidth budget, a 30 FPS cap with real frame deltas (never
-a fixed timestep — that dilates game time instead of dropping frame rate), and a
+a fixed timestep, which dilates game time instead of dropping frame rate), and a
 silent FMOD mixer so audio init does not crash on a host with no sound device.
 
 ## Ports
@@ -71,7 +71,7 @@ credential to manage: RCON and the HTTP API are the same trust tier.
 
 ## The in-game mod stack
 
-One UE4SS mod is enabled in `mods.txt` — `BeaconServerRuntime`. It loads
+One UE4SS mod is enabled in `mods.txt`: `BeaconServerRuntime`. It loads
 everything else. Never enable the feature mods directly; load order matters and
 the runtime mod is what guarantees it.
 
@@ -80,7 +80,7 @@ the runtime mod is what guarantees it.
 | `BeaconServerRuntime` | The single entry point. Loads the rest in order. |
 | `BeaconModKit` | The shared Lua surface third-party mods write against. Stable API. |
 | `BeaconLoader` | Brings `Beacon.dll` into the game process with `LoadLibrary` from Lua. UE4SS's own C++ loader expects an exact MSVC vtable layout and crashes the game without it. |
-| `BeaconAuth` | The server password gate. Hooks post-login for incoming remote clients. Native enforcement exists in the plugin but is intentionally off — it crashes the host on spawn. |
+| `BeaconAuth` | The server password gate. Hooks post-login for incoming remote clients. Native enforcement exists in the plugin but is intentionally off because it crashes the host on spawn. |
 | `BeaconRoster` | Publishes connected players to `roster.json` for the query and HTTP player lists. |
 | `BeaconChat` | Chat command surface and in-game message delivery. |
 | `BeaconNoPhantomHost` | Removes the listen host's own generated player from the player array, so gates and player lists see only real players. |
@@ -99,7 +99,7 @@ without checking the other covers every case.
 ### `Beacon.dll`
 
 A C++ plugin, cross-compiled with mingw-w64 and statically linked against libgcc
-and libstdc++ — a dynamically linked build cannot find its runtime once it is
+and libstdc++; a dynamically linked build cannot find its runtime once it is
 injected and fails to load. It hooks the game's login-options path so the host
 and each joining player get a stable identity, and the rejoin path so a returning
 player is matched back to the save they already have.
@@ -116,7 +116,7 @@ identity is what decides which world data you get back.
   putting the composite in the field the save system hashes. Each character on one
   account therefore maps to its own save shard, which is what makes multiple
   characters on one server work.
-- A host that has no client identity file — any headless host — gets a
+- A host that has no client identity file (any headless host) gets a
   deterministic identity derived from its configured instance id instead. This
   path has to stay: a blank host identity poisons the early lifepod flow before
   the phantom-host prune has a chance to run.
@@ -127,8 +127,8 @@ identity is what decides which world data you get back.
 
 BeaconServer watches the save directory and takes snapshots on change. A restore
 is not a live patch: the supervisor stops the game, swaps the save directory with
-an atomic rename, re-arms the file watcher against the new directory — the old
-watcher holds the renamed-away one — and relaunches. Anyone connected is
+an atomic rename, re-arms the file watcher against the new directory (the old
+watcher holds the renamed-away one) and relaunches. Anyone connected is
 disconnected for the duration.
 
 ## Self-hosted versus managed
@@ -142,8 +142,8 @@ it if it exits. If the game exits fast enough times in a row the supervisor give
 up rather than looping forever, and says why.
 
 **Managed.** A hosting control panel runs the game's lifecycle itself and leaves
-`SnInstallRoot` empty. The supervisor then stays idle — it never launches or
-kills the game — and only serves the query, RCON, HTTP and snapshot surfaces. The
+`SnInstallRoot` empty. The supervisor then stays idle (it never launches or
+kills the game) and only serves the query, RCON, HTTP and snapshot surfaces. The
 control plane writes the process ids it started so its own stop path can find
 them. If you are writing panel integration, this is the mode to target: leave
 `SnInstallRoot` empty and own the process yourself, or set it and let BeaconServer
