@@ -5,9 +5,9 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-blue.svg)](#requirements)
 [![Game](https://img.shields.io/badge/Game-Subnautica_2-darkgreen.svg)](https://store.steampowered.com/app/1962700/)
 
-BeaconServer is the open-source host supervisor for Beacon multiplayer in **Subnautica 2**. It starts and watches the hosted game process, takes and restores save snapshots, exposes an admin HTTP API, answers Source A2S query, and runs Source RCON.
+**Subnautica 2** has no dedicated server. BeaconServer runs it as a Subnautica 2 dedicated server: it starts the game headless on a Windows machine with a public IP and port, keeps Beacon's in-game runtime loaded, and players join by address through the [Beacon app](https://github.com/HumanGenome/Beacon). It also takes and restores save snapshots, answers Source A2S query, runs Source RCON and serves an admin HTTP API.
 
-Players join with the [Beacon launcher](https://github.com/HumanGenome/Beacon). A playable host also needs Beacon's in-game runtime (a `ue4ss\` folder with Beacon's server mods, plus the native `Beacon.dll`) next to the `BeaconServer\` folder — the **release zip bundles this runtime**, so a downloaded server is complete. Building from this source yourself produces the supervisor only; see [Installation](#installation).
+A playable host needs Beacon's in-game runtime (a `ue4ss\` folder with Beacon's server mods, plus the native `Beacon.dll`) next to the `BeaconServer\` folder. The **release zip bundles this runtime**, so a downloaded server is complete. Building from this source yourself produces the supervisor only; see [Installation](#installation).
 
 ## Features
 
@@ -45,14 +45,14 @@ Release builds are self-contained; a separate .NET install is not required for n
 ### Self-host
 1. Download `Beacon-Server-Windows-x64-v<version>.zip` from the [latest release](https://github.com/HumanGenome/BeaconServer/releases/latest). It is self-contained: `BeaconServer\` (the supervisor + `appsettings.json`), `ue4ss\` and `Beacon.dll` (the in-game runtime), and `tools\` (the injector).
 2. Extract it to a stable folder, such as `C:\Beacon\`.
-3. Install the Subnautica 2 game files under the folder set as `SnInstallRoot` (default `C:\Beacon\game`) — copy your `steamapps\common\Subnautica2` folder there, or install with SteamCMD (app `1962700`). The server runs headless; no GPU is required.
+3. Install the Subnautica 2 game files under the folder set as `SnInstallRoot` (default `C:\Beacon\game`): copy your `steamapps\common\Subnautica2` folder there, or install with SteamCMD (app `1962700`). The server runs headless; no GPU is required.
 4. Edit `BeaconServer\appsettings.json` (see below).
 5. Open/forward the ports listed below.
 6. Run `BeaconServer\BeaconServer.exe`.
 
 Players connect with the Beacon launcher to `<host>:<GameplayPort>`.
 
-> **Note:** the release zip above is complete — it bundles the in-game runtime (the `ue4ss\` folder with UE4SS + Beacon's server mods, plus the native `Beacon.dll`) alongside the MIT-licensed supervisor. If you instead build BeaconServer from this source, you get the supervisor only; the runtime must then sit next to the `BeaconServer\` folder, or BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server (no password gate, chat, roster, or live map). Managed hosting includes the runtime.
+> **Note:** the release zip above is complete. It bundles the in-game runtime (the `ue4ss\` folder with UE4SS + Beacon's server mods, plus the native `Beacon.dll`) alongside the MIT-licensed supervisor. If you instead build BeaconServer from this source, you get the supervisor only; the runtime must then sit next to the `BeaconServer\` folder, or BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server (no password gate, chat, roster, or live map). Managed hosting includes the runtime.
 
 > **Use the latest release.** A run of older release pages carried a zip that held only the supervisor, with no `ue4ss\` folder and no `Beacon.dll`. Extracting one of those gives a host that players connect to and bounce straight back to the main menu from. A complete bundle is around 110 MB and contains `ue4ss\Mods\`; anything near 50 MB is the broken artifact. Affected pages are marked at the top of their release notes.
 
@@ -74,7 +74,7 @@ BeaconServer reads `appsettings.json` (next to `BeaconServer.exe`) under the `Be
 | `RconPort` | `27018` | TCP Source RCON port. RCON is disabled when `RconPassword` is empty. |
 | `HttpPort` | `27019` | TCP admin HTTP API port. Set to `0` to disable. Also requires `RconPassword` to be set. |
 | `RconPassword` | empty | Admin password for RCON; the HTTP API signing key is derived from it. Set this before exposing RCON or HTTP. |
-| `ServerPassword` | empty | **Legacy — ignored since v0.3.55.** Do not set; use `BeaconAuthPassword`. |
+| `ServerPassword` | empty | **Legacy, ignored since v0.3.55.** Do not set; use `BeaconAuthPassword`. |
 | `BeaconAuthPassword` | empty | Join password enforced server-side for remote players. Empty means an open server. Also sets the password flag in Source query. |
 | `Admins` | `[]` | Identities (SteamID64, Beacon user id, or display name) treated as admin when running mod slash commands from in-game chat. RCON callers are always admin. |
 | `MaxPlayers` | `4` | Slot count reported to the launcher and query clients. |
@@ -134,7 +134,7 @@ announce <message>
 motd [message]
 ```
 
-Mod-registered slash commands also run over RCON, with or without the leading `/`. Restoring a snapshot is **not** an RCON command — use the launcher's World backups dialog or the HTTP API.
+Mod-registered slash commands also run over RCON, with or without the leading `/`. Restoring a snapshot is **not** an RCON command; use the launcher's World backups dialog or the HTTP API.
 
 See [docs/ADMIN.md](docs/ADMIN.md) for exact command output, the HTTP API signing recipe, and the endpoint list.
 
@@ -166,7 +166,7 @@ From v0.3.125 BeaconServer writes `steam_appid.txt` itself on every launch and p
 Tracked at [HumanGenome/Beacon#8](https://github.com/HumanGenome/Beacon/issues/8).
 
 ### Game build must match between client and server
-After a Subnautica 2 update, a client on a newer build joining an older server hangs at the main menu with no error. Update the server's game files whenever the game updates.
+After a Subnautica 2 update, players on the new build can fail to join an older server, or join and then get disconnected when they reach something the update changed. Update the server's game files whenever the game updates.
 
 ## Community Note
 
@@ -174,7 +174,7 @@ Beacon is a community project and is not affiliated with or endorsed by the deve
 
 ## Contributing
 
-Issues and pull requests for BeaconServer are welcome. For bug reports, include the BeaconServer version, Subnautica 2 build, and relevant logs from `logs\beacon-*.log` (one JSON object per line, rolled daily).
+Report bugs on [Beacon's issue tracker](https://github.com/HumanGenome/Beacon/issues); this repo has issues turned off. Include the BeaconServer version, the Subnautica 2 build, and the relevant lines from `logs\beacon-*.log` (one JSON object per line, rolled daily). From v0.3.130 that log masks join passwords; check an older log for `Password=` before posting it. Pull requests are welcome here.
 
 ## License
 
@@ -182,4 +182,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Credits
 
-- [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS) — Unreal Engine scripting and modding framework
+- [UE4SS](https://github.com/UE4SS-RE/RE-UE4SS): Unreal Engine scripting and modding framework
