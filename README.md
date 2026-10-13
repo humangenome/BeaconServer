@@ -52,7 +52,7 @@ Release builds are self-contained; a separate .NET install is not required for n
 
 Players connect with the Beacon launcher to `<host>:<GameplayPort>`.
 
-> **Note:** the release zip above is complete. It bundles the in-game runtime (the `ue4ss\` folder with UE4SS + Beacon's server mods, plus the native `Beacon.dll`) alongside the MIT-licensed supervisor. If you instead build BeaconServer from this source, you get the supervisor only; the runtime must then sit next to the `BeaconServer\` folder, or BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server (no password gate, chat, roster, or live map). Managed hosting includes the runtime.
+> **Note:** the release zip above is complete. It bundles the in-game runtime (the `ue4ss\` folder with UE4SS + Beacon's server mods, plus the native `Beacon.dll`) alongside the MIT-licensed supervisor. If you instead build BeaconServer from this source, you get the supervisor only; the runtime must then sit next to the `BeaconServer\` folder, or BeaconServer logs an error and the game runs as a plain Subnautica 2 listen server (no password gate, roster, live map, or chat slash commands). Managed hosting includes the runtime.
 
 > **Use the latest release.** A run of older release pages carried a zip that held only the supervisor, with no `ue4ss\` folder and no `Beacon.dll`. Extracting one of those gives a host that players connect to and bounce straight back to the main menu from. A complete bundle is around 110 MB and contains `ue4ss\Mods\`; anything near 50 MB is the broken artifact. Affected pages are marked at the top of their release notes.
 
@@ -81,10 +81,12 @@ BeaconServer reads `appsettings.json` (next to `BeaconServer.exe`) under the `Be
 | `SnapshotsEnabled` | `true` | Auto-snapshot on every game auto-save. When `false`, only admin-triggered snapshots run. |
 | `MaxUploadBytes` | 2 GB | Size cap for snapshot uploads and save imports over the HTTP API. |
 | `PluginHeartbeatTimeoutSeconds` | `30` | Seconds before BeaconServer treats the game runtime as unresponsive. |
-| `Chat:Enabled` | `true` | In-game chat. When `false`, the chat overlay is dropped from the published mod manifest. |
+| `Chat:Enabled` | `true` | Filters the mod manifest only: when `false`, a `beacon-hud` entry in `Mods` is left out of `GET /api/v1/manifest`, so joining players do not install a chat overlay. It does not add an overlay, and the chat API stays up either way. |
 | `Mods` | empty | Mod manifest published at `GET /api/v1/manifest`: `Required`, `Recommended`, and `Blocked` lists. Re-read on edit; no restart needed. |
 | `Map:Enabled` | `true` | Live web map served at `/map/` on the admin HTTP port. |
 | `Map:Public` | `false` | When `true`, `/api/v1/map/state` is readable without auth, so the browser map shows live players to anyone with the URL. |
+
+**In-game chat is not included in a self-hosted server.** Players get a chat window in the game only when the server's `Mods` list names Beacon's chat overlay (`beacon-hud`), which the Beacon app then installs when they join. The overlay is not published for self-hosting, so a server set up from this release has no in-game chat window. The RCON and HTTP chat commands (`say`, `announce`, `motd`, `/api/v1/chat/*`) still run and keep the recent messages, but nothing in the game shows them.
 
 Keep the ports unique for each server instance. The standard layout is:
 
