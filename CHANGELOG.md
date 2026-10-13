@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.131] - 2026-10-13
+
+### Fixed
+
+- Worlds saved before Subnautica 2's Buddy System hotfixes load again on the current game build. The game now expects a newer world-file version and upgrades old worlds from its own save menu, which a dedicated server never shows, so an old world failed to load and saving stayed off. BeaconServer now makes the same upgrade before it starts the game, only when the installed game is that build or newer, and copies the original files once to `SaveGames-before-v29` next to `SaveGames`.
+
 ## [0.3.130] - 2026-10-12
 
 ### Changed

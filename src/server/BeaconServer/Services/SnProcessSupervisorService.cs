@@ -170,6 +170,23 @@ public sealed class SnProcessSupervisorService : BackgroundService
         if (!File.Exists(exe))
             throw new FileNotFoundException($"Subnautica 2 binary not found at {exe}");
 
+        // Hotfix builds (CL-131439+) refuse Version 27/28 world files on a headless
+        // boot: the server comes up without its world and with saving blocked.
+        // Upgrade them first, the same change the game's own upgrade makes.
+        try
+        {
+            var upgrade = SaveCollectionUpgrader.Upgrade(
+                Path.Combine(_opts.SnUserDir, "Saved", "SaveGames"),
+                SaveCollectionUpgrader.ReadChangelist(exe),
+                _log);
+            foreach (var problem in upgrade.Errors)
+                _log.LogWarning("World file upgrade problem: {Problem}", problem);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "World file upgrade check failed; launching anyway");
+        }
+
         var args = string.Join(' ',
             $"-USERDIR={EscapeArg(_opts.SnUserDir)}",
             "-unattended",
