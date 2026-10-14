@@ -12,7 +12,7 @@ Open an issue. Include:
 - Server log excerpt (`logs/beacon-*.log` — one JSON object per line, rolled daily)
 - Whether anyone else can reproduce on a clean server
 
-If your issue is about specific managed hosting (panel, billing, support), please contact your host directly. BeaconServer's GitHub issues are for the open-source server itself.
+If your issue is about a hosted server you rent (panel, billing, support), please contact your host directly. BeaconServer's GitHub issues are for the open-source server itself.
 
 ## Feature requests
 
