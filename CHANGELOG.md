@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.133] - 2026-10-14
+
+### Fixed
+
+- A self-hosted server now starts in the world. It opened the game's main-menu map instead, so every player who joined was sent back to the main menu. On a first start with an empty `SnUserDir` the server creates a new world.
+
 ## [0.3.132] - 2026-10-13
 
 ### Fixed

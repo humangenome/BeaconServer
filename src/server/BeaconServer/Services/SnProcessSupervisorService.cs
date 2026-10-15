@@ -35,6 +35,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
     // same environment variables. Beacon writes both.
     internal const string Sn2SteamAppId = "1962700";
     private const string Sn2MapPath = "/Game/Maps/Awake";
+    internal const string Sn2WorldMapPath = "/Game/Maps/Main/L_Main";
     private static readonly string[][] Sn2ExeRelativePaths =
     [
         ["Subnautica2", "Binaries", "Win64", "Subnautica2-Win64-Shipping.exe"],
@@ -470,7 +471,15 @@ public sealed class SnProcessSupervisorService : BackgroundService
         !NetDriverDefinitions=ClearArray
         +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="{driver}",DriverClassNameFallback="{driver}")
 
+        ; Boot straight into the world map. The map in the launch URL is not
+        ; used (it is not the first argument), so without these the game opens
+        ; its main-menu map L_ClientLobby, listens there, and joining players
+        ; are sent back to the menu. Same values as the managed host.
         [/Script/EngineSettings.GameMapsSettings]
+        GameDefaultMap={Sn2WorldMapPath}
+        ServerDefaultMap={Sn2WorldMapPath}
+        EditorStartupMap={Sn2WorldMapPath}
+        TransitionMap={Sn2WorldMapPath}
         LocalMapOptions={hostTravelOptions}
 
         [/Script/UWESaveSystem.UWESaveGameSubsystem]

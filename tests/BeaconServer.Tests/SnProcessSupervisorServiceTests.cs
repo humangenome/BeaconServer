@@ -47,6 +47,24 @@ public sealed class SnProcessSupervisorServiceTests
     }
 
     [Fact]
+    public void BuildEngineIniContentBootsTheWorldMapNotTheMainMenu()
+    {
+        // Issue #18: without a default map the game opens L_ClientLobby (the main
+        // menu), listens there, and every joining player is sent back to the menu.
+        var ini = SnProcessSupervisorService.BuildEngineIniContent(10177, "?listen?LaunchType=LoadGame?SaveSlotName=savegame_0");
+
+        Assert.Contains("[/Script/EngineSettings.GameMapsSettings]", ini);
+        Assert.Contains("GameDefaultMap=/Game/Maps/Main/L_Main", ini);
+        Assert.Contains("ServerDefaultMap=/Game/Maps/Main/L_Main", ini);
+        Assert.Contains("TransitionMap=/Game/Maps/Main/L_Main", ini);
+        Assert.DoesNotContain("=/Game/Maps/L_ClientLobby", ini);
+        var section = ini[ini.IndexOf("[/Script/EngineSettings.GameMapsSettings]", StringComparison.Ordinal)..];
+        section = section[..section.IndexOf("\n[", 1, StringComparison.Ordinal)];
+        Assert.Contains("GameDefaultMap=", section);
+        Assert.Contains("LocalMapOptions=?listen?LaunchType=LoadGame?SaveSlotName=savegame_0", section);
+    }
+
+    [Fact]
     public void BuildEngineIniContentCapsFrameRateWithoutFixedTimestep()
     {
         // t.MaxFPS caps host CPU while still passing REAL frame deltas.
