@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.134] - 2026-10-15
+
+### Changed
+
+- No server changes. This version keeps the server in step with Beacon 0.3.134, which adds a separate Nexus Mods installer for the app.
+
 ## [0.3.133] - 2026-10-14
 
 ### Fixed
