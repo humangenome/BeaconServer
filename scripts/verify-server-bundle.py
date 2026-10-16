@@ -32,6 +32,24 @@ MIN_MOD_DIRS = 10
 # UE4SS.dll is ~16 MB. A truncated or placeholder file is not a runtime.
 MIN_UE4SS_DLL_BYTES = 1_000_000
 
+# The sample mods that come with a stock UE4SS download. None of them belongs on
+# a server: a bundle packed from a full UE4SS zip switches them on with no other
+# change, and on a sibling product they made the game crash in about one start in
+# three. Switched on (a ': 1' line in mods.txt, or an enabled.txt in the mod's
+# folder) fails the bundle; a folder that is present but off is tolerated.
+UE4SS_SAMPLE_MODS = (
+    "ActorDumperMod",
+    "BPML_GenericFunctions",
+    "BPModLoaderMod",
+    "CheatManagerEnablerMod",
+    "ConsoleCommandsMod",
+    "ConsoleEnablerMod",
+    "jsbLuaProfilerMod",
+    "Keybinds",
+    "LineTraceMod",
+    "SplitScreenMod",
+)
+
 # Every one of these must be present and non-empty. The ue4ss/Mods entries are
 # the mods without which the host misbehaves in ways that read to a player as
 # "the server is broken": no auth gate, no roster, phantom host players in the
@@ -143,6 +161,13 @@ def verify(path, min_bytes):
             manifest = None
             failures.append("cannot read ue4ss/Mods/mods.txt: {}".format(exc))
         if manifest:
+            samples = {m.lower() for m in UE4SS_SAMPLE_MODS}
+            for mod in enabled_mods(manifest):
+                if mod.lower() in samples:
+                    failures.append(
+                        "mods.txt switches on the UE4SS sample mod '{}'; a server "
+                        "runs only its own mods".format(mod)
+                    )
             for mod in enabled_mods(manifest):
                 key = "ue4ss/mods/{}/scripts/main.lua".format(mod.lower())
                 if key not in sizes:
@@ -150,6 +175,13 @@ def verify(path, min_bytes):
                         "mods.txt enables '{}' but the zip has no "
                         "ue4ss/Mods/{}/Scripts/main.lua".format(mod, mod)
                     )
+
+        for sample in UE4SS_SAMPLE_MODS:
+            if "ue4ss/mods/{}/enabled.txt".format(sample.lower()) in sizes:
+                failures.append(
+                    "ue4ss/Mods/{}/enabled.txt switches on a UE4SS sample "
+                    "mod".format(sample)
+                )
 
     return failures
 
