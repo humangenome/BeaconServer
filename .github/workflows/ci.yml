@@ -1,0 +1,41 @@
+name: CI
+
+# Build and test every change to main and every pull request. The Release
+# workflow runs the same steps, but only on a version tag, so without this a
+# change (or a contributor's pull request) went untested until the next release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore NuGet
+        run: dotnet restore BeaconServer.sln
+
+      - name: Build
+        run: dotnet build BeaconServer.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test BeaconServer.sln --configuration Release --no-build --verbosity normal
