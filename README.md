@@ -97,7 +97,7 @@ Keep the ports unique for each server instance. The standard layout is:
 | `GameplayPort + 3` | TCP | Source RCON |
 | `GameplayPort + 4` | TCP | Admin HTTP API |
 
-The launcher derives the RCON and admin HTTP ports as gameplay+3 and gameplay+4, so keep those offsets if you want the launcher's Console and world tools to work against your server. The query port is editable per-server in the launcher.
+The launcher derives the query, RCON and admin HTTP ports as gameplay+2, gameplay+3 and gameplay+4, so keep those offsets if you want the launcher's status, Console and world tools to work against your server.
 
 ## Source Query Example
 
