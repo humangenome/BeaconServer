@@ -65,6 +65,7 @@ REQUIRED_ENTRIES = (
     "ue4ss/UE4SS-settings.ini",
     "ue4ss/Mods/mods.txt",
     "ue4ss/Mods/BeaconServerRuntime/Scripts/main.lua",
+    "ue4ss/Mods/BeaconServerRuntime/Scripts/core.lua",
     "ue4ss/Mods/BeaconLoader/Scripts/main.lua",
     "ue4ss/Mods/BeaconAuth/Scripts/main.lua",
     "ue4ss/Mods/BeaconRoster/Scripts/main.lua",

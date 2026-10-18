@@ -3,6 +3,13 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.135] - 2026-10-18
+
+### Fixed
+
+- The world no longer stutters every few seconds while players are connected. The server mods searched the game's whole object list about 75 times every 5 seconds; they now keep what they find and look again only when something changes, such as a player joining or leaving or the map loading.
+- The server mods now do all of their game work on the game thread. Some of it ran on a background thread, where it could change the game's data at the same moment as the game itself, a likely cause of the crashes some servers had with players connected.
+
 ## [0.3.134] - 2026-10-15
 
 ### Changed

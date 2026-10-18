@@ -77,7 +77,7 @@ the runtime mod is what guarantees it.
 
 | Mod | What it does |
 |---|---|
-| `BeaconServerRuntime` | The single entry point. Loads the rest in order. |
+| `BeaconServerRuntime` | The single entry point. Loads `core.lua` (below), then the rest in order. |
 | `BeaconModKit` | The shared Lua surface third-party mods write against. Stable API. |
 | `BeaconLoader` | Brings `Beacon.dll` into the game process with `LoadLibrary` from Lua. UE4SS's own C++ loader expects an exact MSVC vtable layout and crashes the game without it. |
 | `BeaconAuth` | The server password gate. Hooks post-login for incoming remote clients. Native enforcement exists in the plugin but is intentionally off because it crashes the host on spawn. |
@@ -90,11 +90,22 @@ the runtime mod is what guarantees it.
 | `BeaconWeatherReplicationGuard` | Stops non-critical sky sequence playback from filling reliable RPC buffers on large worlds. |
 | `BeaconWorldWarmup` | Keeps the spawn cells loaded so the first joiner does not arrive into a cold world. |
 
-The roster has a redundancy worth knowing about: when nobody is connected the
-game's tick rate collapses and the Lua roster loop can go ten minutes between
-runs. BeaconServer tails the game log sub-second for join and leave lines and
-that is the fast path. The Lua roster is the fallback. Do not retire either
-without checking the other covers every case.
+`core.lua` runs every module's timers and engine work on the game thread, from
+one loop the runtime starts at the end of its load. UE4SS runs `LoopAsync` and
+`ExecuteWithDelay` callbacks on a background thread, and engine calls from there
+race the game; queueing game-thread work from that thread is not safe either.
+So no server module uses them: periodic work is a `core.lua` task, and a mod
+that needs the game thread uses `Beacon.GameThread.Run`. Found objects (player
+controllers, the GameState, the World, the sky sequence players) are kept and
+searched for again only after a map load, when one is gone, when the player
+count changes, or after a few minutes; searching the whole object list on a
+timer freezes the world. A "scan stats" line in `BeaconServerRuntime.log` every
+5 minutes counts the searches and checks the game thread.
+
+The roster has a redundancy worth knowing about: BeaconServer tails the game log
+sub-second for join and leave lines and that is the fast path. The Lua roster
+(every 5 seconds, from the game PlayerArray) is the fallback. Do not retire
+either without checking the other covers every case.
 
 ### `Beacon.dll`
 
