@@ -121,6 +121,13 @@ public sealed class BeaconServerOptions
     public ChatOptions Chat { get; set; } = new();
 
     /// <summary>
+    /// Lab only. When true the game-log tail records no player connections, as if the
+    /// log format had changed, so the chat gate's degraded health state
+    /// (chat_gate = no_connections_seen) can be shown on a test server. Default false.
+    /// </summary>
+    public bool SimulateUnreadableGameLog { get; set; } = false;
+
+    /// <summary>
     /// Mod manifest published at GET /api/v1/manifest. Hosters list the mods
     /// they require, recommend, or forbid; the launcher reads this on join
     /// and installs/offers/warns accordingly. Spec: protocol/manifest-v1.md.
@@ -144,6 +151,13 @@ public sealed class ChatOptions
 
     /// <summary>In-memory ring buffer cap for /api/v1/chat/recent. Min 20, default 200.</summary>
     public int RingBufferSize { get; set; } = 200;
+
+    /// <summary>
+    /// When true, GET /api/v1/chat/recent answers anyone. Default false: it answers
+    /// players connected to this server (matched by their address), the host machine
+    /// itself, and signed admin requests.
+    /// </summary>
+    public bool PublicRead { get; set; } = false;
 }
 
 public sealed class ModsOptions
@@ -182,6 +196,14 @@ public sealed class MapOptions
     /// live map dashboard. Default false — server admin/launcher only.
     /// </summary>
     public bool Public { get; set; } = false;
+
+    /// <summary>
+    /// Optional read key for /api/v1/map/state. When set, a request carrying it in the
+    /// X-Beacon-Map-Key header (or ?key=) gets the map without the admin signature, so
+    /// a hosting panel or dashboard can read the map while it stays private. Players
+    /// connected to this server always get it; empty = no key accepted.
+    /// </summary>
+    public string AccessKey { get; set; } = "";
 
     /// <summary>
     /// Cap on cached state age (ms). If roster.json is older than this,

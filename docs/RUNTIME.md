@@ -66,7 +66,9 @@ outside, and RCON and HTTP only if you use them.
 
 The HTTP API signs requests with `HMAC_SHA256(SHA256(RconPassword), "METHOD\npath\ntimestamp\nbody-sha256")`,
 sent as `X-Beacon-Timestamp` and `X-Beacon-Signature`. There is a five minute
-replay window and seen signatures are remembered inside it. There is no second
+replay window and seen signatures are remembered inside it. A body over 64 KB
+must also carry its SHA-256 as `X-Beacon-Content-Sha256` (the signature covers
+it), so the server checks the signature before reading the upload. There is no second
 credential to manage: RCON and the HTTP API are the same trust tier.
 
 ## The in-game mod stack

@@ -12,6 +12,7 @@ namespace BeaconServer.Tests;
 /// rate limiter). Server-broadcast and ring buffer behaviour is exercised
 /// implicitly via the same code path.
 /// </summary>
+[Collection("ChatFiles")]
 public class ChatServicePlayerTests : IDisposable
 {
     private readonly string _baseDir;

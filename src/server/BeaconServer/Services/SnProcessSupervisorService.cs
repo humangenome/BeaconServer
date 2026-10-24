@@ -509,7 +509,7 @@ public sealed class SnProcessSupervisorService : BackgroundService
         ClientDesiredSocketSendBufferBytes=2097152
         NetConnectionTimeout=300
         InitialConnectTimeout=300.0
-        ConnectionTimeout=300.0
+        ConnectionTimeout=60.0
         ServerTravelPause=4
 
         [/Script/Engine.Player]

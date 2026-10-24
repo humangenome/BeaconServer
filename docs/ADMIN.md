@@ -63,24 +63,28 @@ snap-20260517T024419Z-1f2a3b4c5d6e0f  4317021B  age=1665s  sha=7c81f9302b03e9d4
 
 The launcher's snapshot, restore, and import actions go over an HMAC-signed HTTP API on the `HttpPort` setting (default `27019`; by convention `<gameplay port> + 4`). The API is disabled when `HttpPort` is `0` or `RconPassword` is empty. If you want to script the same actions from your own tools, the API is documented inline in `src/server/BeaconServer/Services/BeaconHttpService.cs`.
 
-Every signed request computes `HMAC_SHA256(SHA256(RconPassword), "{METHOD}\n{path}\n{timestamp}\n{body_sha256}")` and sends it as `X-Beacon-Signature` with `X-Beacon-Timestamp` (unix seconds). The replay window is 5 minutes, and an accepted signature cannot be replayed inside it.
+Every signed request computes `HMAC_SHA256(SHA256(RconPassword), "{METHOD}\n{path}\n{timestamp}\n{body_sha256}")` and sends it as `X-Beacon-Signature` with `X-Beacon-Timestamp` (unix seconds). The replay window is 5 minutes, and an accepted signature cannot be replayed inside it. A request with a body sends `Content-Length` and the body's SHA-256 as `X-Beacon-Content-Sha256`; for a body over 64 KB that header is required, and the server checks the signature before it reads the body.
 
 Routes, all under `/api/v1` unless noted:
 
 **Public (no signature):**
 
-- `GET /health`: instance, version, ports, player count, plugin status
+- `GET /health`: instance, version, ports, player count, plugin status, and `chat_gate`: `"ok"`, or `"no_connections_seen"` when players have been on for 10 minutes but no game connection could be read from the game log (player chat and the live map then refuse everyone; `chat_gate_since_unix` says since when, otherwise `null`). Stopgap while it reads `no_connections_seen`: `Beacon:Chat:PublicRead` and `Beacon:Map:Public`.
 - `GET /players`: connected players as JSON
 - `GET /manifest`: the server's mod manifest
-- `GET /chat/recent`, `GET /chat/motd`: chat feed and MOTD
-- `POST /chat/player`: player chat ingest (rate-limited)
-- `POST /map/position`: client-reported player position for the live map
-- `GET /map/` (top-level path): the live web map page; its live state endpoint is public only when `Beacon:Map:Public` is `true`
+- `GET /chat/motd`: the MOTD
+- `GET /map/` (top-level path): the live web map page
+
+**Players on this server (matched by the address their game connected from), the host machine, or signed:**
+
+- `GET /chat/recent`: chat feed (anyone when `Beacon:Chat:PublicRead` is `true`)
+- `POST /chat/player`: player chat ingest (rate-limited; the line carries the player's in-game name)
+- `POST /map/position`: the player's own position for the live map
+- `GET /map/state`: live map state (also anyone when `Beacon:Map:Public` is `true`, or a request carrying `Beacon:Map:AccessKey` as `X-Beacon-Map-Key`)
 
 **Signed:**
 
 - `GET /info`: instance metadata
-- `GET /map/state`: live map state (when not public)
 - `GET /snapshots`: list snapshots
 - `GET /snapshots/{id}/download`: download a snapshot zip
 - `POST /snapshots`: upload a zip and store it as a snapshot

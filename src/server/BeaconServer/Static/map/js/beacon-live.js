@@ -14,7 +14,7 @@
 
   var qs = new URLSearchParams(location.search);
   // Two ways to point the overlay at the live data:
-  //   ?datasrc=<full-url>  — the exact map-state URL (SS panel proxy, same-origin)
+  //   ?datasrc=<full-url>  — the exact map-state URL (a hosting panel's relay, same-origin)
   //   ?beacon=<base>       — base http://ip:port (launcher, direct to the server)
   var dataUrl = qs.get('datasrc');
   var base = qs.get('beacon');
@@ -34,6 +34,46 @@
   var layer = null;
   var markers = {}; // id -> maptalks.Marker
   var fitted = false; // frame-to-players runs once
+  // Missed answers in a row. One miss is a blip and keeps the dots; the second
+  // clears them and says the server is offline, so a stopped server never
+  // leaves its players standing on the map.
+  var MISSES_OFFLINE = 2;
+  var misses = 0;
+  var chip = null;
+
+  // The status chip ("Server offline" / "No one online"), drawn like the map's
+  // own controls (search-control.css, markers-control.css: a white rounded
+  // pill, sans-serif, the same soft shadow), centred at the bottom just above
+  // the version picker (.version, bottom 8px), clear of the layer switcher,
+  // the zoom buttons and the compass in the corners and of the marker pills
+  // that wrap at the top on a phone. Plain text in a div: nothing to press.
+  function setStatus(text) {
+    if (!text) {
+      if (chip) chip.style.display = 'none';
+      return;
+    }
+    if (!chip) {
+      var css = document.createElement('style');
+      css.textContent =
+        '.beacon-live-chip{position:absolute;z-index:10001;left:50%;bottom:44px;transform:translateX(-50%);' +
+        'display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);box-sizing:border-box;' +
+        'padding:7px 16px 7px 12px;border-radius:16px;background:#fff;color:rgba(0,0,0,0.8);' +
+        'box-shadow:0 2px 2px rgba(0,0,0,0.2);font-family:sans-serif;font-size:14px;line-height:18px;' +
+        'white-space:nowrap;pointer-events:none;user-select:none}' +
+        '.beacon-live-chip:before{content:"";flex:0 0 auto;width:10px;height:10px;border-radius:50%;' +
+        'background:#9aa3ad;box-shadow:0 0 0 2px rgba(0,0,0,0.08)}' +
+        '.beacon-live-chip.offline:before{background:#e0533d}';
+      document.head.appendChild(css);
+      chip = document.createElement('div');
+      chip.className = 'beacon-live-chip';
+      chip.setAttribute('role', 'status');
+      chip.setAttribute('aria-live', 'polite');
+      document.body.appendChild(chip);
+    }
+    chip.className = 'beacon-live-chip' + (text.offline ? ' offline' : '');
+    chip.textContent = text.label;
+    chip.style.display = 'flex';
+  }
 
   function symbolFor(name) {
     return {
@@ -108,11 +148,41 @@
     }
   }
 
+  // A miss: no answer, an error status, or an answer without a players list.
+  // The first keeps the last dots; from the second on, the dots go and the
+  // chip says the server is offline.
+  function missed() {
+    misses++;
+    if (misses >= MISSES_OFFLINE) {
+      apply([]);
+      setStatus({ label: 'Server offline', offline: true });
+    }
+  }
+
+  // 401/403: the server answered, but the map is private and this viewer is
+  // not a player on it. That is not an outage, so it never says offline: the
+  // dots clear and no status is shown.
+  var REFUSED = {};
+  function refused() {
+    misses = 0;
+    apply([]);
+    setStatus(null);
+  }
+
   function poll() {
     fetch(dataUrl, { cache: 'no-store', mode: 'cors' })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (s) { if (s) apply(s.players); })
-      .catch(function () { /* server offline / unreachable — keep last dots */ });
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) return REFUSED;
+        return r.ok ? r.json() : null;
+      })
+      .then(function (s) {
+        if (s === REFUSED) { refused(); return; }
+        if (!s || !Array.isArray(s.players)) { missed(); return; }
+        misses = 0;
+        apply(s.players);
+        setStatus(s.players.length ? null : { label: 'No one online' });
+      })
+      .catch(missed);
   }
 
   // Smoothly interpolate each dot from its last position to its newest one over

@@ -31,6 +31,30 @@ public class Sn2LogTailServiceTests
         Sn2LogTailService.IsGeneratedPlayerName(name).Should().BeFalse();
     }
 
+    // The listen host is named after the machine, in the host name's own case
+    // (a lower-case host name seen on a server, with a new id every boot).
+    [Theory]
+    [InlineData("host1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", "HOST1921680042")]
+    [InlineData("host1921680042-9C1E5A7B3D0F2E4A6C8B1D3F5E7A9C02", "HOST1921680042")]
+    [InlineData("gameserver-east1-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", "GAMESERVER-EAST")]
+    public void IsGeneratedPlayerName_recognizes_this_machines_name(string name, string machine)
+    {
+        Sn2LogTailService.IsGeneratedPlayerName(name, machine).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("host1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", "NS1234567")]
+    [InlineData("host1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", null)]
+    [InlineData("diver-0123456789ABCDEF0123456789ABCDEF", "HOST1921680042")]
+    [InlineData("Captain-Nemo-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", "HOST1921680042")]
+    [InlineData("xhost1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41", "HOST1921680042")]
+    [InlineData("host1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A4", "HOST1921680042")]
+    [InlineData("host1921680042-my-base", "HOST1921680042")]
+    public void IsGeneratedPlayerName_keeps_players_named_with_a_dash_and_hex(string name, string? machine)
+    {
+        Sn2LogTailService.IsGeneratedPlayerName(name, machine).Should().BeFalse();
+    }
+
     [Theory]
     [InlineData("[2026.05.22-19.54.11:411][123]LogNet: NotifyAcceptingConnection accepted from: 1.2.3.4:5555", "1.2.3.4:5555")]
     [InlineData("[2026.05.22-19.54.11:411][123]LogNet: Server accepting post-challenge connection from: 1.2.3.4:5555", "1.2.3.4:5555")]
@@ -89,6 +113,50 @@ public class Sn2LogTailServiceTests
 
             await WaitUntilAsync(() => state.EffectivePlayerCount == 1, TimeSpan.FromSeconds(5));
             state.Players.Single().DisplayName.Should().Be("HumanGenome");
+        }
+        finally
+        {
+            await service.StopAsync(CancellationToken.None);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    // The game announces its own listen host with PlayerHasJoined at boot,
+    // named "<host name>-<32 hex>" (lines as a server logs them, with this
+    // test machine's name in them). It must not reach the A2S player list.
+    [Fact]
+    public async Task Tailer_does_not_count_the_listen_host_named_after_this_machine()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "beacon-sn2-tail-" + Guid.NewGuid().ToString("N"));
+        var logDir = Path.Combine(root, "Saved", "Logs");
+        Directory.CreateDirectory(logDir);
+        var logPath = Path.Combine(logDir, "Subnautica2.log");
+        await File.WriteAllTextAsync(logPath, "");
+        var host = Environment.MachineName.ToLowerInvariant() + "-9C1E5A7B3D0F2E4A6C8B1D3F5E7A9C02";
+
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        var service = new Sn2LogTailService(
+            NullLogger<Sn2LogTailService>.Instance,
+            Options.Create(new BeaconServerOptions { SnUserDir = root }),
+            state);
+
+        await service.StartAsync(CancellationToken.None);
+        try
+        {
+            await Task.Delay(250);
+            await File.AppendAllTextAsync(logPath, string.Join(Environment.NewLine, new[]
+            {
+                $"[2026.10.18-08.00.43:255][  0]LogSN2: Player '{host}' logging in. PlayerId=259, SonarPlayerId=server-0f1e2d3c4b5a69788796a5b4c3d2e1f0, PlatformUserId=server-0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+                $"[2026.10.18-08.00.43:257][  0]LogGameplayMessage: ForwardMessageToRecipients Channel=GameplayMessage.HUDMessage.Notify, String=(Severity=(TagName=\"Notify.Severity.Warning\"),LocalizedMessageKey=\"PlayerHasJoined\",LocalizedMessageStringTableID=\"/Game/StringTables/ST_Game.ST_Game\",TextArgs=(INVTEXT(\"{host}\"))), Sender=0, ReceiverPlayerIds=1",
+                "[2026.10.18-08.11.13:371][265]LogNet: NotifyAcceptingConnection accepted from: 5.6.7.8:2222",
+                "[2026.10.18-08.11.13:672][274]LogNet: Login request: ?Name=HumanGenome??SonarPlayerId=76561197966093888_A4E6F67EAD6BCF60?PlatformUserId=76561197966093888?PlatformProvider=STEAM userId: NULL:RYZEN platform: NULL",
+                "[2026.10.18-08.11.20:662][303]LogNet: Join succeeded: HumanGenome",
+                ""
+            }));
+
+            await WaitUntilAsync(() => state.EffectivePlayerCount >= 1, TimeSpan.FromSeconds(5));
+            await Task.Delay(250);
+            state.Players.Select(p => p.DisplayName).Should().Equal("HumanGenome");
         }
         finally
         {

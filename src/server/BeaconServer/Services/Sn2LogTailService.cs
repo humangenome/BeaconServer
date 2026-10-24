@@ -288,6 +288,7 @@ public sealed class Sn2LogTailService : BackgroundService
             if (!string.IsNullOrWhiteSpace(address)) _playerIdByAddress[address] = id;
             if (!string.IsNullOrWhiteSpace(address)) _playerNameByAddress[address] = displayName;
         }
+        if (!string.IsNullOrWhiteSpace(address)) NotePeer(address, id, displayName);
     }
 
     private void TrackPlayerJoined(string displayName)
@@ -308,6 +309,7 @@ public sealed class Sn2LogTailService : BackgroundService
                 _playerIdByAddress[pending.Address] = id;
                 _playerNameByAddress[pending.Address] = displayName;
             }
+            NotePeer(pending.Address, id, displayName);
         }
         _state.UpsertLogPlayer(id, displayName);
     }
@@ -334,6 +336,7 @@ public sealed class Sn2LogTailService : BackgroundService
                 _playerIdByAddress.Remove(addr);
             }
         }
+        _state.ForgetPeersNamed(displayName);
         _state.RemoveLogPlayerByDisplayName(displayName);
     }
 
@@ -349,6 +352,7 @@ public sealed class Sn2LogTailService : BackgroundService
             if (_playerNameByAddress.TryGetValue(address, out displayName))
                 _playerNameByAddress.Remove(address);
         }
+        _state.ForgetPeer(address);
         var removed = false;
         if (!string.IsNullOrWhiteSpace(id))
         {
@@ -365,6 +369,15 @@ public sealed class Sn2LogTailService : BackgroundService
     }
 
     private static string CleanName(string value) => value.Trim().Trim('"');
+
+    // Beacon:SimulateUnreadableGameLog (lab only, default false) leaves the connection
+    // list empty, as if the game log format had changed, so the chat gate's degraded
+    // state can be shown on a test server. It only ever refuses more, never less.
+    private void NotePeer(string address, string id, string displayName)
+    {
+        if (_opts.SimulateUnreadableGameLog) return;
+        _state.NotePeer(address, id, displayName);
+    }
 
     internal static string RedactSecrets(string line)
     {
@@ -401,7 +414,14 @@ public sealed class Sn2LogTailService : BackgroundService
         return address.Length > 0;
     }
 
-    internal static bool IsGeneratedPlayerName(string value)
+    internal static bool IsGeneratedPlayerName(string value) =>
+        IsGeneratedPlayerName(value, LocalMachineName);
+
+    // Same shapes as the server mods' BeaconCore.is_phantom_name (core.lua).
+    // The last one is "<this machine's name>-<32 hex>" in any case, e.g.
+    // host1921680042-3A7F0C9E2B5D4E1F8A6C0B3D9E7F2A41, whose PlayerHasJoined
+    // line would otherwise add the listen host to the player list.
+    internal static bool IsGeneratedPlayerName(string value, string? machineName)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
         value = value.Trim();
@@ -422,7 +442,28 @@ public sealed class Sn2LogTailService : BackgroundService
 
         if (string.Equals(prefix, "server", StringComparison.Ordinal)) return true;
         if (prefix.StartsWith("WIN-", StringComparison.OrdinalIgnoreCase)) return true;
-        return suffix.Length == 32 && prefix.All(IsMachineNameChar);
+        if (suffix.Length != 32) return false;
+        if (prefix.All(IsMachineNameChar)) return true;
+        return IsThisMachine(prefix, machineName);
+    }
+
+    // Environment.MachineName is the NetBIOS name: upper case, and only the
+    // first 15 characters of a longer host name.
+    private static bool IsThisMachine(string prefix, string? machineName)
+    {
+        if (string.IsNullOrWhiteSpace(machineName)) return false;
+        machineName = machineName.Trim();
+        if (string.Equals(prefix, machineName, StringComparison.OrdinalIgnoreCase)) return true;
+        return machineName.Length == 15 && prefix.Length > 15 &&
+               string.Equals(prefix[..15], machineName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static readonly string? LocalMachineName = ReadMachineName();
+
+    private static string? ReadMachineName()
+    {
+        try { return Environment.MachineName; }
+        catch (InvalidOperationException) { return null; }
     }
 
     private static bool IsHexDigit(char c) =>

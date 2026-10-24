@@ -3,6 +3,22 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.136] - 2026-10-24
+
+### Changed
+
+- Chat history and the live map are now for the players on the server. Anyone else is refused unless the server owner makes the map public (`Beacon:Map:Public`) or hands out the map key (`Beacon:Map:AccessKey`). Chat lines and map dots can only come from a connected player, under their in-game name.
+- World uploads are checked before the server reads them, so an unsigned upload is refused after its first kilobyte instead of filling the disk.
+- `/api/v1/health` adds `chat_gate`: it reads `no_connections_seen` when players are on but the server has read no game connections for 10 minutes, so a game update that changes the game's log can be spotted.
+
+### Fixed
+
+- A server could freeze a few seconds after a player left: the server mods could read a game object the engine had just cleaned up, which crashed the game in a way that left it running but stuck. They now check the object before reading anything from it.
+- The player count and player list no longer include the server's own hidden host on machines whose Windows name ends up in that host's name.
+- The live map clears players when the server stops answering and says "Server offline"; an empty server shows "No one online".
+- The RCON `players` reply lists each player with their time on the server, instead of only a count.
+- A player whose game crashed can get back onto a full server after a minute instead of five: the server now lets go of a silent connection after 60 seconds once the player is in the world. Players still loading the world keep 5 minutes.
+
 ## [0.3.135] - 2026-10-18
 
 ### Fixed

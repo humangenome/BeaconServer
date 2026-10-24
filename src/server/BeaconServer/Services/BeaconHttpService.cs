@@ -31,12 +31,27 @@ namespace BeaconServer.Services;
 /// and sends headers:
 ///   X-Beacon-Timestamp: &lt;unix seconds&gt;
 ///   X-Beacon-Signature: &lt;hex&gt;
-/// Server rejects timestamps older than 5 minutes (replay window).
+///   X-Beacon-Content-Sha256: &lt;body sha256 hex&gt;  (required for bodies over 64 KB)
+/// Server rejects timestamps older than 5 minutes (replay window). The signature
+/// is checked before any body over 64 KB is read.
 /// </summary>
 public sealed class BeaconHttpService : BackgroundService
 {
     private const int ReplayWindowSeconds = 300;
-    private const int MaxConcurrentRequests = 8;
+
+    // Three separate pools, so no kind of request can starve another: the public
+    // reads the app and the panel poll, signed admin calls, and big signed uploads.
+    // A request takes one slot of its own pool; a full pool answers 503.
+    internal const int PublicConcurrency = 16;
+    internal const int SignedConcurrency = 8;
+    internal const int UploadConcurrency = 2;
+
+    // Signed bodies up to this size are read and then checked as before. A bigger
+    // body must declare its SHA-256 in X-Beacon-Content-Sha256; the signature covers
+    // it, so the signature is checked before the first byte of the body is read.
+    internal const int SmallBodyMaxBytes = 64 * 1024;
+    internal const string ContentShaHeader = "X-Beacon-Content-Sha256";
+    internal const string MapKeyHeader = "X-Beacon-Map-Key";
 
     private readonly ILogger<BeaconHttpService> _log;
     private readonly BeaconServerOptions _opts;
@@ -46,7 +61,12 @@ public sealed class BeaconHttpService : BackgroundService
     private readonly InstanceIdentityProvider _identity;
     private readonly ChatService _chat;
     private readonly byte[] _authKey;
-    private readonly SemaphoreSlim _requestLimiter = new(MaxConcurrentRequests, MaxConcurrentRequests);
+    private readonly SemaphoreSlim _publicLimiter = new(PublicConcurrency, PublicConcurrency);
+    private readonly SemaphoreSlim _signedLimiter = new(SignedConcurrency, SignedConcurrency);
+    private readonly SemaphoreSlim _uploadLimiter = new(UploadConcurrency, UploadConcurrency);
+
+    // Tests run every request from 127.0.0.1; this lets them stand in for a remote caller.
+    internal bool LoopbackIsLocal { get; set; } = true;
     // Sliding window of signatures we've already accepted, so a captured
     // valid request inside the 5-minute replay window can't be re-sent to
     // double-trigger a restore or pile up snapshots.
@@ -150,6 +170,7 @@ public sealed class BeaconHttpService : BackgroundService
             return;
         }
 
+        ApplyListenerTimeouts(_listener);
         _log.LogInformation("HTTP API listening on {Prefixes}", string.Join(", ", _listener.Prefixes));
 
         // Outer loop: if the listener crashes for any reason other than
@@ -172,15 +193,20 @@ public sealed class BeaconHttpService : BackgroundService
                     catch (ObjectDisposedException) { break; }
                     catch (OperationCanceledException) { break; }
 
-                    // Bounded concurrency: refuse new requests if too many
-                    // are already in flight rather than spawning unbounded
-                    // Task.Run instances.
-                    if (!await _requestLimiter.WaitAsync(0).ConfigureAwait(false))
+                    // Bounded concurrency per pool: refuse new requests when their
+                    // pool is full rather than spawning unbounded Task.Run instances.
+                    // The method, path and headers are already parsed here; the body
+                    // is not, so classifying costs nothing.
+                    var limiter = LimiterFor(ClassifyRequest(
+                        ctx.Request.HttpMethod, ctx.Request.Url?.AbsolutePath ?? "",
+                        ctx.Request.HasEntityBody, ctx.Request.ContentLength64));
+                    if (!await limiter.WaitAsync(0).ConfigureAwait(false))
                     {
                         try
                         {
                             ctx.Response.StatusCode = 503;
                             ctx.Response.Headers["Retry-After"] = "5";
+                            ctx.Response.KeepAlive = false;
                             ctx.Response.Close();
                         }
                         catch { }
@@ -190,7 +216,7 @@ public sealed class BeaconHttpService : BackgroundService
                     _ = Task.Run(async () =>
                     {
                         try { await HandleRequestAsync(ctx, stoppingToken).ConfigureAwait(false); }
-                        finally { _requestLimiter.Release(); }
+                        finally { limiter.Release(); }
                     }, stoppingToken);
                 }
             }
@@ -258,6 +284,7 @@ public sealed class BeaconHttpService : BackgroundService
                 if (_pipeState.LastHeartbeatAt is DateTimeOffset lastHeartbeat)
                     heartbeatAgeSeconds = Math.Max(0, (int)(DateTimeOffset.UtcNow - lastHeartbeat).TotalSeconds);
 
+                _pipeState.EvaluateChatGate();
                 await WriteJsonAsync(res, pluginOnline ? 200 : 503, new
                 {
                     ok = pluginOnline,
@@ -275,6 +302,11 @@ public sealed class BeaconHttpService : BackgroundService
                     // back up by itself (this BeaconServer starts the game). The app
                     // shows restore and import only when this is true.
                     world_restore = SnProcessSupervisorService.SupervisesGame(_opts),
+                    // "ok", or "no_connections_seen" when players have been on for 10
+                    // minutes and no game connection could be read from the game log
+                    // (player chat and the map then refuse everyone).
+                    chat_gate = _pipeState.ChatGate.State,
+                    chat_gate_since_unix = _pipeState.ChatGate.DegradedSinceUnix,
                 });
                 return;
             }
@@ -364,7 +396,13 @@ public sealed class BeaconHttpService : BackgroundService
                 return;
             }
 
-            if (method == "GET" && path == "/api/v1/map/state" && _opts.Map.Enabled && _opts.Map.Public)
+            // Who may read the live map without the admin signature: anyone when the
+            // operator made it public, players connected to this server (the app's Map
+            // button opens it in the player's browser), and holders of the map key
+            // (a hosting panel's relay). Everyone else falls through to the signed
+            // handler below and gets 401.
+            if (method == "GET" && path == "/api/v1/map/state" && _opts.Map.Enabled
+                && (_opts.Map.Public || IsPlayerCaller(req) || MapKeyMatches(_opts.Map.AccessKey, PresentedMapKey(req))))
             {
                 await ServeMapStateAsync(res, ct).ConfigureAwait(false);
                 return;
@@ -378,20 +416,20 @@ public sealed class BeaconHttpService : BackgroundService
 
             // ----- Chat plane reads (protocol/chat-v1.md) -----
             //
-            // Public on purpose. SN2 has no native chat, so the only thing
-            // that ever lands in the ring buffer is admin broadcast
-            // (RCON say/announce + HTTP /chat/say + scheduled warnings +
-            // MOTD). Everything in the stream is already shouted at every
-            // joined player, so a public read endpoint leaks nothing extra.
-            //
-            // The in-game BeaconHud overlay runs inside the player's SN2
-            // process and has no access to RconPassword, so HMAC would
-            // require shipping the secret to every client. If SN2 ever
-            // grows native chat or DMs, the public surface stays
-            // admin-broadcast-only and a separate authed /chat/recent/full
-            // can carry private channels.
+            // The ring carries player chat as well as admin broadcasts, so it is
+            // for the players on this server: the app polls it for the in-game
+            // BeaconHud overlay from the player's own PC, whose address is the
+            // one the game connection came from. The player holds no admin
+            // secret, so the address is what proves they are on the server. The
+            // host machine itself and signed admin requests may read it too, and
+            // an operator can make it public with Beacon:Chat:PublicRead.
             if (method == "GET" && path == "/api/v1/chat/recent")
             {
+                if (!_opts.Chat.PublicRead && !IsPlayerCaller(req) && !HasValidSignedRead(req))
+                {
+                    await RefuseUnreadAsync(res, 403, new { error = "chat is only readable by players on this server" });
+                    return;
+                }
                 var sinceMs = ParseLongQuery(req.Url, "since", 0);
                 var limit = (int)ParseLongQuery(req.Url, "limit", 100);
                 var msgs = _chat.GetRecent(sinceMs, limit);
@@ -415,19 +453,27 @@ public sealed class BeaconHttpService : BackgroundService
                 return;
             }
 
-            // ----- Public chat ingest from player overlays -----
+            // ----- Chat ingest from player overlays -----
             //
-            // SN2 has no native chat. Players type into the BeaconHud overlay's
-            // ImGui InputText, the launcher relays the message here. Channel is
-            // forced to "player" and target to "all" by ChatService.
-            // BroadcastFromPlayer. Per-IP rate limit handled there.
+            // SN2 has no native chat. Players type into the BeaconHud overlay,
+            // the launcher relays the message here. Only a caller whose address
+            // belongs to a player connected to this server may post, and the
+            // sender name comes from that connection (the name the player logged
+            // in with), never from the request body; the body's name only picks
+            // between several players behind one address. Channel is forced to
+            // "player" and target to "all" by ChatService.BroadcastFromPlayer.
+            // Per-IP rate limit handled there.
             //
-            // Body is bounded at 2 KB — bigger than any sensible chat message
-            // (the body itself caps at 512 bytes via NormalizeBody) but small
-            // enough that we can read it inline without the streaming buffer
-            // the authed routes use.
+            // Body is bounded at 2 KB and read only after the caller is known.
             if (method == "POST" && path == "/api/v1/chat/player")
             {
+                var chatPeers = CallerPeers(req);
+                var chatLocal = IsLocalCaller(req);
+                if (chatPeers.Count == 0 && !chatLocal)
+                {
+                    await RefuseUnreadAsync(res, 403, new { error = "join the server to chat" });
+                    return;
+                }
                 string rawBody;
                 try { rawBody = await ReadShortBodyAsync(req, maxBytes: 2048, ct).ConfigureAwait(false); }
                 catch (BodyTooLargeException)
@@ -455,7 +501,8 @@ public sealed class BeaconHttpService : BackgroundService
                     return;
                 }
                 var clientIp = req.RemoteEndPoint?.Address?.ToString() ?? "";
-                var entry = _chat.BroadcastFromPlayer(clientIp, plReq.Sender ?? "Player", plReq.Msg);
+                var sender = ResolveChatSender(chatPeers, plReq.Sender, chatLocal) ?? "Player";
+                var entry = _chat.BroadcastFromPlayer(clientIp, sender, plReq.Msg);
                 if (entry is null)
                 {
                     await WriteJsonAsync(res, 429, new { error = "rate limited" });
@@ -465,12 +512,20 @@ public sealed class BeaconHttpService : BackgroundService
                 return;
             }
 
-            // Public: a connected launcher pushes its own player's world position
-            // for the live web map (the headless server can't read a remote
-            // player's position — they're simulated client-side). No HMAC, same
-            // trust model as /chat/player; positions expire server-side.
+            // A connected launcher pushes its own player's world position for the
+            // live web map (the headless server can't read a remote player's
+            // position — they're simulated client-side). Same rule as /chat/player:
+            // only from a connected player's address, and the dot is filed under
+            // that player's own id and name. Positions expire server-side.
             if (method == "POST" && path == "/api/v1/map/position")
             {
+                var posPeers = CallerPeers(req);
+                var posLocal = IsLocalCaller(req);
+                if (posPeers.Count == 0 && !posLocal)
+                {
+                    await RefuseUnreadAsync(res, 403, new { error = "join the server to report a position" });
+                    return;
+                }
                 string rawBody;
                 try { rawBody = await ReadShortBodyAsync(req, maxBytes: 1024, ct).ConfigureAwait(false); }
                 catch (BodyTooLargeException)
@@ -497,7 +552,16 @@ public sealed class BeaconHttpService : BackgroundService
                     await WriteJsonAsync(res, 400, new { error = "id required" });
                     return;
                 }
-                _pipeState.UpsertClientPosition(posReq.Id, posReq.Name ?? posReq.Id, posReq.X, posReq.Y, posReq.Z);
+                var peer = ResolvePositionPeer(posPeers, posReq.Id, posReq.Name);
+                if (peer is not null)
+                    _pipeState.UpsertClientPosition(peer.Id, peer.Name, posReq.X, posReq.Y, posReq.Z);
+                else if (posPeers.Count == 0 && posLocal)
+                    _pipeState.UpsertClientPosition(posReq.Id, posReq.Name ?? posReq.Id, posReq.X, posReq.Y, posReq.Z);
+                else
+                {
+                    await WriteJsonAsync(res, 403, new { error = "position is not for a player at this address" });
+                    return;
+                }
                 await WriteJsonAsync(res, 200, new { ok = true });
                 return;
             }
@@ -507,21 +571,20 @@ public sealed class BeaconHttpService : BackgroundService
             // through to the route handler — no full-body MemoryStream and
             // no base64-via-header round trip (used to triple the memory
             // footprint per upload).
-            BufferedBody? body;
-            try
+            var auth = await AuthorizeAndBufferAsync(req, ct).ConfigureAwait(false);
+            if (auth.Status != 200 || auth.Body is null)
             {
-                body = await ValidateAuthAndBufferAsync(req, ct).ConfigureAwait(false);
-            }
-            catch (BodyTooLargeException)
-            {
-                await WriteJsonAsync(res, 413, new { error = "payload too large" });
+                auth.Body?.Dispose();
+                var error = auth.Status switch
+                {
+                    411 => "content length required",
+                    413 => "payload too large",
+                    _ => "unauthorized",
+                };
+                await RefuseUnreadAsync(res, auth.Status == 200 ? 401 : auth.Status, new { error });
                 return;
             }
-            if (body is null)
-            {
-                await WriteJsonAsync(res, 401, new { error = "unauthorized" });
-                return;
-            }
+            var body = auth.Body;
 
             if (method == "GET" && path == "/api/v1/info")
             {
@@ -719,46 +782,126 @@ public sealed class BeaconHttpService : BackgroundService
     }
 
     /// <summary>
-    /// Streams the request body (if any) to a temp file while computing
-    /// SHA256 inline. On signature mismatch / replay reuse / cap overflow,
-    /// the temp file is deleted and we return null. The body never lands
-    /// in a MemoryStream — uploads up to <see cref="BeaconServerOptions.MaxUploadBytes"/>
-    /// cost one temp-file's worth of disk and an HMAC state.
+    /// The signed-route gate. Everything that can be checked from the headers is
+    /// checked before any of the body is read: the timestamp window, the declared
+    /// length (required; chunked bodies are refused), the size cap and, for a body
+    /// over <see cref="SmallBodyMaxBytes"/>, the signature itself over the SHA-256
+    /// the caller declares in <see cref="ContentShaHeader"/>. Only then is the body
+    /// streamed to a temp file, and its real hash must match the declared one. A
+    /// small body is read into memory (at most 64 KB) and checked as before. An
+    /// unauthenticated caller therefore never gets a byte written to disk. Temp
+    /// files are deleted on every failure path.
     /// </summary>
-    private async Task<BufferedBody?> ValidateAuthAndBufferAsync(HttpListenerRequest req, CancellationToken ct)
+    private async Task<AuthResult> AuthorizeAndBufferAsync(HttpListenerRequest req, CancellationToken ct)
     {
         var tsHeader = req.Headers["X-Beacon-Timestamp"];
         var sigHeader = req.Headers["X-Beacon-Signature"];
-        if (string.IsNullOrWhiteSpace(tsHeader) || string.IsNullOrWhiteSpace(sigHeader))
-            return null;
-        if (!long.TryParse(tsHeader, out var ts)) return null;
-
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (Math.Abs(now - ts) > ReplayWindowSeconds) return null;
+        if (!SignatureHeadersPlausible(tsHeader, sigHeader, now, ReplayWindowSeconds, out var ts))
+            return AuthResult.Refused(401);
 
-        if (req.ContentLength64 > _opts.MaxUploadBytes)
-            throw new BodyTooLargeException();
+        long length = 0;
+        if (req.HasEntityBody)
+        {
+            length = req.ContentLength64;
+            if (length < 0) return AuthResult.Refused(411);
+        }
+        if (length > _opts.MaxUploadBytes) return AuthResult.Refused(413);
 
         var path = req.Url?.AbsolutePath ?? "";
         var method = req.HttpMethod.ToUpperInvariant();
 
-        var buffered = await BufferBodyToDiskAsync(req, _opts.MaxUploadBytes, ct).ConfigureAwait(false);
-        // buffered.Sha256Hex is already lower-hex over the streamed bytes.
-
-        var canonical = $"{method}\n{path}\n{ts}\n{buffered.Sha256Hex}";
-        var expected = Convert.ToHexString(
-            HMACSHA256.HashData(_authKey, Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
-
-        var sigOk = CryptographicOperations.FixedTimeEquals(
-            Encoding.ASCII.GetBytes(expected),
-            Encoding.ASCII.GetBytes(sigHeader.ToLowerInvariant()));
-
-        if (!sigOk)
+        if (length > SmallBodyMaxBytes)
         {
-            buffered.Dispose();
-            return null;
+            var declared = (req.Headers[ContentShaHeader] ?? "").Trim().ToLowerInvariant();
+            if (!IsSha256Hex(declared))
+            {
+                // An app from before the header existed, uploading on the host
+                // machine itself, keeps the old order; nobody else does.
+                if (!IsLocalCaller(req)) return AuthResult.Refused(401);
+                var legacy = await BufferBodyToDiskAsync(req, Math.Min(length, _opts.MaxUploadBytes), ct).ConfigureAwait(false);
+                if (!VerifySignature(_authKey, method, path, ts, sigHeader!, legacy.Sha256Hex) || !TryRegisterSignature(sigHeader!, ts, now))
+                {
+                    legacy.Dispose();
+                    return AuthResult.Refused(401);
+                }
+                return AuthResult.Accepted(legacy);
+            }
+            if (!VerifySignature(_authKey, method, path, ts, sigHeader!, declared) || !TryRegisterSignature(sigHeader!, ts, now))
+                return AuthResult.Refused(401);
+
+            BufferedBody streamed;
+            try
+            {
+                streamed = await BufferBodyToDiskAsync(req, length, ct).ConfigureAwait(false);
+            }
+            catch (BodyTooLargeException)
+            {
+                return AuthResult.Refused(413);
+            }
+            if (streamed.SizeBytes != length || !string.Equals(streamed.Sha256Hex, declared, StringComparison.Ordinal))
+            {
+                streamed.Dispose();
+                return AuthResult.Refused(401);
+            }
+            return AuthResult.Accepted(streamed);
         }
 
+        // A small body. When the caller declares its hash (current apps do), the
+        // signature is checked first here too; otherwise (older apps) the body is
+        // read, at most 64 KB and within 10 seconds, and then checked.
+        var declaredSmall = (req.Headers[ContentShaHeader] ?? "").Trim().ToLowerInvariant();
+        var preChecked = length > 0 && IsSha256Hex(declaredSmall);
+        if (preChecked && (!VerifySignature(_authKey, method, path, ts, sigHeader!, declaredSmall) || !TryRegisterSignature(sigHeader!, ts, now)))
+            return AuthResult.Refused(401);
+
+        byte[] small;
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            deadline.CancelAfter(TimeSpan.FromSeconds(10));
+            small = await ReadBoundedBodyAsync(req, (int)length, deadline.Token).ConfigureAwait(false);
+        }
+        catch (BodyTooLargeException)
+        {
+            return AuthResult.Refused(413);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return AuthResult.Refused(401);
+        }
+        var smallSha = Convert.ToHexString(SHA256.HashData(small)).ToLowerInvariant();
+        if (preChecked)
+        {
+            if (small.Length != length || !string.Equals(smallSha, declaredSmall, StringComparison.Ordinal))
+                return AuthResult.Refused(401);
+        }
+        else if (!VerifySignature(_authKey, method, path, ts, sigHeader!, smallSha) || !TryRegisterSignature(sigHeader!, ts, now))
+        {
+            return AuthResult.Refused(401);
+        }
+        return AuthResult.Accepted(BufferedBody.FromBytes(small, smallSha));
+    }
+
+    /// <summary>
+    /// A signed GET with no body, for public routes that also accept the admin
+    /// signature (chat history). Same checks and replay table as the signed routes.
+    /// </summary>
+    private bool HasValidSignedRead(HttpListenerRequest req)
+    {
+        if (req.HasEntityBody) return false;
+        var tsHeader = req.Headers["X-Beacon-Timestamp"];
+        var sigHeader = req.Headers["X-Beacon-Signature"];
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (!SignatureHeadersPlausible(tsHeader, sigHeader, now, ReplayWindowSeconds, out var ts)) return false;
+        var emptySha = Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant();
+        return VerifySignature(_authKey, req.HttpMethod.ToUpperInvariant(), req.Url?.AbsolutePath ?? "", ts, sigHeader!, emptySha)
+            && TryRegisterSignature(sigHeader!, ts, now);
+    }
+
+    // Records an accepted signature; false when it was already used inside the window.
+    private bool TryRegisterSignature(string sigHeader, long ts, long now)
+    {
         var sigKey = sigHeader.ToLowerInvariant();
         lock (_seenSignaturesLock)
         {
@@ -771,22 +914,204 @@ public sealed class BeaconHttpService : BackgroundService
                     .ToList();
                 foreach (var k in toRemove) _seenSignatures.Remove(k);
             }
-            if (_seenSignatures.ContainsKey(sigKey))
-            {
-                buffered.Dispose();
-                return null;
-            }
+            if (_seenSignatures.ContainsKey(sigKey)) return false;
             _seenSignatures[sigKey] = ts;
         }
+        return true;
+    }
 
-        return buffered;
+    internal static bool SignatureHeadersPlausible(string? tsHeader, string? sigHeader, long nowUnix, int windowSeconds, out long ts)
+    {
+        ts = 0;
+        if (string.IsNullOrWhiteSpace(tsHeader) || string.IsNullOrWhiteSpace(sigHeader)) return false;
+        if (!long.TryParse(tsHeader, out ts)) return false;
+        if (Math.Abs(nowUnix - ts) > windowSeconds) return false;
+        // HMAC-SHA256 as lower or upper hex: 64 characters.
+        return sigHeader.Trim().Length == 64;
+    }
+
+    internal static bool VerifySignature(byte[] key, string method, string path, long ts, string sigHeader, string bodySha256Hex)
+    {
+        if (key.Length == 0) return false;
+        var canonical = $"{method}\n{path}\n{ts}\n{bodySha256Hex}";
+        var expected = Convert.ToHexString(
+            HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(canonical))).ToLowerInvariant();
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.ASCII.GetBytes(expected),
+            Encoding.ASCII.GetBytes(sigHeader.Trim().ToLowerInvariant()));
+    }
+
+    internal static bool IsSha256Hex(string value)
+    {
+        if (value.Length != 64) return false;
+        foreach (var c in value)
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
+        return true;
+    }
+
+    // ----- Request pools -----
+
+    internal enum RequestPool { Public, Signed, Upload }
+
+    private static readonly HashSet<string> PublicGetPaths = new(StringComparer.Ordinal)
+    {
+        "/api/v1/health", "/api/v1/players", "/api/v1/manifest",
+        "/api/v1/map/state", "/api/v1/chat/recent", "/api/v1/chat/motd",
+    };
+
+    internal static RequestPool ClassifyRequest(string method, string path, bool hasBody, long contentLength)
+    {
+        method = (method ?? "").ToUpperInvariant();
+        path ??= "";
+        if (method == "OPTIONS") return RequestPool.Public;
+        if (method == "GET" && (PublicGetPaths.Contains(path) || path.StartsWith("/map/", StringComparison.Ordinal)))
+            return RequestPool.Public;
+        if (method == "POST" && (path == "/api/v1/chat/player" || path == "/api/v1/map/position"))
+            return RequestPool.Public;
+        if (hasBody && (contentLength < 0 || contentLength > SmallBodyMaxBytes))
+            return RequestPool.Upload;
+        return RequestPool.Signed;
+    }
+
+    private SemaphoreSlim LimiterFor(RequestPool pool) => pool switch
+    {
+        RequestPool.Public => _publicLimiter,
+        RequestPool.Upload => _uploadLimiter,
+        _ => _signedLimiter,
+    };
+
+    // http.sys timeouts (Windows): a client that dribbles its headers or goes quiet
+    // mid-body loses the connection instead of holding a slot for minutes.
+    private void ApplyListenerTimeouts(HttpListener listener)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        try
+        {
+            var t = listener.TimeoutManager;
+            t.HeaderWait = TimeSpan.FromSeconds(15);
+            t.EntityBody = TimeSpan.FromSeconds(30);
+            t.DrainEntityBody = TimeSpan.FromSeconds(10);
+            t.IdleConnection = TimeSpan.FromSeconds(60);
+        }
+        catch (Exception ex)
+        {
+            _log.LogDebug(ex, "HttpListener timeouts not applied");
+        }
+    }
+
+    // ----- Callers -----
+
+    private IPAddress? CallerIp(HttpListenerRequest req)
+    {
+        var ip = req.RemoteEndPoint?.Address;
+        return ip is null ? null : PipeServerState.NormalizeIp(ip);
+    }
+
+    private bool IsLocalCaller(HttpListenerRequest req)
+    {
+        var ip = CallerIp(req);
+        return LoopbackIsLocal && ip is not null && IPAddress.IsLoopback(ip);
+    }
+
+    private IReadOnlyList<PipeServerState.ConnectedPeer> CallerPeers(HttpListenerRequest req) =>
+        _pipeState.PeersAt(CallerIp(req));
+
+    private bool IsPlayerCaller(HttpListenerRequest req) => IsLocalCaller(req) || CallerPeers(req).Count > 0;
+
+    private static string? PresentedMapKey(HttpListenerRequest req)
+    {
+        var header = req.Headers[MapKeyHeader];
+        if (!string.IsNullOrEmpty(header)) return header;
+        return req.QueryString["key"];
+    }
+
+    internal static bool MapKeyMatches(string? configured, string? presented)
+    {
+        if (string.IsNullOrEmpty(configured) || string.IsNullOrEmpty(presented)) return false;
+        var a = Encoding.UTF8.GetBytes(configured);
+        var b = Encoding.UTF8.GetBytes(presented.Trim());
+        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
+    }
+
+    /// <summary>
+    /// The name a chat line from this caller carries: the name a player at the
+    /// caller's address logged in with. The requested name only chooses between
+    /// several players behind one address. With no player at the address, only
+    /// the host machine itself may post, under the name it asks for. Null = refuse.
+    /// </summary>
+    internal static string? ResolveChatSender(IReadOnlyList<PipeServerState.ConnectedPeer> peers, string? requested, bool isLocal)
+    {
+        if (peers.Count == 0)
+            return isLocal ? (string.IsNullOrWhiteSpace(requested) ? "Player" : requested.Trim()) : null;
+        if (!string.IsNullOrWhiteSpace(requested))
+        {
+            var match = peers.FirstOrDefault(p => string.Equals(p.Name, requested.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (match is not null) return match.Name;
+        }
+        return peers[0].Name;
+    }
+
+    /// <summary>
+    /// The connected player a position report belongs to: the one at the caller's
+    /// address whose id or name the report names, or the only one there. Null when
+    /// several players share the address and the report names none of them.
+    /// </summary>
+    internal static PipeServerState.ConnectedPeer? ResolvePositionPeer(
+        IReadOnlyList<PipeServerState.ConnectedPeer> peers, string? requestedId, string? requestedName)
+    {
+        if (peers.Count == 0) return null;
+        foreach (var p in peers)
+        {
+            if (!string.IsNullOrWhiteSpace(requestedId)
+                && (string.Equals(p.Id, requestedId.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.Name, requestedId.Trim(), StringComparison.OrdinalIgnoreCase)))
+                return p;
+            if (!string.IsNullOrWhiteSpace(requestedName)
+                && string.Equals(p.Name, requestedName.Trim(), StringComparison.OrdinalIgnoreCase))
+                return p;
+        }
+        return peers.Count == 1 ? peers[0] : null;
+    }
+
+    // A refusal sent without reading the body: close the connection instead of
+    // letting the server drain an upload nobody asked for.
+    private static async Task RefuseUnreadAsync(HttpListenerResponse res, int status, object payload)
+    {
+        try { res.KeepAlive = false; } catch { }
+        await WriteJsonAsync(res, status, payload).ConfigureAwait(false);
+    }
+
+    private readonly record struct AuthResult(int Status, BufferedBody? Body)
+    {
+        public static AuthResult Refused(int status) => new(status, null);
+        public static AuthResult Accepted(BufferedBody body) => new(200, body);
+    }
+
+    /// <summary>
+    /// Reads a body of exactly <paramref name="length"/> bytes (at most
+    /// <see cref="SmallBodyMaxBytes"/>) into memory.
+    /// </summary>
+    private static async Task<byte[]> ReadBoundedBodyAsync(HttpListenerRequest req, int length, CancellationToken ct)
+    {
+        if (length <= 0) return Array.Empty<byte>();
+        if (length > SmallBodyMaxBytes) throw new BodyTooLargeException();
+        var buf = new byte[length];
+        var read = 0;
+        while (read < length)
+        {
+            var n = await req.InputStream.ReadAsync(buf.AsMemory(read, length - read), ct).ConfigureAwait(false);
+            if (n <= 0) break;
+            read += n;
+        }
+        if (read != length) Array.Resize(ref buf, read);
+        return buf;
     }
 
     /// <summary>
     /// Stream the request body into a temp file while hashing in 64 KB
     /// chunks. Never allocates a buffer the size of the body. Throws
     /// <see cref="BodyTooLargeException"/> if the stream exceeds the cap
-    /// mid-read.
+    /// mid-read. The temp file is deleted on any failure.
     /// </summary>
     private static async Task<BufferedBody> BufferBodyToDiskAsync(HttpListenerRequest req, long maxBytes, CancellationToken ct)
     {
@@ -849,6 +1174,16 @@ public sealed class BeaconHttpService : BackgroundService
         }
 
         public void MarkConsumed() => Interlocked.Exchange(ref _consumed, 1);
+
+        /// <summary>A verified small body, written to a temp file so every route reads bodies one way.</summary>
+        public static BufferedBody FromBytes(byte[] bytes, string sha256Hex)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "beacon-uploads");
+            Directory.CreateDirectory(tempDir);
+            var tempPath = Path.Combine(tempDir, $"upload-{Guid.NewGuid():N}.bin");
+            File.WriteAllBytes(tempPath, bytes);
+            return new BufferedBody(tempPath, sha256Hex, bytes.Length);
+        }
 
         public void Dispose()
         {

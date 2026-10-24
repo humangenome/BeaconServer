@@ -14,7 +14,18 @@ public sealed class PipeServerState
 
     private PipeConnection? _connection;
 
-    public PipeServerState(ILogger<PipeServerState> log) => _log = log;
+    public PipeServerState(ILogger<PipeServerState> log) : this(log, () => DateTimeOffset.UtcNow) { }
+
+    internal PipeServerState(ILogger<PipeServerState> log, Func<DateTimeOffset> clock)
+    {
+        _log = log;
+        ChatGate = new ChatGateMonitor(clock);
+    }
+
+    /// <summary>
+    /// Watches whether the connection list below is being fed. See <see cref="ChatGateMonitor"/>.
+    /// </summary>
+    public ChatGateMonitor ChatGate { get; }
 
     public PipeConnection? Connection
     {
@@ -84,6 +95,43 @@ public sealed class PipeServerState
     public void SetPlayers(IEnumerable<PlayerSnapshot> players)
     {
         lock (_playersGate) _players = players?.ToList() ?? new();
+        EvaluateChatGate();
+    }
+
+    // Players the host itself reports (native plugin snapshot or the Lua roster),
+    // without the log-derived entries and without the server's own host identity.
+    internal int HostReportedPlayerCount
+    {
+        get
+        {
+            lock (_playersGate)
+                return _players.Count(p =>
+                    !(p.BeaconUserId ?? "").StartsWith("server-", StringComparison.OrdinalIgnoreCase)
+                    && !Sn2LogTailService.IsGeneratedPlayerName(p.DisplayName ?? ""));
+        }
+    }
+
+    /// <summary>
+    /// Re-checks the chat gate (players on, no game connection read). Logs once
+    /// when it degrades and once when it recovers. Called on every player-list
+    /// update and on every parsed connection; cheap enough for request paths.
+    /// </summary>
+    public void EvaluateChatGate()
+    {
+        int peers;
+        lock (_peersGate) peers = _peers.Count;
+        var change = ChatGate.Observe(HostReportedPlayerCount, peers);
+        if (change == ChatGateMonitor.Change.Degraded)
+        {
+            _log.LogWarning(
+                "Player chat and map access are being refused: players have been connected for 10 minutes but no game connections can be read from the game log, " +
+                "so no caller can be matched to a player. The game log format may have changed. Stopgap: set Beacon:Chat:PublicRead to true " +
+                "(chat history readable by anyone) and Beacon:Map:Public to true (live map readable by anyone); posting chat stays refused until connections are read again.");
+        }
+        else if (change == ChatGateMonitor.Change.Recovered)
+        {
+            _log.LogInformation("Game connections are being read from the game log again; player chat and map access work normally.");
+        }
     }
 
     // ── Client-reported map positions ──────────────────────────────────────
@@ -142,6 +190,82 @@ public sealed class PipeServerState
                 _clientPositions.Remove(key);
             return _clientPositions.Values.ToList();
         }
+    }
+
+    // ── Connected players by network address ───────────────────────────────
+    // The game log names the address of every accepted connection and the name
+    // and id it logs in with (Sn2LogTailService pairs them). The player-facing
+    // HTTP routes (chat read and send, the live map, position reports) answer
+    // only callers whose address belongs to a player on this server, and the
+    // name a chat line or a map dot carries comes from here, never from the
+    // request body.
+    public sealed record ConnectedPeer(string Address, System.Net.IPAddress Ip, string Id, string Name);
+
+    private readonly Dictionary<string, ConnectedPeer> _peers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _peersGate = new();
+    private const int MaxPeers = 256;
+
+    /// <summary>Record (or refresh) the player logged in from <paramref name="address"/> ("ip:port").</summary>
+    public void NotePeer(string address, string id, string name)
+    {
+        if (!TryParsePeerIp(address, out var ip)) return;
+        if (string.IsNullOrWhiteSpace(name)) return;
+        lock (_peersGate)
+        {
+            if (!_peers.ContainsKey(address) && _peers.Count >= MaxPeers) return;
+            _peers[address] = new ConnectedPeer(address, ip,
+                string.IsNullOrWhiteSpace(id) ? $"sn2:{name}" : id.Trim(), name.Trim());
+        }
+        EvaluateChatGate();
+    }
+
+    public void ForgetPeer(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address)) return;
+        lock (_peersGate) _peers.Remove(address);
+    }
+
+    public void ForgetPeersNamed(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        lock (_peersGate)
+        {
+            foreach (var key in _peers
+                         .Where(kv => string.Equals(kv.Value.Name, name, StringComparison.OrdinalIgnoreCase))
+                         .Select(kv => kv.Key).ToList())
+                _peers.Remove(key);
+        }
+    }
+
+    /// <summary>Players currently connected from <paramref name="ip"/> (a household can have several).</summary>
+    public IReadOnlyList<ConnectedPeer> PeersAt(System.Net.IPAddress? ip)
+    {
+        if (ip is null) return Array.Empty<ConnectedPeer>();
+        ip = NormalizeIp(ip);
+        lock (_peersGate)
+            return _peers.Values.Where(p => p.Ip.Equals(ip)).ToList();
+    }
+
+    internal static System.Net.IPAddress NormalizeIp(System.Net.IPAddress ip) =>
+        ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip;
+
+    internal static bool TryParsePeerIp(string? address, out System.Net.IPAddress ip)
+    {
+        ip = System.Net.IPAddress.None;
+        if (string.IsNullOrWhiteSpace(address)) return false;
+        var a = address.Trim();
+        if (System.Net.IPEndPoint.TryParse(a, out var ep))
+        {
+            ip = NormalizeIp(ep.Address);
+            return true;
+        }
+        var colon = a.LastIndexOf(':');
+        if (colon > 0 && System.Net.IPAddress.TryParse(a[..colon], out var bare))
+        {
+            ip = NormalizeIp(bare);
+            return true;
+        }
+        return false;
     }
 
     public void UpsertLogPlayer(string beaconUserId, string displayName, int pingMs = 0)
@@ -216,6 +340,66 @@ public sealed class PipeServerState
         }
     }
 
+}
+
+/// <summary>
+/// The player routes (chat, live map, positions) recognise a player by the
+/// address their game connection came from, read from the game log. If the host
+/// reports players but the log yields no connection for <see cref="Window"/>, the
+/// log is probably unreadable (a game update can change its format) and every
+/// player is being refused. This tracks that state for the health endpoint
+/// ("chat_gate") and for one warning per episode. It never degrades while no
+/// players are on, and it clears the moment a connection is read again.
+/// </summary>
+public sealed class ChatGateMonitor
+{
+    public static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
+    public const string Ok = "ok";
+    public const string NoConnectionsSeen = "no_connections_seen";
+
+    public enum Change { None, Degraded, Recovered }
+
+    private readonly Func<DateTimeOffset> _clock;
+    private readonly object _gate = new();
+    private DateTimeOffset? _blindSince;
+    private DateTimeOffset? _degradedSince;
+
+    public ChatGateMonitor(Func<DateTimeOffset> clock) => _clock = clock;
+
+    /// <summary>"ok" or "no_connections_seen".</summary>
+    public string State { get { lock (_gate) return _degradedSince is null ? Ok : NoConnectionsSeen; } }
+
+    /// <summary>Unix seconds when players-on-but-nothing-read began, while degraded; otherwise null.</summary>
+    public long? DegradedSinceUnix { get { lock (_gate) return _degradedSince?.ToUnixTimeSeconds(); } }
+
+    public Change Observe(int hostReportedPlayers, int parsedConnections)
+    {
+        var now = _clock();
+        lock (_gate)
+        {
+            if (parsedConnections > 0)
+            {
+                _blindSince = null;
+                if (_degradedSince is null) return Change.None;
+                _degradedSince = null;
+                return Change.Recovered;
+            }
+            if (hostReportedPlayers <= 0)
+            {
+                // Nobody on: nothing to learn. The clock restarts with the next player;
+                // an episode already reported stays until a connection is read.
+                _blindSince = null;
+                return Change.None;
+            }
+            _blindSince ??= now;
+            if (_degradedSince is null && now - _blindSince.Value >= Window)
+            {
+                _degradedSince = _blindSince;
+                return Change.Degraded;
+            }
+            return Change.None;
+        }
+    }
 }
 
 /// <summary>

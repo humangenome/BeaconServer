@@ -165,9 +165,28 @@ public sealed class RconHostedService : IHostedService
             : $"instance={_opts.InstanceId} plugin=connected pid={conn.PluginPid} version={conn.PluginVersion} players={_state.EffectivePlayerCount}";
     }
 
-    private string BuildPlayers()
+    private string BuildPlayers() =>
+        FormatPlayers(_state.Players, _opts.MaxPlayers, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+    // One line per player: name and time on the server. The reply used to be a count with a
+    // builder's note ("per-player names land in Phase 2").
+    internal static string FormatPlayers(IReadOnlyList<PlayerSnapshot> players, int maxPlayers, long nowUnixMs)
     {
-        var n = _state.EffectivePlayerCount;
-        return n == 0 ? "no players online" : $"{n} player(s) online (per-player names land in Phase 2)";
+        if (players.Count == 0)
+            return "no players online";
+        var lines = players.Select(p =>
+        {
+            var name = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName;
+            return $"{name}  {FormatOnlineFor(nowUnixMs - p.ConnectedAtUnixMs)}";
+        });
+        return $"{players.Count} of {maxPlayers} players online\n" + string.Join("\n", lines);
+    }
+
+    private static string FormatOnlineFor(long ms)
+    {
+        var minutes = Math.Max(0, ms) / 60_000;
+        if (minutes < 1) return "just joined";
+        if (minutes < 60) return $"{minutes}m";
+        return $"{minutes / 60}h {minutes % 60:00}m";
     }
 }

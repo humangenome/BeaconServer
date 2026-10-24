@@ -47,6 +47,18 @@ public sealed class SnProcessSupervisorServiceTests
     }
 
     [Fact]
+    public void BuildEngineIniContentFreesACrashedPlayersSeatInAMinute()
+    {
+        // Joining clients keep 300 s while the world streams in; in-world players time out after 60 s,
+        // so a crashed player's seat is free again before they can get back to the join screen.
+        var ini = SnProcessSupervisorService.BuildEngineIniContent(10177, "?listen");
+
+        Assert.Contains("InitialConnectTimeout=300.0", ini);
+        Assert.Contains("ConnectionTimeout=60.0", ini);
+        Assert.DoesNotContain("\nConnectionTimeout=300", ini.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
     public void BuildEngineIniContentBootsTheWorldMapNotTheMainMenu()
     {
         // Issue #18: without a default map the game opens L_ClientLobby (the main
