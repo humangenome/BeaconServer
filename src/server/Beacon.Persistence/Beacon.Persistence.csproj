@@ -7,6 +7,5 @@
     <PackageReference Include="Dapper" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
   </ItemGroup>
 </Project>

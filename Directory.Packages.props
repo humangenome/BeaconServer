@@ -20,7 +20,6 @@
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
 
     <!-- Networking control plane (NOT for gameplay) -->
-    <PackageVersion Include="LiteNetLib" Version="1.3.5" />
 
     <!-- Serialization -->
     <PackageVersion Include="MessagePack" Version="3.1.9" />
@@ -36,6 +35,8 @@
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.13" />
     <PackageVersion Include="System.Text.Json" Version="8.0.6" />
+    <!-- Avalonia's Linux D-Bus dependency (unused on Windows) before 0.21.3 is GHSA-xrw6-gwf8-vvr9. -->
+    <PackageVersion Include="Tmds.DBus.Protocol" Version="0.21.3" />
 
     <!-- Web (local admin API only, loopback) -->
     <PackageVersion Include="Microsoft.AspNetCore.App.Ref" Version="8.0.0" />
@@ -44,11 +45,24 @@
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.49.1" />
 
+    <!-- Launcher UI -->
+    <PackageVersion Include="Avalonia" Version="11.2.0" />
+    <PackageVersion Include="Avalonia.Desktop" Version="11.2.0" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.2.0" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.2.0" />
+
+    <!-- Auto-update manifest signing (ed25519). Pure-managed, no native deps,
+         no licensing friction. We only use the Ed25519Signer + Ed25519PublicKeyParameters
+         types so the trim cost is minimal even on self-contained publish. -->
+    <PackageVersion Include="BouncyCastle.Cryptography" Version="2.4.0" />
+
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="FluentAssertions" Version="6.12.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    <!-- Launcher window tests: real windows on Avalonia's headless platform (no desktop). -->
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="11.2.0" />
   </ItemGroup>
 </Project>

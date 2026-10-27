@@ -40,16 +40,40 @@
   background: rgba(15, 22, 32, 0.95);
 }
 .options-control-icon svg { fill: #eaf6ff; color: #eaf6ff; }
+/* Beacon: the top-left row (menu, search, marker pills) ends clear of the
+   language picker (#language-selector, 90px in from the right, about 38px
+   wide, so its left edge is 128px in). The pills share the top line only when
+   they end before it, else they start on the next line: in a frame about
+   860-975px wide (a map window on a 1024px screen) they ran
+   under it. The 600px floor leaves narrower frames alone: there the pills
+   never fit beside the search box, and on a line of their own 600px still
+   holds the English set in one row. In a frame under about 395px (a map
+   window on a phone) the search box itself ran under the picker, so it
+   narrows to end 10px before it (48px of menu to its left; vw here is the
+   frame's own width). Typing in it still widens it, as before: its own sheet
+   (search-control.css) loads after this block, so this rule names the row too,
+   which beats that sheet's plain width and ties with, then loses to, its
+   later :focus-within width. Narrowed, the box would cut its "Subnautica 2"
+   placeholder short, so there it drops the clear button while it is empty
+   (greyed out and inert until something is typed; it comes back with the
+   first letter). */
+.controls-topleft { max-width: max(calc(100% - 150px), 600px); }
+.controls-topleft .search-control { width: min(210px, calc(100vw - 186px)); }
+@media (max-width: 395px) {
+  .controls-topleft .search-input:placeholder-shown ~ .search-clear { display: none; }
+}
 </style>
 
 <template id="remote">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/js/all.min.js"></script>
   <link  href="https://cdn.jsdelivr.net/npm/maptalks-gl@0.124.4/dist/maptalks-gl.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/maptalks-gl@0.124.4/dist/maptalks-gl.min.js"></script>
-  <link href="https://joric.github.io/maps/src/controls/search-control/search-control.css" rel="stylesheet">
-  <script src="https://joric.github.io/maps/src/controls/search-control/search-control.js"></script>
-  <link href="https://joric.github.io/maps/src/controls/markers-control/markers-control.css" rel="stylesheet">
-  <script src="https://joric.github.io/maps/src/controls/markers-control/markers-control.js"></script>
+  <!-- the search and markers controls are vendored (lib/controls, public domain per the LICENSE): joric.github.io stopped
+       serving them (404) and every load then died on "SearchControl is not defined" -->
+  <link href="lib/controls/search-control/search-control.css" rel="stylesheet">
+  <script src="lib/controls/search-control/search-control.js"></script>
+  <link href="lib/controls/markers-control/markers-control.css" rel="stylesheet">
+  <script src="lib/controls/markers-control/markers-control.js"></script>
 </template>
 
 <template id="local">

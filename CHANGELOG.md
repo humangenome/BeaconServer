@@ -3,6 +3,17 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.137] - 2026-10-27
+
+### Fixed
+
+- The server's plugin log is one file per server, records only changes, and stops growing past 5 MB.
+- Crew Progress keeps every player's list on busy servers.
+
+### Removed
+
+- An unused networking library and an unused client mod.
+
 ## [0.3.136] - 2026-10-24
 
 ### Changed

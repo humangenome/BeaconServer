@@ -3,6 +3,5 @@
     <RootNamespace>Beacon.SourceQuery</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
   </ItemGroup>
 </Project>

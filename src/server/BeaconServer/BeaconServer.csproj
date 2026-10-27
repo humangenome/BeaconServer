@@ -16,7 +16,6 @@
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="Serilog.Formatting.Compact" />
-    <PackageReference Include="LiteNetLib" />
     <PackageReference Include="MessagePack" />
   </ItemGroup>
   <ItemGroup>
@@ -34,7 +33,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../shared/Beacon.Protocol/Beacon.Protocol.csproj" />
-    <ProjectReference Include="../../shared/Beacon.Abstractions/Beacon.Abstractions.csproj" />
     <ProjectReference Include="../Beacon.SourceQuery/Beacon.SourceQuery.csproj" />
     <ProjectReference Include="../Beacon.Rcon/Beacon.Rcon.csproj" />
     <ProjectReference Include="../Beacon.Persistence/Beacon.Persistence.csproj" />

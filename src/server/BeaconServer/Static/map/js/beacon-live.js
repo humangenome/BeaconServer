@@ -40,13 +40,37 @@
   var MISSES_OFFLINE = 2;
   var misses = 0;
   var chip = null;
+  var chipText = null;
 
-  // The status chip ("Server offline" / "No one online"), drawn like the map's
-  // own controls (search-control.css, markers-control.css: a white rounded
-  // pill, sans-serif, the same soft shadow), centred at the bottom just above
-  // the version picker (.version, bottom 8px), clear of the layer switcher,
-  // the zoom buttons and the compass in the corners and of the marker pills
-  // that wrap at the top on a phone. Plain text in a div: nothing to press.
+  // The status chip ("Server offline" / "No one online" / "1 player online,
+  // location not shown yet"), drawn like the map's own controls
+  // (search-control.css, markers-control.css: a white rounded pill,
+  // sans-serif, the same soft shadow), centred at the bottom just above the
+  // version picker (.version, bottom 8px), clear of the layer switcher, the
+  // zoom buttons and the compass in the corners and of the marker pills that
+  // wrap at the top on a phone. Plain text in a div: nothing to press. Its dot
+  // is grey, red when the server is offline, and the players' own blue when
+  // it counts players the map cannot place.
+  // It never runs under those corner buttons (20px in, 28px wide on each side):
+  // it keeps 60px from either edge (insets, not left:50% and a shift, which
+  // would cap a wrapping chip at half the map), and a label too long for that
+  // on a phone wraps, but only between its phrases (label: ['3 players online,',
+  // 'locations not shown yet']), each phrase held together by no-break spaces,
+  // so the last line is never one or two stray words.
+  // Wrapped, the text would keep the whole width it was offered, with a gap
+  // beside the shorter line: fitChip narrows it to its longest line.
+  function fitChip() {
+    if (!chipText || chip.style.display === 'none') return;
+    chipText.style.width = '';
+    var range = document.createRange();
+    range.selectNodeContents(chipText);
+    var rects = range.getClientRects();
+    if (rects.length < 2) return;
+    var widest = 0;
+    for (var i = 0; i < rects.length; i++) widest = Math.max(widest, rects[i].width);
+    chipText.style.width = Math.ceil(widest) + 'px';
+  }
+
   function setStatus(text) {
     if (!text) {
       if (chip) chip.style.display = 'none';
@@ -55,24 +79,32 @@
     if (!chip) {
       var css = document.createElement('style');
       css.textContent =
-        '.beacon-live-chip{position:absolute;z-index:10001;left:50%;bottom:44px;transform:translateX(-50%);' +
-        'display:flex;align-items:center;gap:8px;max-width:calc(100% - 32px);box-sizing:border-box;' +
+        '.beacon-live-chip{position:absolute;z-index:10001;left:60px;right:60px;bottom:44px;margin:0 auto;' +
+        'width:-moz-fit-content;width:fit-content;' +
+        'display:flex;align-items:center;gap:8px;box-sizing:border-box;' +
         'padding:7px 16px 7px 12px;border-radius:16px;background:#fff;color:rgba(0,0,0,0.8);' +
         'box-shadow:0 2px 2px rgba(0,0,0,0.2);font-family:sans-serif;font-size:14px;line-height:18px;' +
-        'white-space:nowrap;pointer-events:none;user-select:none}' +
+        'text-align:center;pointer-events:none;user-select:none}' +
         '.beacon-live-chip:before{content:"";flex:0 0 auto;width:10px;height:10px;border-radius:50%;' +
         'background:#9aa3ad;box-shadow:0 0 0 2px rgba(0,0,0,0.08)}' +
-        '.beacon-live-chip.offline:before{background:#e0533d}';
+        '.beacon-live-chip.offline:before{background:#e0533d}' +
+        '.beacon-live-chip.players:before{background:#36c6ff}';
       document.head.appendChild(css);
       chip = document.createElement('div');
       chip.className = 'beacon-live-chip';
       chip.setAttribute('role', 'status');
       chip.setAttribute('aria-live', 'polite');
+      chipText = document.createElement('span');
+      chip.appendChild(chipText);
       document.body.appendChild(chip);
+      window.addEventListener('resize', fitChip);
     }
-    chip.className = 'beacon-live-chip' + (text.offline ? ' offline' : '');
-    chip.textContent = text.label;
+    chip.className = 'beacon-live-chip' + (text.offline ? ' offline' : '') + (text.players ? ' players' : '');
+    chipText.textContent = [].concat(text.label).map(function (phrase) {
+      return phrase.replace(/ /g, '\u00a0');
+    }).join(' ');
     chip.style.display = 'flex';
+    fitChip();
   }
 
   function symbolFor(name) {
@@ -87,9 +119,32 @@
     };
   }
 
+  // Where a player stands on the map, or null when the server does not know.
+  // The game server cannot read a remote player's position (each player is
+  // simulated on their own PC): only the player's own Beacon app sends it. With
+  // no fresh position from any app, Beacon answers from the game's player list
+  // instead, which has every player at exactly 0,0,0 (BeaconServer
+  // ServeMapStateAsync). That spot is off the map's edge, so a dot there sat in
+  // the corner and pulled the opening view with it. Such a player, or one with
+  // no numbers at all, is counted in the chip instead and never drawn.
+  function coordOf(p) {
+    function num(v) {
+      if (v === null || v === undefined || v === '') return NaN;
+      var n = Number(v);
+      return isFinite(n) ? n : NaN;
+    }
+    var x = num(p.x), y = num(p.y), z = num(p.z);
+    if (isNaN(x) || isNaN(y)) return null;
+    if (x === 0 && y === 0 && (isNaN(z) || z === 0)) return null;
+    return [x, y];
+  }
+
+  // Draws the players the map can place and returns how many are drawn. A
+  // player without a known spot is left out of `seen`, so a dot they already
+  // had is removed below rather than slid to the corner.
   function apply(players) {
     var m = window.beaconMap;
-    if (!m) return;
+    if (!m) return 0;
     if (!layer) {
       layer = new maptalks.VectorLayer('beacon-live-players').addTo(m);
       if (layer.bringToFront) layer.bringToFront();
@@ -98,8 +153,9 @@
     (players || []).forEach(function (p) {
       var id = p.id || p.name;
       if (!id) return;
+      var coord = coordOf(p);
+      if (!coord) return;
       seen[id] = true;
-      var coord = [Number(p.x) || 0, Number(p.y) || 0];
       if (markers[id]) {
         // Glide from the current spot to the new one over the poll interval
         // instead of snapping, so movement reads as smooth swimming.
@@ -127,9 +183,11 @@
 
     // One-time: frame the view on the players the first time any show up, so
     // the live map opens zoomed to the action instead of the whole world.
+    // Only drawn players count: one the map cannot place never pulls the view.
     // Deferred — the map runs its own initial extent-fit during data load, so
     // we wait a beat to apply ours last instead of fighting it.
-    if (!fitted && Object.keys(markers).length > 0) {
+    var drawn = Object.keys(markers).length;
+    if (!fitted && drawn > 0) {
       fitted = true;
       setTimeout(function () {
         try {
@@ -146,6 +204,18 @@
         } catch (e) { /* framing is best-effort */ }
       }, 1800);
     }
+    return drawn;
+  }
+
+  // The chip for an answer with players in it: hidden while every one of them
+  // is on the map, otherwise how many the map cannot place yet. They are on
+  // the server (it lists them); only their spot has not reached the map.
+  function playersStatus(total, drawn) {
+    var n = total - drawn;
+    if (n <= 0) return null;
+    var where = (n === 1 ? 'location' : 'locations') + ' not shown yet';
+    if (drawn > 0) return { label: [n + ' more online,', where], players: true };
+    return { label: [n + (n === 1 ? ' player' : ' players') + ' online,', where], players: true };
   }
 
   // A miss: no answer, an error status, or an answer without a players list.
@@ -179,8 +249,8 @@
         if (s === REFUSED) { refused(); return; }
         if (!s || !Array.isArray(s.players)) { missed(); return; }
         misses = 0;
-        apply(s.players);
-        setStatus(s.players.length ? null : { label: 'No one online' });
+        var drawn = apply(s.players);
+        setStatus(s.players.length ? playersStatus(s.players.length, drawn) : { label: 'No one online' });
       })
       .catch(missed);
   }

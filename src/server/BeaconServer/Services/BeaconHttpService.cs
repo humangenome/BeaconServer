@@ -733,7 +733,8 @@ public sealed class BeaconHttpService : BackgroundService
             }
 
             // ----- Chat plane writes (protocol/chat-v1.md) -----
-            // GET /chat/recent + GET /chat/motd live above the auth gate.
+            // GET /chat/recent and GET /chat/motd live above the admin auth gate
+            // (chat/recent has its own players-only check there).
             if (method == "POST" && path == "/api/v1/chat/say")
             {
                 var sayReq = await ParseJsonBodyAsync<ChatSayRequest>(body, ct).ConfigureAwait(false);
