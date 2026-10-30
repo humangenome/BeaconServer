@@ -1,7 +1,7 @@
 # BeaconServer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![.NET 8](https://img.shields.io/badge/.NET-8.0-blueviolet.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-blueviolet.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 [![Platform](https://img.shields.io/badge/Platform-Windows_x64-blue.svg)](#requirements)
 [![Game](https://img.shields.io/badge/Game-Subnautica_2-darkgreen.svg)](https://store.steampowered.com/app/1962700/)
 
@@ -150,7 +150,7 @@ dotnet test BeaconServer.sln -c Release --no-build
 dotnet publish src/server/BeaconServer/BeaconServer.csproj -c Release -r win-x64 --self-contained true
 ```
 
-Published output lands under `src/server/BeaconServer/bin/Release/net8.0/win-x64/publish/`.
+Published output lands under `src/server/BeaconServer/bin/Release/net10.0/win-x64/publish/`.
 
 ## Known Issues
 
