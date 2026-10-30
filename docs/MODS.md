@@ -20,21 +20,23 @@ Mods a server declares in its manifest are installed by the launcher separately,
 
 Quickest path to "something working":
 
-1. Create `ue4ss\Mods\HelloBeacon\enabled.txt` (empty file; UE4SS uses this as the on/off switch).
+1. Create `ue4ss\Mods\HelloBeacon\enabled.txt` (empty file; UE4SS uses this as the on/off switch). On a Beacon **server**, instead append `HelloBeacon` to BeaconServerRuntime's load list (after `BeaconModKit`) so it shares the single Lua state; a standalone `enabled.txt` works too but costs a background thread.
 2. Create `ue4ss\Mods\HelloBeacon\Scripts\main.lua`:
 
 ```lua
 print("[HelloBeacon] loaded")
+local Beacon = _G.Beacon
 
--- Log the player controller every 10 seconds
-LoopAsync(10000, function()
-    local PC = FindFirstOf("PlayerController")
-    if PC and PC:IsValid() then
-        print("[HelloBeacon] PlayerController: " .. PC:GetFullName())
+-- Print the connected players every 10 seconds. Beacon.Events.OnTick runs on the
+-- game thread, inside Beacon's own loop.
+Beacon.Events.OnTick(10000, function()
+    for _, p in ipairs(Beacon.Players.List()) do
+        print("[HelloBeacon] online: " .. p.name)
     end
-    return false -- continue looping
 end)
 ```
+
+On a Beacon server, do not start your own `LoopAsync` or `ExecuteWithDelay` in the shared Lua state: UE4SS runs them on a background thread, and engine calls from there race the game. Use `Beacon.Events.OnTick` for timers and `Beacon.GameThread.Run` for one-off game work, and avoid `FindAllOf`/`FindFirstOf` on a timer: each one walks every object in the game, and on a timer that freezes the world.
 
 3. Restart the server (or the client, if it's a client mod). UE4SS prints `[HelloBeacon] loaded` in its log.
 
@@ -42,7 +44,7 @@ The full Lua API surface is documented at the [UE4SS Lua API reference](https://
 
 ### Bundled mods
 
-The client install ships two Lua mods under `ue4ss\Mods\`: **BeaconConnect** (enabled), which polls for a PlayerController on the main menu and then fires the `open <host>:<port>` console command that moves the player into your server, and **BeaconPlayerVisibility** (disabled by default), a fix for invisible remote players. BeaconConnect is a good working reference for a client-side mod:
+The client install ships one Lua mod under `ue4ss\Mods\`: **BeaconConnect** (enabled), which polls for a PlayerController on the main menu and then fires the `open <host>:<port>` console command that moves the player into your server. It is a good working reference for a client-side mod:
 
 ```
 ue4ss\Mods\BeaconConnect\Scripts\main.lua
