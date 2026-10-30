@@ -92,6 +92,14 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 // copy and corrupt the world.
                 await _coordinator.WaitForNoRestoreAsync(stoppingToken).ConfigureAwait(false);
 
+                // A BeaconServer restart can find its last game still running. A second copy on the same
+                // world would have both writing to it.
+                if (_coordinator.IsOwnedSn2Running())
+                {
+                    _log.LogWarning("Subnautica 2 from an earlier BeaconServer run is still up; stopping it before this launch");
+                    _coordinator.KillSn2(TimeSpan.FromSeconds(20));
+                }
+
                 ApplyEngineIniPatch();
                 StageUe4ss();
                 WriteSteamAppIdFile();
@@ -191,6 +199,10 @@ public sealed class SnProcessSupervisorService : BackgroundService
                 _log);
             foreach (var problem in upgrade.Errors)
                 _log.LogWarning("World file upgrade problem: {Problem}", problem);
+            // What it did, always: a game update that wants a newer world file fails to load with no other
+            // trace, so the line to read on patch day is this one.
+            _log.LogInformation("World file upgrade: {Reason}; changed {Changed}, skipped {Skipped}",
+                upgrade.Reason, upgrade.Changed.Count, string.Join(", ", upgrade.Skipped.Take(8)));
         }
         catch (Exception ex)
         {

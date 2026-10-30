@@ -208,4 +208,68 @@ public class Sn2LogTailServiceTests
 
         condition().Should().BeTrue();
     }
+
+    private const string Accept = "[2026.05.22-19.54.11:411][123]LogNet: NotifyAcceptingConnection accepted from: ";
+
+    private static (Sn2LogTailService Tail, PipeServerState State, Action<TimeSpan> Advance) NewTail()
+    {
+        var state = new PipeServerState(Microsoft.Extensions.Logging.Abstractions.NullLogger<PipeServerState>.Instance);
+        var tail = new Sn2LogTailService(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<Sn2LogTailService>.Instance,
+            Microsoft.Extensions.Options.Options.Create(new BeaconServer.Configuration.BeaconServerOptions()),
+            state);
+        var now = DateTimeOffset.UtcNow;
+        tail.Clock = () => now;
+        return (tail, state, d => now += d);
+    }
+
+    private static string Login(string name, string id) =>
+        $"[2026.10.07-03.51.43:381][288]LogNet: Login request: ?Name={name}??SonarPlayerId={id}?PlatformUserId=1 userId: NULL:x platform: NULL";
+
+    [Fact]
+    public void A_connection_that_never_logs_in_does_not_shift_later_logins()
+    {
+        var (tail, state, advance) = NewTail();
+
+        tail.EmitLine(Accept + "198.51.100.9:5555", trackPlayerEvents: true); // a port probe
+        advance(Sn2LogTailService.PendingAddressLife + TimeSpan.FromSeconds(1));
+        tail.EmitLine(Accept + "203.0.113.5:7777", trackPlayerEvents: true);
+        tail.EmitLine(Login("Sam", "76561197979989479_60226C45E673E631"), trackPlayerEvents: true);
+
+        state.PeersAt(System.Net.IPAddress.Parse("203.0.113.5")).Should().ContainSingle().Which.Name.Should().Be("Sam");
+        state.PeersAt(System.Net.IPAddress.Parse("198.51.100.9")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_closed_connection_leaves_the_address_queue()
+    {
+        var (tail, state, _) = NewTail();
+
+        tail.EmitLine(Accept + "198.51.100.9:5555", trackPlayerEvents: true);
+        tail.EmitLine("[2026.05.22-19.54.20:411][130]LogNet: UNetConnection::Close: [UNetConnection] RemoteAddr: 198.51.100.9:5555, Name: x", trackPlayerEvents: true);
+        tail.EmitLine(Accept + "203.0.113.5:7777", trackPlayerEvents: true);
+        tail.EmitLine(Login("Sam", "76561197979989479_60226C45E673E631"), trackPlayerEvents: true);
+
+        state.PeersAt(System.Net.IPAddress.Parse("203.0.113.5")).Should().ContainSingle();
+    }
+
+    [Fact]
+    public void When_one_of_two_same_named_players_leaves_the_other_keeps_chat_and_the_map()
+    {
+        var (tail, state, _) = NewTail();
+        tail.EmitLine(Accept + "203.0.113.5:7777", trackPlayerEvents: true);
+        tail.EmitLine(Login("Sam", "76561197979989479_60226C45E673E631"), trackPlayerEvents: true);
+        tail.EmitLine(Accept + "203.0.113.6:7777", trackPlayerEvents: true);
+        tail.EmitLine(Login("Sam", "76561197960287930_11111111AAAAAAAA"), trackPlayerEvents: true);
+        state.PeerCountNamed("Sam").Should().Be(2);
+
+        // The game's leave line names the player only: which Sam is unknown here.
+        tail.EmitLine("LogBlueprintUserMessages: PlayerHasLeft Msg=INVTEXT(\"Sam\")", trackPlayerEvents: true);
+        state.PeerCountNamed("Sam").Should().Be(2);
+
+        // The connection-close line says which one.
+        tail.EmitLine("[2026.05.22-19.54.20:411][130]LogNet: UNetConnection::Close: [UNetConnection] RemoteAddr: 203.0.113.5:7777, Name: x", trackPlayerEvents: true);
+        state.PeersAt(System.Net.IPAddress.Parse("203.0.113.5")).Should().BeEmpty();
+        state.PeersAt(System.Net.IPAddress.Parse("203.0.113.6")).Should().ContainSingle();
+    }
 }

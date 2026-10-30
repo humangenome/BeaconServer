@@ -61,7 +61,7 @@ public sealed class Sn2RestartCoordinator
     {
         if (!OperatingSystem.IsWindows()) return;
 
-        var installRoot = NormalizeForCompare(_opts.SnInstallRoot);
+        var installRoot = RootForOwnership();
         var userDir = NormalizeForCompare(_opts.SnUserDir);
         var pidFile = _opts.Sn2PidFile ?? "";
 
@@ -247,11 +247,24 @@ public sealed class Sn2RestartCoordinator
         }
     }
 
+    // A custom SnExecutablePath can sit outside SnInstallRoot. The game's folder is then what makes a
+    // process ours: with the install root alone the stop found nothing and a restore reported success
+    // while the running game wrote over the world.
+    private string? RootForOwnership()
+    {
+        if (!string.IsNullOrWhiteSpace(_opts.SnExecutablePath))
+        {
+            var folder = Path.GetDirectoryName(_opts.SnExecutablePath);
+            if (!string.IsNullOrWhiteSpace(folder)) return NormalizeForCompare(folder);
+        }
+        return NormalizeForCompare(_opts.SnInstallRoot);
+    }
+
     public bool IsOwnedSn2Running()
     {
         if (!OperatingSystem.IsWindows()) return false;
 
-        var installRoot = NormalizeForCompare(_opts.SnInstallRoot);
+        var installRoot = RootForOwnership();
         var userDir = NormalizeForCompare(_opts.SnUserDir);
         if (installRoot is null && userDir is null)
         {

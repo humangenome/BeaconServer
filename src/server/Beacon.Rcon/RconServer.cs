@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
@@ -29,6 +30,8 @@ public sealed class RconServer : IDisposable
     private readonly ILogger? _log;
     private CancellationTokenSource? _cts;
     private Task? _acceptLoop;
+    private static readonly TimeSpan LoginDeadline = TimeSpan.FromSeconds(10);
+    private readonly SourceGuard _guard = new(maxPerSource: 3);
 
     public RconServer(int port, string password, Func<string, Task<string>> commandExecutor, ILogger? log = null)
     {
@@ -67,30 +70,56 @@ public sealed class RconServer : IDisposable
             TcpClient client;
             try { client = await _listener.AcceptTcpClientAsync(ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
-            catch (SocketException) { return; }
+            catch (ObjectDisposedException) { return; }
+            catch (SocketException ex)
+            {
+                // A connection reset while it waited to be accepted lands here. It used to end the
+                // accept loop for good, so RCON stopped answering until the next restart.
+                if (ct.IsCancellationRequested) return;
+                _log?.LogWarning("RCON accept failed: {Error}", ex.SocketErrorCode);
+                try { await Task.Delay(200, ct).ConfigureAwait(false); }
+                catch (OperationCanceledException) { return; }
+                continue;
+            }
 
-            _ = Task.Run(() => HandleClientAsync(client, ct), ct);
+            var source = SourceGuard.SourceOf(client.Client.RemoteEndPoint);
+            if (SourceGuard.BlockedSeconds(source, SourceGuard.NowMs()) > 0 || !_guard.TryOpen(source))
+            {
+                client.Dispose();
+                continue;
+            }
+
+            _ = Task.Run(async () =>
+            {
+                try { await HandleClientAsync(client, source, ct).ConfigureAwait(false); }
+                finally { _guard.Close(source); }
+            }, ct);
         }
     }
 
-    private async Task HandleClientAsync(TcpClient client, CancellationToken ct)
+    private async Task HandleClientAsync(TcpClient client, string source, CancellationToken ct)
     {
         using (client)
         {
             var stream = client.GetStream();
-            var authenticated = string.IsNullOrEmpty(_password);
+            // No password set means nobody gets in, never everybody.
+            var authenticated = false;
+            // A connection that never logs in does not get to hold its slot.
+            using var loginDeadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            loginDeadline.CancelAfter(LoginDeadline);
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    var packet = await ReadPacketAsync(stream, ct).ConfigureAwait(false);
+                    var packet = await ReadPacketAsync(stream, authenticated ? ct : loginDeadline.Token).ConfigureAwait(false);
                     if (packet is null) return;
                     var (id, type, body) = packet.Value;
-                    _log?.LogDebug("RCON pkt id={Id} type={Type} body=\"{Body}\"", id, type, body);
 
                     if (type == 3)
                     {
-                        authenticated = body == _password;
+                        authenticated = PasswordMatches(body);
+                        if (authenticated) SourceGuard.Success(source);
+                        else SourceGuard.Failure(source, SourceGuard.NowMs());
                         await WritePacketAsync(stream, id, 0, "", ct).ConfigureAwait(false);
                         await WritePacketAsync(stream, authenticated ? id : -1, 2, "", ct).ConfigureAwait(false);
                         if (!authenticated) return;
@@ -119,6 +148,14 @@ public sealed class RconServer : IDisposable
                 _log?.LogDebug(ex, "RCON client disconnected");
             }
         }
+    }
+
+    private bool PasswordMatches(string given)
+    {
+        if (string.IsNullOrEmpty(_password)) return false;
+        return CryptographicOperations.FixedTimeEquals(
+            SHA256.HashData(Encoding.UTF8.GetBytes(given ?? "")),
+            SHA256.HashData(Encoding.UTF8.GetBytes(_password)));
     }
 
     private static async Task<(int id, int type, string body)?> ReadPacketAsync(NetworkStream stream, CancellationToken ct)

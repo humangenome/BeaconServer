@@ -10,6 +10,36 @@ namespace Beacon.Integration.Tests;
 public class RconTests
 {
     [Fact]
+    public async Task With_no_password_set_nobody_gets_in()
+    {
+        using var server = new RconServer(0, "", _ => Task.FromResult("ran"));
+        server.Start(CancellationToken.None);
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync("127.0.0.1", server.BoundPort);
+            var stream = client.GetStream();
+
+            await WritePacketAsync(stream, 7, 2, "status");
+            var resp = await ReadPacketAsync(stream);
+            resp.Should().NotBeNull();
+            resp!.Value.id.Should().Be(-1, "a command before a login is refused");
+
+            using var second = new TcpClient();
+            await second.ConnectAsync("127.0.0.1", server.BoundPort);
+            var s2 = second.GetStream();
+            await WritePacketAsync(s2, 1, 3, "");
+            await ReadPacketAsync(s2);
+            var auth = await ReadPacketAsync(s2);
+            auth!.Value.id.Should().Be(-1, "an empty password is not a login");
+        }
+        finally
+        {
+            await server.StopAsync();
+        }
+    }
+
+    [Fact]
     public async Task Auth_then_command_round_trips()
     {
         using var server = new RconServer(0, "secret",

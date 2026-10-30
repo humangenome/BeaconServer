@@ -85,7 +85,7 @@ public sealed class Sn2LogTailService : BackgroundService
     private readonly ILogger<Sn2LogTailService> _log;
     private readonly BeaconServerOptions _opts;
     private readonly PipeServerState _state;
-    private readonly Queue<string> _pendingAddresses = new();
+    private readonly Queue<(string Address, DateTimeOffset At)> _pendingAddresses = new();
     private readonly Dictionary<string, PendingLogin> _pendingLogins = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _playerIdByAddress = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _playerNameByAddress = new(StringComparer.OrdinalIgnoreCase);
@@ -179,7 +179,7 @@ public sealed class Sn2LogTailService : BackgroundService
         }
     }
 
-    private void EmitLine(string line, bool trackPlayerEvents)
+    internal void EmitLine(string line, bool trackPlayerEvents)
     {
         if (string.IsNullOrEmpty(line)) return;
         line = RedactSecrets(line);
@@ -264,15 +264,41 @@ public sealed class Sn2LogTailService : BackgroundService
             _log.LogInformation("[Subnautica 2] {Line}", line);
     }
 
+    // A login is paired with the oldest address accepted before it. A connection that never logs in
+    // (a port probe, an old client after an update) used to stay in the queue for the rest of the run
+    // and shift every later login onto the wrong address: chat and the map then refused the player or
+    // posted under another player's name. An address waits a minute at most, and a closed one is gone.
+    internal static readonly TimeSpan PendingAddressLife = TimeSpan.FromSeconds(60);
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+
     private void TrackAcceptedAddress(string address)
     {
         if (string.IsNullOrWhiteSpace(address)) return;
         lock (_playerGate)
         {
-            if (!_pendingAddresses.Contains(address, StringComparer.OrdinalIgnoreCase))
-                _pendingAddresses.Enqueue(address);
+            if (!_pendingAddresses.Any(p => string.Equals(p.Address, address, StringComparison.OrdinalIgnoreCase)))
+                _pendingAddresses.Enqueue((address, Clock()));
             while (_pendingAddresses.Count > 16) _pendingAddresses.Dequeue();
         }
+    }
+
+    private string? TakeFreshPendingAddress()
+    {
+        var oldest = Clock() - PendingAddressLife;
+        while (_pendingAddresses.Count > 0)
+        {
+            var (address, at) = _pendingAddresses.Dequeue();
+            if (at >= oldest) return address;
+        }
+        return null;
+    }
+
+    private void DropPendingAddress(string address)
+    {
+        if (!_pendingAddresses.Any(p => string.Equals(p.Address, address, StringComparison.OrdinalIgnoreCase))) return;
+        var kept = _pendingAddresses.Where(p => !string.Equals(p.Address, address, StringComparison.OrdinalIgnoreCase)).ToList();
+        _pendingAddresses.Clear();
+        foreach (var p in kept) _pendingAddresses.Enqueue(p);
     }
 
     private void TrackLoginRequest(string displayName, string sonarPlayerId)
@@ -283,7 +309,7 @@ public sealed class Sn2LogTailService : BackgroundService
         string? address = null;
         lock (_playerGate)
         {
-            if (_pendingAddresses.Count > 0) address = _pendingAddresses.Dequeue();
+            address = TakeFreshPendingAddress();
             _pendingLogins[displayName] = new PendingLogin(id, displayName, address);
             if (!string.IsNullOrWhiteSpace(address)) _playerIdByAddress[address] = id;
             if (!string.IsNullOrWhiteSpace(address)) _playerNameByAddress[address] = displayName;
@@ -336,6 +362,10 @@ public sealed class Sn2LogTailService : BackgroundService
                 _playerIdByAddress.Remove(addr);
             }
         }
+        // Two players can share a name, and this line does not say which one left. The connection-close
+        // line names the address, so with more than one of that name it is left to do the removing:
+        // doing it here dropped the other player's address too, and chat and the map refused them.
+        if (_state.PeerCountNamed(displayName) > 1) return;
         _state.ForgetPeersNamed(displayName);
         _state.RemoveLogPlayerByDisplayName(displayName);
     }
@@ -351,6 +381,7 @@ public sealed class Sn2LogTailService : BackgroundService
                 _playerIdByAddress.Remove(address);
             if (_playerNameByAddress.TryGetValue(address, out displayName))
                 _playerNameByAddress.Remove(address);
+            DropPendingAddress(address);
         }
         _state.ForgetPeer(address);
         var removed = false;
@@ -359,7 +390,7 @@ public sealed class Sn2LogTailService : BackgroundService
             _state.RemoveLogPlayer(id);
             removed = true;
         }
-        if (!string.IsNullOrWhiteSpace(displayName))
+        if (!string.IsNullOrWhiteSpace(displayName) && _state.PeerCountNamed(displayName) == 0)
         {
             _state.RemoveLogPlayerByDisplayName(displayName);
             removed = true;

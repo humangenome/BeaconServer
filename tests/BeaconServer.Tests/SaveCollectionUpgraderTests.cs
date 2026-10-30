@@ -96,4 +96,46 @@ public class SaveCollectionUpgraderTests
     {
         SaveCollectionUpgrader.ReadVersion(FakeSave(28, magic: "XXXX")).Should().BeNull();
     }
+
+    [Fact]
+    public void An_unreadable_game_build_says_so_instead_of_calling_it_old()
+    {
+        var root = FreshDir();
+        var dir = Path.Combine(root, "SaveGames");
+        File.WriteAllBytes(Path.Combine(dir, "savegame_0.sav"), FakeSave(28));
+
+        var result = SaveCollectionUpgrader.Upgrade(dir, 0);
+
+        result.Reason.Should().Contain("could not be read");
+        result.Changed.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_world_newer_than_this_build_knows_is_reported_as_a_problem()
+    {
+        var root = FreshDir();
+        var dir = Path.Combine(root, "SaveGames");
+        File.WriteAllBytes(Path.Combine(dir, "savegame_0.sav"), FakeSave(30));
+
+        var result = SaveCollectionUpgrader.Upgrade(dir, 999999);
+
+        result.Errors.Should().ContainSingle().Which.Should().Contain("version 30");
+    }
+
+    [Fact]
+    public void A_leftover_partial_backup_is_not_taken_for_the_backup()
+    {
+        var root = FreshDir();
+        var dir = Path.Combine(root, "SaveGames");
+        File.WriteAllBytes(Path.Combine(dir, "savegame_0.sav"), FakeSave(28));
+        Directory.CreateDirectory(Path.Combine(root, "SaveGames-before-v29.tmp"));
+        File.WriteAllBytes(Path.Combine(root, "SaveGames-before-v29.tmp", "half.sav"), new byte[] { 1 });
+
+        var result = SaveCollectionUpgrader.Upgrade(dir, 131439);
+
+        result.Changed.Should().ContainSingle();
+        Directory.Exists(Path.Combine(root, "SaveGames-before-v29.tmp")).Should().BeFalse();
+        File.Exists(Path.Combine(root, "SaveGames-before-v29", "savegame_0.sav")).Should().BeTrue();
+        File.Exists(Path.Combine(root, "SaveGames-before-v29", "half.sav")).Should().BeFalse();
+    }
 }

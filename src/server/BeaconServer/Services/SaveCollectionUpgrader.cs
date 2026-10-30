@@ -97,6 +97,9 @@ public static class SaveCollectionUpgrader
         var changed = new List<string>();
         var skipped = new List<string>();
         var errors = new List<string>();
+        // 0 means the build could not be read, which is not the same as an old one: say so.
+        if (installedChangelist <= 0)
+            return new(changed, skipped, errors, "the game build could not be read, nothing changed", null);
         if (installedChangelist < FirstChangelistWithVersion29)
             return new(changed, skipped, errors, $"game build {installedChangelist} predates save collection version 29", null);
         if (string.IsNullOrWhiteSpace(saveGamesDir) || !Directory.Exists(saveGamesDir))
@@ -114,6 +117,7 @@ public static class SaveCollectionUpgrader
             var version = ReadVersion(bytes);
             if (version is null) { skipped.Add($"{name}: not a collection file"); continue; }
             if (version is 27 or 28) todo.Add((name, path, bytes));
+            else if (version > CurrentVersion) errors.Add($"{name}: version {version} is newer than this BeaconServer knows ({CurrentVersion})");
             else skipped.Add($"{name}: version {version}");
         }
         if (todo.Count == 0) return new(changed, skipped, errors, "nothing to upgrade", null);
@@ -123,9 +127,14 @@ public static class SaveCollectionUpgrader
         {
             try
             {
-                Directory.CreateDirectory(backupDir);
+                // Built aside and swapped in: a copy that failed halfway used to count as the backup on
+                // the next boot.
+                var building = backupDir + ".tmp";
+                if (Directory.Exists(building)) Directory.Delete(building, recursive: true);
+                Directory.CreateDirectory(building);
                 foreach (var file in Directory.EnumerateFiles(saveGamesDir))
-                    File.Copy(file, System.IO.Path.Combine(backupDir, System.IO.Path.GetFileName(file)), overwrite: false);
+                    File.Copy(file, System.IO.Path.Combine(building, System.IO.Path.GetFileName(file)), overwrite: false);
+                Directory.Move(building, backupDir);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

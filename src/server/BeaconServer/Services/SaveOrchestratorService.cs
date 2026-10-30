@@ -179,20 +179,11 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
 
         try
         {
-            // If plugin is connected, request a SaveQuiesce so the game flushes
-            // in-flight state. If not connected, fall through — Subnautica 2 writes its
-            // own savegame_0.sav atomically (temp + rename), so a snapshot taken
-            // without quiesce is still self-consistent. This unblocks the
-            // FileSystemWatcher auto-snapshot path which fires when Subnautica 2 has just
-            // finished writing the file.
-            var conn = _state.Connection;
-            if (conn is not null)
-            {
-                await conn.SendAsync(FrameType.SaveQuiesce,
-                    new SaveQuiesceMessage(snapshotId, TimeoutSeconds: 30),
-                    ct).ConfigureAwait(false);
-                await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
-            }
+            // No request to the game first: Subnautica 2 writes its own savegame_0.sav atomically (temp +
+            // rename), so a snapshot taken at any moment is self-consistent. There used to be a SaveQuiesce
+            // message here, but the plugin never reads its end of the pipe: once the pipe's buffer filled
+            // (about 10-13 hours of auto-snapshots) the send hung with the snapshot lock held, and
+            // auto-snapshots stopped with nothing in the log. After a kill it could also abort a restore.
 
             Directory.CreateDirectory(_opts.SaveDir);
             var sourceDir = Path.Combine(_opts.SnUserDir, "Saved", "SaveGames");
@@ -336,6 +327,12 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         // capture whatever state Subnautica 2 was mid-writing — which on a save
         // tick is half a savegame_0.sav. Kill, wait for exit, then snap.
         _coordinator.KillSn2(TimeSpan.FromSeconds(20));
+        if (_coordinator.IsOwnedSn2Running())
+        {
+            // A game still running would write over the world this restore puts in place.
+            _log.LogError("Restore aborted: Subnautica 2 is still running after the stop");
+            return false;
+        }
 
         // 2. Snapshot the now-stable state so a bad restore is reversible.
         var pre = await SnapshotAsync($"pre-restore:{requestedBy}", ct).ConfigureAwait(false);

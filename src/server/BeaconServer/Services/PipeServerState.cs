@@ -75,27 +75,104 @@ public sealed class PipeServerState
     {
         get
         {
-            lock (_playersGate)
-            {
-                var merged = new List<PlayerSnapshot>(_players.Count + _logPlayers.Count);
-                var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var player in _players.Concat(_logPlayers.Values))
-                {
-                    var id = player.BeaconUserId ?? "";
-                    var name = player.DisplayName ?? "";
-                    if (id.Length > 0 && !seenIds.Add(id)) continue;
-                    if (name.Length > 0 && !seenNames.Add(name)) continue;
-                    merged.Add(player);
-                }
-                return merged;
-            }
+            lock (_playersGate) return MergePlayersLocked();
         }
     }
+
+    // The host's own list comes first and every entry in it is a player: two people can share a
+    // display name, and each has their own id there. A log entry for a name the host list holds is
+    // the same player under the log's id, one for one, so a second player of that name who is in
+    // the log but not yet in the host list still counts. Inside the log list, a player who
+    // reconnects with another character before the old connection is dropped keeps one entry (same
+    // account, same name), and an entry with no real id cannot be told apart from one with the name.
+    private List<PlayerSnapshot> MergePlayersLocked()
+    {
+        var merged = new List<PlayerSnapshot>(_players.Count + _logPlayers.Count);
+        var seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hostNames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var noIdNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var player in _players)
+        {
+            var id = player.BeaconUserId ?? "";
+            var name = player.DisplayName ?? "";
+            if (id.Length > 0 ? !seenIds.Add(id) : (name.Length > 0 && !noIdNames.Add(name))) continue;
+            merged.Add(player);
+            if (name.Length > 0) hostNames[name] = hostNames.GetValueOrDefault(name) + 1;
+        }
+
+        var logAccounts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var logNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // Real ids first, so an entry with no real id is judged against them whatever the order.
+        foreach (var player in _logPlayers.Values.OrderBy(p => IsNameOnlyLogId(p) ? 1 : 0))
+        {
+            var id = player.BeaconUserId ?? "";
+            var name = player.DisplayName ?? "";
+            if (id.Length > 0 && !seenIds.Add(id)) continue;
+            if (IsNameOnlyLogId(player) && (logNames.Contains(name) || hostNames.ContainsKey(name))) continue;
+            if (!logAccounts.Add(name + "\n" + LogAccount(id))) continue;
+            logNames.Add(name);
+            if (name.Length > 0 && hostNames.TryGetValue(name, out var left) && left > 0)
+            {
+                hostNames[name] = left - 1;
+                continue;
+            }
+            merged.Add(player);
+        }
+        return merged;
+    }
+
+    private static bool IsNameOnlyLogId(PlayerSnapshot player) =>
+        (player.BeaconUserId ?? "").StartsWith("sn2:", StringComparison.OrdinalIgnoreCase);
+
+    // A log id is <SteamID64>_<character hash>; the part before the _ is the account.
+    private static string LogAccount(string id)
+    {
+        var cut = id.IndexOf('_');
+        return cut > 0 ? id[..cut] : id;
+    }
+
     public void SetPlayers(IEnumerable<PlayerSnapshot> players)
     {
         lock (_playersGate) _players = players?.ToList() ?? new();
         EvaluateChatGate();
+    }
+
+    // Two sources report the host's list and each names a player its own way: the Lua roster by
+    // PlayerState, the native plugin by a number. They replaced each other every few seconds, so a
+    // player's id, position and time online flipped on every poll (the map dot was redrawn each time).
+    // The roster is the list. The plugin's only counts while the roster has gone quiet.
+    internal static readonly TimeSpan RosterFreshFor = TimeSpan.FromSeconds(30);
+    private DateTimeOffset _rosterFileAt = DateTimeOffset.MinValue;
+
+    public void SetPlayersFromRosterFile(IEnumerable<PlayerSnapshot> players, DateTimeOffset? now = null)
+    {
+        lock (_playersGate) _rosterFileAt = now ?? DateTimeOffset.UtcNow;
+        SetPlayers(players);
+    }
+
+    public void SetPlayersFromPlugin(IEnumerable<PlayerSnapshot> players, DateTimeOffset? now = null)
+    {
+        lock (_playersGate)
+        {
+            if ((now ?? DateTimeOffset.UtcNow) - _rosterFileAt < RosterFreshFor) return;
+        }
+        SetPlayers(players);
+    }
+
+    /// <summary>
+    /// The game process is gone (its pipe closed). BeaconServer outlives a game crash, so without this
+    /// its last players stayed on the list and their addresses stayed allowed until the next start.
+    /// </summary>
+    public void GameConnectionEnded()
+    {
+        lock (_playersGate)
+        {
+            _players = new();
+            _logPlayers.Clear();
+            _rosterFileAt = DateTimeOffset.MinValue;
+        }
+        lock (_peersGate) _peers.Clear();
+        LastReportedPlayerCount = 0;
     }
 
     // Players the host itself reports (native plugin snapshot or the Lua roster),
@@ -225,6 +302,13 @@ public sealed class PipeServerState
         lock (_peersGate) _peers.Remove(address);
     }
 
+    public int PeerCountNamed(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return 0;
+        lock (_peersGate)
+            return _peers.Values.Count(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
     public void ForgetPeersNamed(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
@@ -326,12 +410,7 @@ public sealed class PipeServerState
     {
         lock (_playersGate)
         {
-            var mergedCount = _players
-                .Concat(_logPlayers.Values)
-                .GroupBy(player => !string.IsNullOrWhiteSpace(player.DisplayName)
-                    ? $"name:{player.DisplayName}"
-                    : $"id:{player.BeaconUserId}", StringComparer.OrdinalIgnoreCase)
-                .Count();
+            var mergedCount = MergePlayersLocked().Count;
             if (mergedCount <= 1)
             {
                 _logPlayers.Clear();

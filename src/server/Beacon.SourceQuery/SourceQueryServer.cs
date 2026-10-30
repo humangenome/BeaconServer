@@ -74,6 +74,14 @@ public sealed class SourceQueryServer : IDisposable
             try { res = await _udp.ReceiveAsync(ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
             catch (ObjectDisposedException) { return; }
+            catch (System.Net.Sockets.SocketException)
+            {
+                // On Windows a reply sent to a closed port makes the next receive throw. That ended
+                // the loop for good and the server stopped answering queries, with nothing logged.
+                try { await Task.Delay(50, ct).ConfigureAwait(false); }
+                catch (OperationCanceledException) { return; }
+                continue;
+            }
 
             try
             {

@@ -64,15 +64,16 @@ public sealed class RosterFileWatcherService : BackgroundService
         if (!File.Exists(_rosterPath)) return;
         var info = new FileInfo(_rosterPath);
         if (info.Length == _lastFileSize && info.LastWriteTimeUtc <= _lastReadAt) return;
-        _lastFileSize = info.Length;
-        _lastReadAt = info.LastWriteTimeUtc;
 
         string json;
         try
         {
             json = File.ReadAllText(_rosterPath);
         }
-        catch (IOException) { return; }   // race with Lua's atomic write — try again next tick
+        catch (IOException) { return; }   // race with Lua's atomic write: try again next tick
+        // Only after a read that worked: set before it, a locked file was never read again.
+        _lastFileSize = info.Length;
+        _lastReadAt = info.LastWriteTimeUtc;
 
         RosterFile? parsed;
         try
@@ -94,9 +95,12 @@ public sealed class RosterFileWatcherService : BackgroundService
                 DisplayName: p.DisplayName ?? "Unknown",
                 ConnectedAtUnixMs: p.ConnectedAtUnixMs,
                 LastPacketUnixMs: p.LastPacketUnixMs,
-                PingMs: p.PingMs));
+                PingMs: p.PingMs,
+                PosX: p.X,
+                PosY: p.Y,
+                PosZ: p.Z));
         }
-        _state.SetPlayers(snapshots);
+        _state.SetPlayersFromRosterFile(snapshots);
         _state.LastReportedPlayerCount = snapshots.Count;
     }
 
@@ -121,5 +125,8 @@ public sealed class RosterFileWatcherService : BackgroundService
         public long ConnectedAtUnixMs { get; set; }
         public long LastPacketUnixMs { get; set; }
         public int PingMs { get; set; }
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Z { get; set; }
     }
 }

@@ -272,12 +272,13 @@ public sealed class ChatService : BackgroundService
         if (!File.Exists(_outboundPath)) return;
         var info = new FileInfo(_outboundPath);
         if (info.Length == _lastOutboundSize && info.LastWriteTimeUtc <= _lastOutboundRead) return;
-        _lastOutboundSize = info.Length;
-        _lastOutboundRead = info.LastWriteTimeUtc;
 
         string body;
         try { body = File.ReadAllText(_outboundPath); }
-        catch (IOException) { return; }  // race with Lua's atomic write — retry next tick
+        catch (IOException) { return; }  // race with Lua's atomic write: retry next tick
+        // Only after a read that worked: set before it, a locked file was never read again.
+        _lastOutboundSize = info.Length;
+        _lastOutboundRead = info.LastWriteTimeUtc;
 
         ChatFile? parsed;
         try { parsed = JsonSerializer.Deserialize<ChatFile>(body, JsonOpts); }
@@ -396,7 +397,19 @@ public sealed class ChatService : BackgroundService
     {
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, content, new UTF8Encoding(false));
-        File.Move(tmp, path, overwrite: true);
+        // The game's chat mod reads and replaces these files too, so the move can meet a lock.
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(tmp, path, overwrite: true);
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && attempt < 5)
+            {
+                Thread.Sleep(50);
+            }
+        }
     }
 
     private static readonly JsonSerializerOptions JsonOpts = new()

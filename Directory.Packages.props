@@ -6,11 +6,6 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Hosting -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
-
     <!-- Logging -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageVersion Include="Serilog" Version="4.0.0" />
@@ -26,20 +21,16 @@
     <PackageVersion Include="MessagePackAnalyzer" Version="3.1.9" />
 
     <!-- Persistence -->
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.13" />
     <PackageVersion Include="Dapper" Version="2.1.35" />
     <!-- Transitive security pins: SQLite before 3.50.2 is GHSA-2m69-gcr7-jv3q (fixed in
-         SQLitePCLRaw 2.1.12+); System.Text.Json 8.0.0 is GHSA-hh2w-p6rv-4g7w (fixed in 8.0.5). -->
+         SQLitePCLRaw 2.1.12+). -->
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
     <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.13" />
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.13" />
-    <PackageVersion Include="System.Text.Json" Version="8.0.6" />
     <!-- Avalonia's Linux D-Bus dependency (unused on Windows) before 0.21.3 is GHSA-xrw6-gwf8-vvr9. -->
     <PackageVersion Include="Tmds.DBus.Protocol" Version="0.21.3" />
-
-    <!-- Web (local admin API only, loopback) -->
-    <PackageVersion Include="Microsoft.AspNetCore.App.Ref" Version="8.0.0" />
 
     <!-- CLI -->
     <PackageVersion Include="Spectre.Console" Version="0.49.1" />

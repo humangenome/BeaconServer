@@ -98,10 +98,10 @@ public sealed class NamedPipeServerService : BackgroundService
     private async Task ServeConnectionAsync(NamedPipeServerStream pipe, FrameCodec codec, CancellationToken ct)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        PipeConnection? connection = null;
         try
         {
             var pending = new MemoryStream();
-            PipeConnection? connection = null;
             var writeLock = new SemaphoreSlim(1, 1);
 
             async Task WriteAsync(byte[] data, CancellationToken token)
@@ -134,11 +134,16 @@ public sealed class NamedPipeServerService : BackgroundService
             if (connection is not null)
             {
                 _log.LogInformation("Plugin disconnected: {Instance} (pid {Pid})", connection.InstanceId, connection.PluginPid);
-                _state.SetConnection(null);
             }
         }
         finally
         {
+            // Here so an exception in the read loop cannot leave the plugin reading as connected.
+            if (connection is not null)
+            {
+                _state.SetConnection(null);
+                _state.GameConnectionEnded();
+            }
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }
@@ -258,7 +263,7 @@ public sealed class NamedPipeServerService : BackgroundService
             case FrameType.PlayerListSnapshot:
                 {
                     var ps = codec.DeserializePayload<PlayerListSnapshotMessage>(payload);
-                    _state.SetPlayers(ps.Players ?? new List<PlayerSnapshot>());
+                    _state.SetPlayersFromPlugin(ps.Players ?? new List<PlayerSnapshot>());
                     return connection;
                 }
 

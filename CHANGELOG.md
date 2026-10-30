@@ -3,6 +3,23 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.138] - unreleased
+
+### Fixed
+
+- Two players with the same name both show in the player list.
+- Chat no longer refuses a player, or posts under the wrong name, after a connection that never logged in.
+- A server whose game has stopped no longer lists its last players as online.
+- Source query and RCON keep answering after a network error.
+- The game reconnects to BeaconServer after BeaconServer restarts.
+- Self-hosted: automatic world backups no longer stop after about 10 hours.
+- Self-hosted: restarting BeaconServer no longer starts a second copy of the game on the same world.
+
+### Changed
+
+- Five wrong admin passwords turn an address away for a minute, doubling up to 15 minutes, on RCON and the admin API.
+- The server runs on .NET 10.
+
 ## [0.3.137] - 2026-10-27
 
 ### Fixed

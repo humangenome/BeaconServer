@@ -1,3 +1,5 @@
+using Beacon.Protocol;
+using Beacon.Rcon;
 using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography;
@@ -61,6 +63,8 @@ public sealed class BeaconHttpService : BackgroundService
     private readonly InstanceIdentityProvider _identity;
     private readonly ChatService _chat;
     private readonly byte[] _authKey;
+    private readonly SourceGuard _publicPerSource = new(maxPerSource: 16);
+    private readonly SourceGuard _signedPerSource = new(maxPerSource: 4);
     private readonly SemaphoreSlim _publicLimiter = new(PublicConcurrency, PublicConcurrency);
     private readonly SemaphoreSlim _signedLimiter = new(SignedConcurrency, SignedConcurrency);
     private readonly SemaphoreSlim _uploadLimiter = new(UploadConcurrency, UploadConcurrency);
@@ -197,11 +201,29 @@ public sealed class BeaconHttpService : BackgroundService
                     // pool is full rather than spawning unbounded Task.Run instances.
                     // The method, path and headers are already parsed here; the body
                     // is not, so classifying costs nothing.
-                    var limiter = LimiterFor(ClassifyRequest(
+                    var pool = ClassifyRequest(
                         ctx.Request.HttpMethod, ctx.Request.Url?.AbsolutePath ?? "",
-                        ctx.Request.HasEntityBody, ctx.Request.ContentLength64));
+                        ctx.Request.HasEntityBody, ctx.Request.ContentLength64);
+                    var limiter = LimiterFor(pool);
+                    // One address cannot take a whole pool: eight unauthenticated connections with
+                    // plausible headers could otherwise hold the signed pool for ten seconds each.
+                    var source = SourceGuard.SourceOf(ctx.Request.RemoteEndPoint);
+                    var perSource = pool == RequestPool.Public ? _publicPerSource : _signedPerSource;
+                    if (!perSource.TryOpen(source))
+                    {
+                        try
+                        {
+                            ctx.Response.StatusCode = 503;
+                            ctx.Response.Headers["Retry-After"] = "5";
+                            ctx.Response.KeepAlive = false;
+                            ctx.Response.Close();
+                        }
+                        catch { }
+                        continue;
+                    }
                     if (!await limiter.WaitAsync(0).ConfigureAwait(false))
                     {
+                        perSource.Close(source);
                         try
                         {
                             ctx.Response.StatusCode = 503;
@@ -216,7 +238,11 @@ public sealed class BeaconHttpService : BackgroundService
                     _ = Task.Run(async () =>
                     {
                         try { await HandleRequestAsync(ctx, stoppingToken).ConfigureAwait(false); }
-                        finally { limiter.Release(); }
+                        finally
+                        {
+                            limiter.Release();
+                            perSource.Close(source);
+                        }
                     }, stoppingToken);
                 }
             }
@@ -772,7 +798,8 @@ public sealed class BeaconHttpService : BackgroundService
             _log.LogError(ex, "HTTP {Method} {Path} threw", method, path);
             try
             {
-                await WriteJsonAsync(res, 500, new { error = ex.Message });
+                // Never the exception's text: it can carry a path on this machine.
+                await WriteJsonAsync(res, 500, new { error = "internal error" });
             }
             catch { }
         }
@@ -821,14 +848,14 @@ public sealed class BeaconHttpService : BackgroundService
                 // machine itself, keeps the old order; nobody else does.
                 if (!IsLocalCaller(req)) return AuthResult.Refused(401);
                 var legacy = await BufferBodyToDiskAsync(req, Math.Min(length, _opts.MaxUploadBytes), ct).ConfigureAwait(false);
-                if (!VerifySignature(_authKey, method, path, ts, sigHeader!, legacy.Sha256Hex) || !TryRegisterSignature(sigHeader!, ts, now))
+                if (!SignatureAccepted(req, method, path, ts, sigHeader!, legacy.Sha256Hex, now))
                 {
                     legacy.Dispose();
                     return AuthResult.Refused(401);
                 }
                 return AuthResult.Accepted(legacy);
             }
-            if (!VerifySignature(_authKey, method, path, ts, sigHeader!, declared) || !TryRegisterSignature(sigHeader!, ts, now))
+            if (!SignatureAccepted(req, method, path, ts, sigHeader!, declared, now))
                 return AuthResult.Refused(401);
 
             BufferedBody streamed;
@@ -853,7 +880,7 @@ public sealed class BeaconHttpService : BackgroundService
         // read, at most 64 KB and within 10 seconds, and then checked.
         var declaredSmall = (req.Headers[ContentShaHeader] ?? "").Trim().ToLowerInvariant();
         var preChecked = length > 0 && IsSha256Hex(declaredSmall);
-        if (preChecked && (!VerifySignature(_authKey, method, path, ts, sigHeader!, declaredSmall) || !TryRegisterSignature(sigHeader!, ts, now)))
+        if (preChecked && !SignatureAccepted(req, method, path, ts, sigHeader!, declaredSmall, now))
             return AuthResult.Refused(401);
 
         byte[] small;
@@ -877,7 +904,7 @@ public sealed class BeaconHttpService : BackgroundService
             if (small.Length != length || !string.Equals(smallSha, declaredSmall, StringComparison.Ordinal))
                 return AuthResult.Refused(401);
         }
-        else if (!VerifySignature(_authKey, method, path, ts, sigHeader!, smallSha) || !TryRegisterSignature(sigHeader!, ts, now))
+        else if (!SignatureAccepted(req, method, path, ts, sigHeader!, smallSha, now))
         {
             return AuthResult.Refused(401);
         }
@@ -896,8 +923,23 @@ public sealed class BeaconHttpService : BackgroundService
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         if (!SignatureHeadersPlausible(tsHeader, sigHeader, now, ReplayWindowSeconds, out var ts)) return false;
         var emptySha = Convert.ToHexString(SHA256.HashData(Array.Empty<byte>())).ToLowerInvariant();
-        return VerifySignature(_authKey, req.HttpMethod.ToUpperInvariant(), req.Url?.AbsolutePath ?? "", ts, sigHeader!, emptySha)
-            && TryRegisterSignature(sigHeader!, ts, now);
+        return SignatureAccepted(req, req.HttpMethod.ToUpperInvariant(), req.Url?.AbsolutePath ?? "", ts, sigHeader!, emptySha, now);
+    }
+
+    // A wrong signature counts toward the address's block, shared with RCON. A replay does not: two
+    // identical signed GETs inside one second share a signature, and neither is a guess.
+    private bool SignatureAccepted(HttpListenerRequest req, string method, string path, long ts, string sigHeader, string bodySha, long now)
+    {
+        var source = SourceGuard.SourceOf(req.RemoteEndPoint);
+        if (SourceGuard.BlockedSeconds(source, SourceGuard.NowMs()) > 0) return false;
+        if (!VerifySignature(_authKey, method, path, ts, sigHeader, bodySha))
+        {
+            SourceGuard.Failure(source, SourceGuard.NowMs());
+            return false;
+        }
+        if (!TryRegisterSignature(sigHeader, ts, now)) return false;
+        SourceGuard.Success(source);
+        return true;
     }
 
     // Records an accepted signature; false when it was already used inside the window.
@@ -1285,9 +1327,13 @@ public sealed class BeaconHttpService : BackgroundService
         // can cache briefly. Keep it simple: no-store for html, short for rest.
         res.Headers["Cache-Control"] =
             full.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ? "no-store" : "max-age=300";
-        var bytes = await File.ReadAllBytesAsync(full, ct).ConfigureAwait(false);
-        res.ContentLength64 = bytes.Length;
-        await res.OutputStream.WriteAsync(bytes, ct).ConfigureAwait(false);
+        // Streamed: markers.json is 10.5 MB and this route needs no login, so a whole copy in memory per
+        // request was an easy way to run the server out of it.
+        await using (var file = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, useAsync: true))
+        {
+            res.ContentLength64 = file.Length;
+            await file.CopyToAsync(res.OutputStream, ct).ConfigureAwait(false);
+        }
         res.OutputStream.Close();
     }
 
@@ -1323,6 +1369,27 @@ public sealed class BeaconHttpService : BackgroundService
     /// fast path) and movement (via active-engine tick when a player is
     /// in-world), so we co-locate position publishing with it.
     /// </summary>
+    internal static object[] MergeMapPlayers(
+        IReadOnlyList<PipeServerState.ClientPosition> clientPositions,
+        IReadOnlyList<PlayerSnapshot> roster)
+    {
+        var rows = new List<object>(clientPositions.Count + roster.Count);
+        var placed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in clientPositions)
+        {
+            var name = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name;
+            placed.Add(name);
+            rows.Add(new { id = p.Id, name, x = p.X, y = p.Y, z = p.Z, biome = "" });
+        }
+        foreach (var p in roster)
+        {
+            var name = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName;
+            if (placed.Contains(name)) continue;
+            rows.Add(new { id = p.BeaconUserId, name, x = p.PosX, y = p.PosY, z = p.PosZ, biome = "" });
+        }
+        return rows.ToArray();
+    }
+
     private async Task ServeMapStateAsync(HttpListenerResponse res, CancellationToken ct)
     {
         // Players + freshness come from the in-memory pipe state, which the native
@@ -1333,37 +1400,12 @@ public sealed class BeaconHttpService : BackgroundService
         long unixMs = _pipeState.LastHeartbeatAt?.ToUnixTimeMilliseconds() ?? 0;
         var stale = !_pipeState.HasFreshHeartbeat(TimeSpan.FromMilliseconds(_opts.Map.StaleAfterMs));
 
-        // Prefer client-reported positions (real world coords + the launcher's
-        // friendly name) — the headless server can't read remote-player positions
-        // itself. Fall back to the native roster (count + names at 0,0,0) when no
-        // launcher is pushing, so the endpoint is never empty while players are on.
+        // A position an app reports is the player's real one and wins for that player. Everyone else
+        // on the server is still listed, at the roster's position: before, one app pushing a position
+        // hid every other player.
         var clientPos = _pipeState.RecentClientPositions(
             TimeSpan.FromMilliseconds(Math.Max(_opts.Map.StaleAfterMs, 15000)));
-        object[] players;
-        if (clientPos.Count > 0)
-        {
-            players = clientPos.Select(p => (object)new
-            {
-                id    = p.Id,
-                name  = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name,
-                x     = p.X,
-                y     = p.Y,
-                z     = p.Z,
-                biome = "",
-            }).ToArray();
-        }
-        else
-        {
-            players = _pipeState.Players.Select(p => (object)new
-            {
-                id    = p.BeaconUserId,
-                name  = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName,
-                x     = p.PosX,
-                y     = p.PosY,
-                z     = p.PosZ,
-                biome = "",
-            }).ToArray();
-        }
+        var players = MergeMapPlayers(clientPos, _pipeState.Players);
 
         string worldName = "";
         var rosterPath = Path.Combine(AppContext.BaseDirectory, "roster.json");

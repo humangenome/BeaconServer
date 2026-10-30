@@ -9,7 +9,7 @@ mods around it. Everything below follows from that one fact.
 
 ## The two processes
 
-**BeaconServer.exe**: a .NET 8 supervisor. It owns configuration, the admin
+**BeaconServer.exe**: a .NET 10 supervisor. It owns configuration, the admin
 surfaces (Source A2S query, Source RCON, an HMAC-signed HTTP API), save snapshots
 and restores, and, for a self-hosted install, the game process itself. It reads
 `appsettings.json` from its own folder, not from the working directory it was
@@ -62,11 +62,15 @@ Everything derives from one number, the gameplay port.
 | `port + 4` | Admin HTTP API, and the live map it serves |
 
 Only `port`, `port + 2`, `port + 3` and `port + 4` need to be reachable from
-outside, and RCON and HTTP only if you use them.
+outside. RCON is only for you. Keep the HTTP port open to players: the Beacon app
+reads the server's mod list from it before it connects, and refuses the join when
+it cannot.
 
 The HTTP API signs requests with `HMAC_SHA256(SHA256(RconPassword), "METHOD\npath\ntimestamp\nbody-sha256")`,
 sent as `X-Beacon-Timestamp` and `X-Beacon-Signature`. There is a five minute
-replay window and seen signatures are remembered inside it. A body over 64 KB
+replay window and seen signatures are remembered inside it. Five wrong passwords or
+signatures from one address, on RCON or the API, turn that address away for a minute,
+doubling up to 15 minutes. A body over 64 KB
 must also carry its SHA-256 as `X-Beacon-Content-Sha256` (the signature covers
 it), so the server checks the signature before reading the upload. There is no second
 credential to manage: RCON and the HTTP API are the same trust tier.
