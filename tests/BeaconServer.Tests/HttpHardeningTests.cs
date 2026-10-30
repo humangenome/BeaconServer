@@ -225,7 +225,7 @@ public class HttpHardeningTests
         {
             await Http.StartAsync(CancellationToken.None);
             using var probe = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-            var until = DateTime.UtcNow.AddSeconds(5);
+            var until = DateTime.UtcNow.AddSeconds(20); // a busy Windows runner, with the services all starting at once on .NET 10
             while (DateTime.UtcNow < until)
             {
                 try { await probe.GetAsync($"http://127.0.0.1:{Port}/api/v1/players"); return; }
