@@ -51,16 +51,8 @@ public sealed class PipeServerState
         return DateTimeOffset.UtcNow - last.Value <= maxAge;
     }
 
-    // Native plugin reports auth state on every heartbeat (Beacon.dll
-    // v0.2.17+). As of v0.3.55 password enforcement is Lua-only and the
-    // supervisor emits ServerPassword="" to plugin-config.json, so the
-    // expected steady-state on every endpoint is Configured=0/Ready=0.
-    // HeartbeatWatchdogService.CheckServerPasswordReady fail-closes if
-    // it ever sees Configured=1 — that indicates a stale plugin config
-    // from a pre-v0.3.55 deploy or a manually-edited
-    // plugin-config.json, both of which can reproduce the SN2 crash
-    // loop if they race with the Lua gate. The legacy-plugin case
-    // (both fields stay 0) is now the normal case.
+    // Native plugin reports its join-password state on every heartbeat: configured (a password was loaded) and ready (the
+    // ApproveLogin check is armed). HeartbeatWatchdogService.CheckServerPasswordReady compares them with BeaconAuthPassword.
     public int LastServerPasswordConfigured { get; set; }
     public int LastServerPasswordHookReady { get; set; }
 
@@ -144,10 +136,28 @@ public sealed class PipeServerState
     internal static readonly TimeSpan RosterFreshFor = TimeSpan.FromSeconds(30);
     private DateTimeOffset _rosterFileAt = DateTimeOffset.MinValue;
 
-    public void SetPlayersFromRosterFile(IEnumerable<PlayerSnapshot> players, DateTimeOffset? now = null)
+    // A roster file is the game's own list, written every few seconds while it runs. One from a game that has ended
+    // must not come back: the last file is written up to 5 s before the game dies, and the watcher reads it after
+    // GameConnectionEnded cleared the list (lab 10/31: the last player stayed listed 3+ minutes after the game died, and a
+    // freshly started BeaconServer listed him again from a 5-minute-old file). So a file counts only while the game is
+    // connected, only when it was written after the last game ended, and only when it was written no more than
+    // RosterBeforeConnectSlack before this connection began (a BeaconServer restart with the game still up reconnects
+    // within seconds of the game's last write).
+    internal static readonly TimeSpan RosterBeforeConnectSlack = TimeSpan.FromSeconds(10);
+    private DateTimeOffset _gameEndedAt = DateTimeOffset.MinValue;
+
+    public bool SetPlayersFromRosterFile(IEnumerable<PlayerSnapshot> players, DateTimeOffset writtenAt, DateTimeOffset? now = null)
     {
-        lock (_playersGate) _rosterFileAt = now ?? DateTimeOffset.UtcNow;
+        var conn = Connection;
+        lock (_playersGate)
+        {
+            if (conn is null) return false;
+            if (writtenAt <= _gameEndedAt) return false;
+            if (writtenAt < conn.ConnectedAt - RosterBeforeConnectSlack) return false;
+            _rosterFileAt = now ?? DateTimeOffset.UtcNow;
+        }
         SetPlayers(players);
+        return true;
     }
 
     public void SetPlayersFromPlugin(IEnumerable<PlayerSnapshot> players, DateTimeOffset? now = null)
@@ -170,6 +180,7 @@ public sealed class PipeServerState
             _players = new();
             _logPlayers.Clear();
             _rosterFileAt = DateTimeOffset.MinValue;
+            _gameEndedAt = DateTimeOffset.UtcNow;
         }
         lock (_peersGate) _peers.Clear();
         LastReportedPlayerCount = 0;

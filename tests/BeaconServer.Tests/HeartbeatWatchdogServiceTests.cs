@@ -123,4 +123,63 @@ public class HeartbeatWatchdogServiceTests
         watchdog.RunChecks();
         Critical(log).Should().BeEmpty();
     }
+
+    private static List<string> PasswordLines(CapturingLogger log) =>
+        log.Entries.Where(e => e.Level == LogLevel.Critical && e.Message.Contains("Join password is set"))
+            .Select(e => e.Message).ToList();
+
+    [Fact]
+    public void A_password_with_the_native_check_ready_is_quiet()
+    {
+        var (watchdog, state, log, _, advance) = Create("secret");
+        state.SetConnection(Connection());
+        state.LastServerPasswordConfigured = 1;
+        state.LastServerPasswordHookReady = 1;
+        advance(TimeSpan.FromSeconds(25));
+        watchdog.RunChecks();
+        PasswordLines(log).Should().BeEmpty();
+        state.SetConnection(null);
+    }
+
+    [Fact]
+    public void A_password_without_the_native_check_is_reported_on_its_interval()
+    {
+        var (watchdog, state, log, _, advance) = Create("secret");
+        state.SetConnection(Connection());
+        state.LastServerPasswordConfigured = 1;
+        state.LastServerPasswordHookReady = 0;
+        advance(TimeSpan.FromSeconds(25));
+        watchdog.RunChecks();
+        watchdog.RunChecks();
+        PasswordLines(log).Should().ContainSingle().Which.Should().Contain("NOT being checked");
+
+        advance(HeartbeatWatchdogService.PasswordInactiveWarnEvery + TimeSpan.FromSeconds(1));
+        watchdog.RunChecks();
+        PasswordLines(log).Should().HaveCount(2);
+        state.SetConnection(null);
+    }
+
+    [Fact]
+    public void A_password_the_plugin_never_loaded_is_reported()
+    {
+        var (watchdog, state, log, _, advance) = Create("secret");
+        state.SetConnection(Connection());
+        state.LastServerPasswordConfigured = 0;
+        advance(TimeSpan.FromSeconds(25));
+        watchdog.RunChecks();
+        PasswordLines(log).Should().ContainSingle();
+        state.SetConnection(null);
+    }
+
+    [Fact]
+    public void An_open_server_says_nothing_about_passwords()
+    {
+        var (watchdog, state, log, _, advance) = Create("");
+        state.SetConnection(Connection());
+        advance(TimeSpan.FromSeconds(25));
+        watchdog.RunChecks();
+        PasswordLines(log).Should().BeEmpty();
+        log.Entries.Should().NotContain(e => e.Message.Contains("FAIL-CLOSED: the plugin reports"));
+        state.SetConnection(null);
+    }
 }

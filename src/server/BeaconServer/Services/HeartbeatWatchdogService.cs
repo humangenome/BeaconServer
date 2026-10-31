@@ -11,23 +11,11 @@ namespace BeaconServer.Services;
 /// <see cref="BeaconServerOptions.PluginHeartbeatTimeoutSeconds"/>, log a warning;
 /// future work hooks process supervision into this to restart the Subnautica 2 instance.
 ///
-/// Password enforcement model (v0.3.55+):
-///   Password enforcement lives in BeaconAuth.lua's K2_PostLogin hook on
-///   incoming remote clients. The native Beacon.dll ApproveLogin hook is
-///   INTENTIONALLY disabled (see SnProcessSupervisorService.EmitPluginConfig
-///   for the SN2 crash-loop rationale). EmitPluginConfig always emits an
-///   empty ServerPassword to plugin-config.json, so the native gate has
-///   nothing to enforce.
-///
-///   The legacy <see cref="CheckServerPasswordReady"/> path is kept as a
-///   defensive bug-detector: if the plugin EVER reports
-///   ServerPasswordConfigured=1, something has gone wrong upstream (a
-///   stale plugin-config.json carrying a non-empty ServerPassword from a
-///   pre-v0.3.55 deploy, or a manually-edited plugin config). In that
-///   case the native and Lua paths could race and reproduce the SN2
-///   crash loop, so we kill SN2 loudly with a CRITICAL log rather than
-///   let a customer hit it. The expected steady-state is
-///   Configured=0 + HookReady=0 across the entire fleet.
+/// Password enforcement model (v0.3.138):
+///   Join passwords: the native plugin refuses a wrong or missing password at ApproveLogin (v0.3.138; the Lua gate in
+///   BeaconAuth's K2_PostLogin hook stays as a second check but never runs on Subnautica 2, which does not raise that
+///   event). <see cref="CheckServerPasswordReady"/> compares the plugin's reported state with this server's
+///   BeaconAuthPassword.
 /// </summary>
 public sealed class HeartbeatWatchdogService : BackgroundService
 {
@@ -48,6 +36,8 @@ public sealed class HeartbeatWatchdogService : BackgroundService
     // Throttle for the "configured but native gate down" warning so we
     // don't spam the log every ~10s while waiting on the supervisor.
     private DateTimeOffset _lastFailClosedWarnAt = DateTimeOffset.MinValue;
+    private DateTimeOffset _lastPasswordInactiveWarnAt = DateTimeOffset.MinValue;
+    internal static readonly TimeSpan PasswordInactiveWarnEvery = TimeSpan.FromMinutes(15);
 
     public HeartbeatWatchdogService(
         ILogger<HeartbeatWatchdogService> log,
@@ -391,45 +381,49 @@ public sealed class HeartbeatWatchdogService : BackgroundService
 
     private void CheckServerPasswordReady()
     {
-        // Steady-state under the v0.3.55 Lua-only enforcement model is
-        // ServerPasswordConfigured=0 across the entire fleet. The native
-        // ApproveLogin hook is intentionally disabled (plugin-config.json
-        // always has an empty ServerPassword), so if the plugin EVER
-        // reports Configured=1, something upstream is broken and we
-        // could be heading for the SN2 crash loop that necessitated the
-        // pivot to Lua-only enforcement in the first place. Treat that
-        // as a fail-closed condition.
+        // v0.3.138: the plugin checks the join password natively again (ApproveLogin), from the same BeaconAuthPassword
+        // this service reads, and reports configured/ready on every heartbeat. Three outcomes:
+        //   no password here, none in the plugin              -> open server, nothing to do
+        //   password here, plugin configured and ready        -> protected
+        //   password here, plugin not configured or not ready -> joins are NOT checked: say so loudly (no kill; a game
+        //                                                        update that moves the plugin's signature would otherwise
+        //                                                        stop every passworded server)
+        //   no password here, but the plugin has one          -> the two read different settings: stop the game
         var conn = _state.Connection;
         if (conn is null) return;
 
-        // Wait for the bootstrap-grace window after first contact. The
-        // plugin's bootstrap thread populates the heartbeat fields
-        // shortly after the handshake; first heartbeat or two can race.
+        // The plugin's bootstrap thread fills the heartbeat fields shortly after the handshake.
         var sinceConnect = _now() - conn.ConnectedAt;
         if (sinceConnect < AuthGraceWindow) return;
 
-        // Plugin reporting Configured=0 is the expected steady state.
-        // Nothing to do.
-        if (_state.LastServerPasswordConfigured == 0) return;
+        var expected = !string.IsNullOrWhiteSpace(_opts.BeaconAuthPassword);
+        var configured = _state.LastServerPasswordConfigured != 0;
+        var ready = _state.LastServerPasswordHookReady != 0;
+        if (!expected && !configured) return;
+        if (expected && configured && ready) return;
 
-        // Plugin says "I see ServerPassword in plugin-config.json." Under
-        // v0.3.55+ this should be impossible — EmitPluginConfig hardcodes
-        // ServerPassword="". A non-zero value here means a stale config
-        // from a previous deploy, a manually-edited plugin-config.json,
-        // or a Beacon update that regressed EmitPluginConfig. Stop SN2
-        // before native + Lua enforcement layers race into the crash.
         var now = _now();
+        if (expected)
+        {
+            if (now - _lastPasswordInactiveWarnAt > PasswordInactiveWarnEvery)
+            {
+                _log.LogCritical(
+                    "Join password is set, but the game-side password check is not active (configured={Configured} " +
+                    "ready={Ready}): joins are NOT being checked. The plugin log says why (beacon-plugin.log, " +
+                    "'server-password hook NOT READY').",
+                    _state.LastServerPasswordConfigured, _state.LastServerPasswordHookReady);
+                _lastPasswordInactiveWarnAt = now;
+            }
+            return;
+        }
+
         var sinceWarn = now - _lastFailClosedWarnAt;
         if (sinceWarn > TimeSpan.FromSeconds(15))
         {
             _log.LogCritical(
-                "FAIL-CLOSED: native plugin reported ServerPasswordConfigured={Configured} " +
-                "hookReady={Ready}, but v0.3.55+ Beacon enforces password in BeaconAuth.lua only " +
-                "and emits an empty ServerPassword in plugin-config.json. This usually means a " +
-                "stale plugin-config.json from a pre-v0.3.55 deploy or a manually-edited config. " +
-                "Stopping Subnautica 2 to prevent the native gate from racing with the Lua gate " +
-                "(which reproduces the SN2 fatal crash loop). Fix plugin-config.json " +
-                "ServerPassword field to empty and restart.",
+                "FAIL-CLOSED: the plugin reports a join password (configured={Configured} ready={Ready}) but " +
+                "BeaconServer has none (BeaconAuthPassword is empty). The two read different settings; stopping " +
+                "Subnautica 2. Fix appsettings.json and restart.",
                 _state.LastServerPasswordConfigured, _state.LastServerPasswordHookReady);
             _lastFailClosedWarnAt = now;
         }

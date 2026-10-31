@@ -139,13 +139,17 @@ public class PipeServerStateTests
         state.EffectivePlayerCount.Should().Be(2);
     }
 
+    private static PipeConnection Conn() =>
+        new("default", 4242, "test", new Beacon.Protocol.FrameCodec(new byte[32]), (_, _) => Task.CompletedTask);
+
     [Fact]
     public void The_roster_is_the_list_while_it_is_fresh()
     {
         var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
         var t0 = DateTimeOffset.UtcNow;
 
-        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0, 1, 2, 3) }, t0);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0, 1, 2, 3) }, t0, t0);
         state.SetPlayersFromPlugin(new[] { new PlayerSnapshot("512", "Sam", 0, 2000, 0) }, t0 + TimeSpan.FromSeconds(5));
 
         state.Players.Single().BeaconUserId.Should().Be("roster:sam", "the id does not flip between polls");
@@ -157,9 +161,10 @@ public class PipeServerStateTests
     public void The_plugin_list_counts_once_the_roster_goes_quiet()
     {
         var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
         var t0 = DateTimeOffset.UtcNow;
 
-        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, t0);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, t0, t0);
         state.SetPlayersFromPlugin(Array.Empty<PlayerSnapshot>(), t0 + PipeServerState.RosterFreshFor + TimeSpan.FromSeconds(1));
 
         state.EffectivePlayerCount.Should().Be(0);
@@ -169,7 +174,8 @@ public class PipeServerStateTests
     public void A_game_that_ended_leaves_no_players_or_addresses()
     {
         var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
-        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) });
+        state.SetConnection(Conn());
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, DateTimeOffset.UtcNow);
         state.UpsertLogPlayer("76561197979989479_60226C45E673E631", "Sam");
         state.NotePeer("203.0.113.5:7777", "76561197979989479_60226C45E673E631", "Sam");
 
@@ -179,6 +185,56 @@ public class PipeServerStateTests
         state.PeersAt(System.Net.IPAddress.Parse("203.0.113.5")).Should().BeEmpty();
         // and the next game's plugin list is not held back by the old roster's time
         state.SetPlayersFromPlugin(new[] { new PlayerSnapshot("512", "Lee", 0, 2000, 0) });
+        state.EffectivePlayerCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void The_last_roster_of_a_game_that_ended_does_not_bring_its_players_back()
+    {
+        // Lab 10/31: the game wrote roster.json, died, the pipe closed and cleared the list, then the watcher read that
+        // last file and put the player back for minutes.
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
+        var lastWrite = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(2);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, lastWrite).Should().BeTrue();
+
+        state.SetConnection(null);
+        state.GameConnectionEnded();
+
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, lastWrite).Should().BeFalse();
+        state.EffectivePlayerCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void A_roster_file_counts_only_while_the_game_is_connected()
+    {
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, DateTimeOffset.UtcNow).Should().BeFalse();
+        state.EffectivePlayerCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void An_old_roster_file_is_not_listed_when_the_next_game_connects()
+    {
+        // Lab 10/31: a BeaconServer started at the next boot listed the last player from a 5-minute-old roster.json.
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
+        var old = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, old).Should().BeFalse();
+        state.EffectivePlayerCount.Should().Be(0);
+
+        // the new game's own first write counts
+        state.SetPlayersFromRosterFile(Array.Empty<PlayerSnapshot>(), DateTimeOffset.UtcNow).Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_BeaconServer_restart_with_the_game_up_takes_the_games_last_write()
+    {
+        // The game keeps running and reconnects within seconds; its last write just before the reconnect is current.
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
+        var justBefore = DateTimeOffset.UtcNow - TimeSpan.FromSeconds(4);
+        state.SetPlayersFromRosterFile(new[] { new PlayerSnapshot("roster:sam", "Sam", 1000, 2000, 0) }, justBefore).Should().BeTrue();
         state.EffectivePlayerCount.Should().Be(1);
     }
 
