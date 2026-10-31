@@ -161,8 +161,8 @@ public sealed class RconHostedService : IHostedService
     {
         var conn = _state.Connection;
         return conn is null
-            ? $"instance={_opts.InstanceId} plugin=disconnected"
-            : $"instance={_opts.InstanceId} plugin=connected pid={conn.PluginPid} version={conn.PluginVersion} players={_state.EffectivePlayerCount}";
+            ? $"instance={_opts.InstanceId} plugin=disconnected password=unknown"
+            : $"instance={_opts.InstanceId} plugin=connected pid={conn.PluginPid} version={conn.PluginVersion} players={_state.EffectivePlayerCount} password={_state.PasswordCheckState(_opts.BeaconAuthPassword)}";
     }
 
     private string BuildPlayers() =>

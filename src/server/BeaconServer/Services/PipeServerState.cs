@@ -53,6 +53,15 @@ public sealed class PipeServerState
 
     // Native plugin reports its join-password state on every heartbeat: configured (a password was loaded) and ready (the
     // ApproveLogin check is armed). HeartbeatWatchdogService.CheckServerPasswordReady compares them with BeaconAuthPassword.
+    // The join-password state the panel reads over RCON status (password=...): "off" (no password set), "on" (the plugin's
+    // check is armed), "not_active" (a password is set and joins are NOT checked). A disconnected game reads "unknown".
+    public string PasswordCheckState(string beaconAuthPassword)
+    {
+        if (Connection is null) return "unknown";
+        if (string.IsNullOrWhiteSpace(beaconAuthPassword)) return LastServerPasswordConfigured != 0 ? "not_active" : "off";
+        return LastServerPasswordConfigured != 0 && LastServerPasswordHookReady != 0 ? "on" : "not_active";
+    }
+
     public int LastServerPasswordConfigured { get; set; }
     public int LastServerPasswordHookReady { get; set; }
 

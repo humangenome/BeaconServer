@@ -205,6 +205,27 @@ public class PipeServerStateTests
         state.EffectivePlayerCount.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData("", 0, 0, "off")]
+    [InlineData("secret", 1, 1, "on")]
+    [InlineData("secret", 1, 0, "not_active")]
+    [InlineData("secret", 0, 0, "not_active")]
+    [InlineData("", 1, 0, "not_active")]
+    public void The_password_check_state_says_whether_joins_are_checked(string password, int configured, int ready, string expected)
+    {
+        var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
+        state.SetConnection(Conn());
+        state.LastServerPasswordConfigured = configured;
+        state.LastServerPasswordHookReady = ready;
+        state.PasswordCheckState(password).Should().Be(expected);
+    }
+
+    [Fact]
+    public void The_password_check_state_is_unknown_with_no_game()
+    {
+        new PipeServerState(NullLogger<PipeServerState>.Instance).PasswordCheckState("secret").Should().Be("unknown");
+    }
+
     [Fact]
     public void A_roster_file_counts_only_while_the_game_is_connected()
     {
