@@ -102,7 +102,7 @@ public sealed class PipeServerState
     public string PasswordCheckState(string beaconAuthPassword)
     {
         if (Connection is null) return "unknown";
-        if (string.IsNullOrWhiteSpace(beaconAuthPassword)) return LastServerPasswordConfigured != 0 ? "not_active" : "off";
+        if (string.IsNullOrEmpty(beaconAuthPassword)) return LastServerPasswordConfigured != 0 ? "not_active" : "off";
         return LastServerPasswordConfigured != 0 && LastServerPasswordHookReady != 0 ? "on" : "not_active";
     }
 

@@ -431,7 +431,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         var sinceConnect = _now() - conn.ConnectedAt;
         if (sinceConnect < AuthGraceWindow) return;
 
-        var expected = !string.IsNullOrWhiteSpace(_opts.BeaconAuthPassword);
+        var expected = !string.IsNullOrEmpty(_opts.BeaconAuthPassword);   // byte-exact, as the plugin reads it
         var configured = _state.LastServerPasswordConfigured != 0;
         var ready = _state.LastServerPasswordHookReady != 0;
         if (!expected && !configured) return;

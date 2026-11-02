@@ -83,6 +83,17 @@ public class GameFatalErrorTests
     }
 
     [Fact]
+    public void A_password_of_spaces_is_a_password_for_the_status_too()
+    {
+        var state = NewState();
+        state.SetConnection(Conn());
+        state.LastServerPasswordConfigured = 1;
+        state.LastServerPasswordHookReady = 1;
+        state.PasswordCheckState("  ").Should().Be("on");
+        state.PasswordCheckState("").Should().Be("not_active", "the plugin has a password the server does not");
+    }
+
+    [Fact]
     public async Task Health_reads_down_after_a_game_fatal_error()
     {
         await using var h = new HttpHardeningTests.Harness();
