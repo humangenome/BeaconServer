@@ -96,7 +96,9 @@ public sealed class Sn2LogTailService : BackgroundService
     private readonly object _playerGate = new();
     private long _position;
     private string? _lastBuildLogged;
-    private bool _tailReadyForPlayerEvents;
+    private volatile bool _tailReadyForPlayerEvents;
+    // True once the existing log has been read (lines after that count as live). Tests wait on it instead of a fixed delay.
+    internal bool TailReadyForPlayerEvents => _tailReadyForPlayerEvents;
 
     public Sn2LogTailService(ILogger<Sn2LogTailService> log, IOptions<BeaconServerOptions> opts, PipeServerState state)
     {

@@ -99,7 +99,9 @@ public class Sn2LogTailServiceTests
         await service.StartAsync(CancellationToken.None);
         try
         {
-            await Task.Delay(250);
+            // Wait for the start-up pass over the existing log to finish: a fixed 250 ms delay let a slow CI runner read the
+            // appended lines as old ones (failed on Windows CI 10/31 and 11/2).
+            await WaitUntilAsync(() => service.TailReadyForPlayerEvents, TimeSpan.FromSeconds(10));
             state.EffectivePlayerCount.Should().Be(0);
 
             await File.AppendAllTextAsync(logPath, string.Join(Environment.NewLine, new[]
