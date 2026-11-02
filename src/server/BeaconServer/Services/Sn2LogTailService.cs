@@ -58,6 +58,10 @@ public sealed class Sn2LogTailService : BackgroundService
     // '?', so the name runs to the next '?'. Cutting it at the first space left
     // the login unmatched with the later join line, so the player lost their
     // Steam id in the roster and could linger there after leaving.
+    internal static readonly Regex FatalErrorRegex = new(
+        @"appError called: Fatal error|Executing StaticShutdownAfterError",
+        RegexOptions.Compiled);
+
     private static readonly Regex LoginRequestRegex = new(
         @"LogNet:\s+Login request:\s+\?Name=(?<name>[^?]+)(?:.*?\?SonarPlayerId=(?<sonar>[^?\s]+))?",
         RegexOptions.Compiled);
@@ -183,6 +187,15 @@ public sealed class Sn2LogTailService : BackgroundService
     {
         if (string.IsNullOrEmpty(line)) return;
         line = RedactSecrets(line);
+
+        // A fatal error leaves the game process alive but dead: health must read it as down (2026-11-02). Live lines only,
+        // so an old log read at start-up never marks a new game.
+        if (trackPlayerEvents && FatalErrorRegex.IsMatch(line))
+        {
+            _state.NoteGameFatalError(Clock());
+            _log.LogCritical("[Subnautica 2] the game hit a fatal error; health now reads it as down: {Line}",
+                line.Length > 300 ? line[..300] : line);
+        }
 
         // Existing logs can survive game updates, so keep the newest build
         // banner seen during the initial catch-up pass instead of pinning the

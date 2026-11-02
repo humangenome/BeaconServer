@@ -39,6 +39,30 @@ public sealed class PipeServerState
 
     public DateTimeOffset? LastHeartbeatAt { get; set; }
 
+    // The game logged a fatal error (UE's "appError called: Fatal error" or "Executing StaticShutdownAfterError";
+    // Sn2LogTailService sees it). The process can stay alive after one and the plugin's heartbeat thread keeps beating,
+    // so health read the server as up for minutes on a dead game (lab 2026-11-02). Counts only for the game connection it
+    // happened in: a fresh game start is a new connection.
+    private DateTimeOffset? _gameFatalAt;
+
+    public void NoteGameFatalError(DateTimeOffset? at = null)
+    {
+        lock (_gate) _gameFatalAt = at ?? DateTimeOffset.UtcNow;
+    }
+
+    public bool GameHitFatalError
+    {
+        get
+        {
+            lock (_gate)
+            {
+                var conn = _connection;
+                var at = _gameFatalAt;
+                return conn is not null && at is not null && at.Value >= conn.ConnectedAt;
+            }
+        }
+    }
+
     public int LastReportedPlayerCount { get; set; }
 
     public int EffectivePlayerCount => Players.Count;

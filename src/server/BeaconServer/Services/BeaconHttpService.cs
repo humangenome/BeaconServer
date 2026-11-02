@@ -310,10 +310,14 @@ public sealed class BeaconHttpService : BackgroundService
                 if (_pipeState.LastHeartbeatAt is DateTimeOffset lastHeartbeat)
                     heartbeatAgeSeconds = Math.Max(0, (int)(DateTimeOffset.UtcNow - lastHeartbeat).TotalSeconds);
 
+                // A game that hit a fatal error is down even while its plugin still beats (2026-11-02).
+                var gameFatal = _pipeState.GameHitFatalError;
+                var up = pluginOnline && !gameFatal;
                 _pipeState.EvaluateChatGate();
-                await WriteJsonAsync(res, pluginOnline ? 200 : 503, new
+                await WriteJsonAsync(res, up ? 200 : 503, new
                 {
-                    ok = pluginOnline,
+                    ok = up,
+                    game_fatal_error = gameFatal,
                     instance = _identity.InstanceId,
                     server_name = string.IsNullOrWhiteSpace(_opts.ServerName) ? $"Beacon - {_identity.InstanceId}" : _opts.ServerName.Trim(),
                     beacon_version = BeaconVersionInfo.BeaconVersion,

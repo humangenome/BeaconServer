@@ -181,7 +181,7 @@ public class HttpHardeningTests
 
     // ---------- the routes, on a real listener ----------
 
-    private sealed class Harness : IAsyncDisposable
+    internal sealed class Harness : IAsyncDisposable
     {
         public readonly BeaconHttpService Http;
         public readonly PipeServerState State;
