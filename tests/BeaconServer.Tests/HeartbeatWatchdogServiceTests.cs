@@ -182,4 +182,79 @@ public class HeartbeatWatchdogServiceTests
         log.Entries.Should().NotContain(e => e.Message.Contains("FAIL-CLOSED: the plugin reports"));
         state.SetConnection(null);
     }
+
+    // 2026-11-02: a game that logged a fatal error and then went silent is ended so the panel can start it again; fatal
+    // text from a game that is still writing its roster is left alone (the lane's guard).
+    private static List<string> DeadGame(CapturingLogger log) =>
+        log.Entries.Where(e => e.Level == LogLevel.Critical && e.Message.StartsWith("DEAD GAME")).Select(e => e.Message).ToList();
+
+    [Fact]
+    public void A_game_that_logged_a_fatal_error_and_went_silent_is_ended_once()
+    {
+        var (watchdog, state, log, clock, advance) = Create(password: "");
+        var conn = Connection();
+        state.SetConnection(conn);
+        state.NoteRosterWrite(clock());               // the game's mods are writing
+        advance(TimeSpan.FromSeconds(5));
+        state.NoteGameFatalError(clock());            // the fatal line, then silence
+        advance(TimeSpan.FromSeconds(59));
+        watchdog.RunChecks();
+        DeadGame(log).Should().BeEmpty("the window has not passed");
+        advance(TimeSpan.FromSeconds(2));
+        watchdog.RunChecks();
+        DeadGame(log).Should().ContainSingle().Which.Should().Contain("pid=4242");
+        advance(TimeSpan.FromSeconds(30));
+        watchdog.RunChecks();
+        DeadGame(log).Should().ContainSingle("it fires once per game");
+    }
+
+    [Fact]
+    public void Fatal_text_from_a_game_still_writing_its_roster_is_left_alone()
+    {
+        var (watchdog, state, log, clock, advance) = Create(password: "");
+        state.SetConnection(Connection());
+        state.NoteRosterWrite(clock());
+        state.NoteGameFatalError(clock());
+        for (var i = 0; i < 30; i++)                  // five minutes, the mods writing every 10 s
+        {
+            advance(TimeSpan.FromSeconds(10));
+            state.NoteRosterWrite(clock());
+            watchdog.RunChecks();
+        }
+        DeadGame(log).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_silent_game_with_no_fatal_line_is_left_alone()
+    {
+        var (watchdog, state, log, clock, advance) = Create(password: "");
+        state.SetConnection(Connection());
+        state.NoteRosterWrite(clock());
+        advance(TimeSpan.FromMinutes(5));
+        watchdog.RunChecks();
+        DeadGame(log).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_game_that_never_wrote_a_roster_is_not_judged()
+    {
+        var (watchdog, state, log, clock, advance) = Create(password: "");
+        state.SetConnection(Connection());
+        state.NoteGameFatalError(clock());
+        advance(TimeSpan.FromMinutes(5));
+        watchdog.RunChecks();
+        DeadGame(log).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_fatal_line_from_the_previous_game_does_not_end_the_new_one()
+    {
+        var (watchdog, state, log, clock, advance) = Create(password: "");
+        state.NoteGameFatalError(clock().AddMinutes(-10));
+        state.SetConnection(Connection());
+        state.NoteRosterWrite(clock().AddMinutes(-9));
+        advance(TimeSpan.FromMinutes(5));
+        watchdog.RunChecks();
+        DeadGame(log).Should().BeEmpty();
+    }
 }

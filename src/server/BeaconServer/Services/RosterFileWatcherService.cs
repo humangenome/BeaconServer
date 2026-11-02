@@ -102,6 +102,7 @@ public sealed class RosterFileWatcherService : BackgroundService
         }
         // The file's own stamp (unix_ms, written by the game) says when the list was true; the file time is the fallback.
         var writtenAt = parsed.UnixMs > 0 ? DateTimeOffset.FromUnixTimeMilliseconds(parsed.UnixMs) : new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero);
+        _state.NoteRosterWrite(writtenAt);   // the game is still writing (the dead-game check reads this)
         if (!_state.SetPlayersFromRosterFile(snapshots, writtenAt))
         {
             _log.LogDebug("Roster file from {WrittenAt:o} ignored: no game connected, or written before the game connected or ended", writtenAt);

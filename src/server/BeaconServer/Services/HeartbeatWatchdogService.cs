@@ -83,6 +83,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         try
         {
             CheckHeartbeatStale();
+            CheckDeadGameAfterFatal();
             CheckServerPasswordReady();
             CheckBeaconAuthLuaReady();
         }
@@ -319,7 +320,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         "Subnautica2",
     };
 
-    private void TryKillByPluginPid(int pid)
+    private void TryKillByPluginPid(int pid, string why = "FAIL-CLOSED (Lua)")
     {
         if (pid <= 0) return;
         try
@@ -347,12 +348,12 @@ public sealed class HeartbeatWatchdogService : BackgroundService
             if (!isWhitelistedSn2)
             {
                 _log.LogWarning(
-                    "FAIL-CLOSED (Lua): PluginPid={Pid} now belongs to '{Name}' (not SN2); refusing to kill",
-                    pid, name);
+                    "{Why}: PluginPid={Pid} now belongs to '{Name}' (not SN2); refusing to kill",
+                    why, pid, name);
                 return;
             }
 
-            _log.LogWarning("FAIL-CLOSED (Lua): killing SN2 plugin host pid={Pid} name={Name} via PluginPid path", pid, name);
+            _log.LogWarning("{Why}: killing SN2 plugin host pid={Pid} name={Name} via PluginPid path", why, pid, name);
             p.Kill(entireProcessTree: false);
         }
         catch (ArgumentException)
@@ -361,7 +362,41 @@ public sealed class HeartbeatWatchdogService : BackgroundService
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "FAIL-CLOSED (Lua): KillByPluginPid({Pid}) failed", pid);
+            _log.LogWarning(ex, "{Why}: KillByPluginPid({Pid}) failed", why, pid);
+        }
+    }
+
+    // A game that logged a fatal error can stay alive but dead, and the panel's crash restart only acts on a missing
+    // process (lab 2026-11-02). Ended only when BOTH hold for the full window: the fatal line was logged for this game,
+    // AND the game's own mods have written no roster for that long (they write every 5 s while it runs). Its plugin
+    // heartbeat beats from a thread of its own and BeaconServer answers the query port itself, so neither says the game
+    // is alive. Fatal text from a game still writing its roster is left alone; a game that never wrote one is not judged.
+    internal static readonly TimeSpan DeadAfterFatalWindow = TimeSpan.FromSeconds(60);
+    private PipeConnection? _deadGameEndedFor;
+
+    private void CheckDeadGameAfterFatal()
+    {
+        var conn = _state.Connection;
+        if (conn is null || ReferenceEquals(conn, _deadGameEndedFor)) return;
+        if (!_state.GameHitFatalError || _state.GameFatalAt is not DateTimeOffset fatalAt) return;
+        var now = _now();
+        if (now - fatalAt < DeadAfterFatalWindow) return;
+        if (_state.LastRosterWriteAt is not DateTimeOffset lastRoster) return;
+        if (lastRoster < conn.ConnectedAt - PipeServerState.RosterBeforeConnectSlack) return;
+        if (now - lastRoster < DeadAfterFatalWindow) return;
+
+        _deadGameEndedFor = conn;
+        _log.LogCritical(
+            "DEAD GAME: the game logged a fatal error at {Fatal:o} and its mods have written nothing for {Silent}s; ending the dead game process pid={Pid} so the panel's crash restart can start it again",
+            fatalAt, (int)(now - lastRoster).TotalSeconds, conn.PluginPid);
+        try
+        {
+            _coordinator.KillSn2(TimeSpan.FromSeconds(10));
+            TryKillByPluginPid(conn.PluginPid, "DEAD GAME");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "DEAD GAME: KillSn2 / KillByPluginPid threw");
         }
     }
 

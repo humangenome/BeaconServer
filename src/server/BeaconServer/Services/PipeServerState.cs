@@ -50,6 +50,26 @@ public sealed class PipeServerState
         lock (_gate) _gameFatalAt = at ?? DateTimeOffset.UtcNow;
     }
 
+    public DateTimeOffset? GameFatalAt
+    {
+        get { lock (_gate) return _gameFatalAt; }
+    }
+
+    // The newest roster.json stamp seen (unix_ms, written by the game's own mods every 5 s while the game runs). After a
+    // fatal error it stops (lab 2026-11-02: 103, 229 and 340 s old) while the plugin heartbeat, a thread of its own, keeps
+    // beating; HeartbeatWatchdogService.CheckDeadGameAfterFatal reads it.
+    private DateTimeOffset? _lastRosterWriteAt;
+
+    public void NoteRosterWrite(DateTimeOffset writtenAt)
+    {
+        lock (_gate) { if (_lastRosterWriteAt is null || writtenAt > _lastRosterWriteAt.Value) _lastRosterWriteAt = writtenAt; }
+    }
+
+    public DateTimeOffset? LastRosterWriteAt
+    {
+        get { lock (_gate) return _lastRosterWriteAt; }
+    }
+
     public bool GameHitFatalError
     {
         get
