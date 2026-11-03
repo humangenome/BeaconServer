@@ -32,6 +32,13 @@
          the exact string PathMap exists to keep out — plus the repository URL
          and commit. Shipped .pdb files carry all of it, so it stays off. -->
     <EnableSourceLink>false</EnableSourceLink>
+    <!-- .NET 9 and later mark every exe CET-compatible (hardware shadow
+         stacks) by default. Such an exe refuses to start on a PC whose CPU has
+         CET but whose Windows build only partly supports it ("Your Windows
+         doesn't fully support CET"). Current Windows never shows it, so it
+         stays off for BeaconServer. The release check
+         scripts/check-cet-compat.py proves it on the published bundle. -->
+    <CETCompat>false</CETCompat>
   </PropertyGroup>
 
   <!-- Assertion for the PathMap above: fail any Release build whose output

@@ -121,3 +121,4 @@ jobs:
 
           gh release download "$TAG" -R "${{ github.repository }}" -p "$ASSET" -D verify --clobber
           python3 scripts/verify-server-bundle.py "verify/$ASSET"
+          python3 scripts/check-cet-compat.py "verify/$ASSET!BeaconServer/BeaconServer.exe"
