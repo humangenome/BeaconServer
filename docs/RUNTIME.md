@@ -91,7 +91,7 @@ the runtime mod is what guarantees it.
 | `BeaconChat` | Chat command surface and in-game message delivery. |
 | `BeaconNoPhantomHost` | Removes the listen host's own generated player from the player array, so gates and player lists see only real players. |
 | `BeaconStoryGoalUnlock` | Unlocks the three chapter one lifepod story goals so the progression gate evaluates true on a host with no local player. |
-| `BeaconLifepodFix` | Watches lifepod state during world boot and records what happened. Diagnostics, not enforcement. |
+| `BeaconLifepodFix` | Moves a player still stuck at the deep start 20 seconds after spawning to the surface lifepod, and takes the deep start's no-breathing effect off them (oxygen held at 0). Also removes that effect from any player who finished the lifepod ride but still has it. |
 | `BeaconStarterBuilderUnlock` | Seeds per-player builder unlocks to match what a single-player start gives you. |
 | `BeaconWeatherReplicationGuard` | Stops non-critical sky sequence playback from filling reliable RPC buffers on large worlds. |
 | `BeaconWorldWarmup` | Keeps the spawn cells loaded so the first joiner does not arrive into a cold world. |

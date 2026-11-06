@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.139] - 2026-11-05
+
+### Fixed
+
+- A new player could be pulled out of the deep-sea start too early and end up with oxygen stuck at zero that never refilled. That no longer happens, and a player it already happened to is fixed the next time they join.
+
 ## [0.3.138] - 2026-11-04
 
 ### Fixed
