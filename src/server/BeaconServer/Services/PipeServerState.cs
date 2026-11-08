@@ -34,8 +34,31 @@ public sealed class PipeServerState
 
     public void SetConnection(PipeConnection? connection)
     {
-        lock (_gate) _connection = connection;
+        lock (_gate)
+        {
+            _connection = connection;
+            // A new (or no) game process: the old join-pass key dies with the old connection. The plugin sends its
+            // own key right after each handshake; until it does, no pass can be issued (fail closed).
+            _identityKey = null;
+            LastIdentityCheckReady = 0;
+        }
     }
+
+    private byte[]? _identityKey;
+
+    /// <summary>The join-pass key the game process sent (memory only; never logged). Null until it arrives.</summary>
+    public void SetIdentityKey(byte[]? key)
+    {
+        lock (_gate) _identityKey = key is { Length: 32 } ? key.ToArray() : null;
+    }
+
+    public byte[]? IdentityKeyCopy()
+    {
+        lock (_gate) return _identityKey?.ToArray();
+    }
+
+    /// <summary>1 when the plugin's last heartbeat said its login hook is installed with the identity check on.</summary>
+    public int LastIdentityCheckReady { get; set; }
 
     public DateTimeOffset? LastHeartbeatAt { get; set; }
 

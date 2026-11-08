@@ -120,6 +120,7 @@ public sealed class RconServer : IDisposable
                         authenticated = PasswordMatches(body);
                         if (authenticated) SourceGuard.Success(source);
                         else SourceGuard.Failure(source, SourceGuard.NowMs());
+                        if (SourceGuard.TakeNotice() is { } tableNotice) _log?.LogWarning("{Notice}", tableNotice);
                         await WritePacketAsync(stream, id, 0, "", ct).ConfigureAwait(false);
                         await WritePacketAsync(stream, authenticated ? id : -1, 2, "", ct).ConfigureAwait(false);
                         if (!authenticated) return;

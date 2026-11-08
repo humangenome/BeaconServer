@@ -61,6 +61,18 @@ public sealed class BeaconServerOptions
     public string ServerName { get; set; } = "";
 
     /// <summary>
+    /// Who may join without Steam proof (players on the Epic or Xbox app / PC Game Pass copy, whom the Beacon
+    /// app joins under their typed name). Read by Beacon.dll's login check as well, from this same field.
+    /// "password-servers" (the default, also when empty): only on a server with a join password;
+    /// "refuse": never (Steam players only); "allow": on every server. Any other value counts as "refuse".
+    /// A name-only join can never take a character whose save key starts with a Steam ID.
+    /// </summary>
+    public string BeaconNonSteamJoins { get; set; } = "password-servers";
+
+    /// <summary>Steam identity check at join: how BeaconServer asks Steam who a joining player is.</summary>
+    public IdentityOptions Identity { get; set; } = new();
+
+    /// <summary>
     /// Admin identities for mod command dispatch (ModKit Pillar 4). An entry
     /// matches a caller by SteamID64, BeaconUserId, or display name
     /// (case-insensitive). Admin status is NOT in the roster — it lives here
@@ -136,6 +148,47 @@ public sealed class BeaconServerOptions
 
     /// <summary>Live web map. See protocol/map-v1.md.</summary>
     public MapOptions Map { get; set; } = new();
+}
+
+public sealed class IdentityOptions
+{
+    /// <summary>Subnautica 2's Steam app id; tickets are checked for this app.</summary>
+    public uint SteamAppId { get; set; } = 1962700;
+
+    /// <summary>
+    /// The game's own steam_api64.dll. Empty = search the game folder's
+    /// Engine\Binaries\ThirdParty\Steamworks\Steamv*\Win64 (beside BeaconServer, or under SnInstallRoot).
+    /// </summary>
+    public string SteamApiPath { get; set; } = "";
+
+    /// <summary>
+    /// steamclient64.dll (file or folder) for the anonymous Steam game-server sign-in. A host with no Steam client
+    /// needs Valve's Steamworks redistributable (app 1007, anonymous SteamCMD). Empty = beside BeaconServer, then
+    /// the installed Steam client.
+    /// </summary>
+    public string SteamClientPath { get; set; } = "";
+
+    /// <summary>How long to wait for Steam's answer on one ticket.</summary>
+    public int SteamCheckTimeoutSeconds { get; set; } = 15;
+
+    /// <summary>
+    /// How long a join pass stays valid, 60-180 seconds (Beacon.dll refuses anything that runs past 180). The app asks for
+    /// the pass right before it starts the game, so this has to cover the game's start-up to its first login check.
+    /// </summary>
+    public int PassLifetimeSeconds { get; set; } = 120;
+
+    /// <summary>Pass requests allowed per address per minute.</summary>
+    public int RequestsPerAddressPerMinute { get; set; } = 6;
+
+    /// <summary>Pass requests allowed per minute from everyone together.</summary>
+    public int RequestsPerMinute { get; set; } = 60;
+
+    /// <summary>
+    /// What happens when the game-side check is not installed (joins would go unchecked): "warn" (log + health only),
+    /// "stop-open-servers" (default: stop the game on a server with no join password, warn on one with a password),
+    /// "stop-all". Anything else counts as "stop-all".
+    /// </summary>
+    public string HookFailure { get; set; } = "stop-open-servers";
 }
 
 public sealed class ChatOptions

@@ -140,6 +140,43 @@ identity is what decides which world data you get back.
 - The rejoin path accepts both the old plain-digits external ids and the newer
   composite form, so worlds created before character selection existed still load.
 
+### Steam identity check
+
+Since 0.3.140 every remote join goes through `Beacon.dll`'s login check, with or
+without a join password.
+
+- Before the game starts, the app gets a Steam session ticket for Subnautica 2
+  and trades it at `POST /api/v1/identity/token` for a join pass. BeaconServer
+  checks the ticket with Steam through an anonymous Steam game-server sign-in and
+  signs the pass with a key the running game made at start-up and keeps only in
+  memory. A pass is good for 120 seconds (`Beacon:Identity:PassLifetimeSeconds`,
+  60 to 180) and lets one join in: the game checks each join twice about a second
+  apart, so the same pass passes once more for the same Steam ID within 10
+  seconds. The route takes 6 requests per address per minute and 60 per minute
+  in total.
+- The login check refuses a join that claims a Steam account without a valid
+  pass for that same Steam ID. A player whose app predates the check is told
+  "Beacon update needed: close and reopen the Beacon app, then join again.";
+  every other refusal reads "Join refused.".
+- Players on the Epic or Xbox app copy join under their typed name, with no
+  pass. `Beacon:BeaconNonSteamJoins` decides where: `password-servers` (the
+  default) only on a server with a join password, `refuse` never, `allow` on
+  every server. A name-only join never takes a save whose key starts with a
+  Steam ID.
+- The Steam sign-in needs Steam's client library, `steamclient64.dll`: the one
+  in the folder named by `Beacon:Identity:SteamClientPath`, else one beside
+  BeaconServer, else the installed Steam client's. A machine without Steam can
+  get it from Valve's Steamworks redistributable (app 1007, anonymous SteamCMD).
+  BeaconServer loads the game's own `steam_api64.dll`
+  (`Beacon:Identity:SteamApiPath` overrides it).
+- `GET /api/v1/health` reports `identity_check`: `on` once the game's login
+  check, its key and the Steam sign-in are all up, otherwise `not_active`, and
+  then no Steam player can get a pass. If the game's login check is not
+  installed at all, `Beacon:Identity:HookFailure` decides: `stop-open-servers`
+  (the default) stops the game on a server with no join password and writes
+  `identity-check-stopped.txt` beside its process-id files, `warn` only logs,
+  `stop-all` stops it on every server.
+
 ## Snapshots and restore
 
 BeaconServer watches the save directory and takes snapshots on change. A restore

@@ -62,6 +62,7 @@ public sealed class BeaconHttpService : BackgroundService
     private readonly PipeServerState _pipeState;
     private readonly InstanceIdentityProvider _identity;
     private readonly ChatService _chat;
+    private readonly JoinPassService? _joinPass;
     private readonly byte[] _authKey;
     private readonly SourceGuard _publicPerSource = new(maxPerSource: 16);
     private readonly SourceGuard _signedPerSource = new(maxPerSource: 4);
@@ -85,8 +86,10 @@ public sealed class BeaconHttpService : BackgroundService
         SaveOrchestratorService saves,
         PipeServerState pipeState,
         InstanceIdentityProvider identity,
-        ChatService chat)
+        ChatService chat,
+        JoinPassService? joinPass = null)
     {
+        _joinPass = joinPass;
         _log = log;
         _opts = opts.Value;
         _config = config;
@@ -337,7 +340,55 @@ public sealed class BeaconHttpService : BackgroundService
                     // (player chat and the map then refuse everyone).
                     chat_gate = _pipeState.ChatGate.State,
                     chat_gate_since_unix = _pipeState.ChatGate.DegradedSinceUnix,
+                    // Steam identity check at join (0.3.140+). Its presence tells the Beacon app to fetch a join pass
+                    // before it joins; "on" or "not_active" (the game's check, its key or Steam's login is not up).
+                    identity_check = _joinPass?.Status ?? "not_active",
                 });
+                return;
+            }
+
+            // Steam identity check at join: the Beacon app trades the player's Steam session ticket for a one-use
+            // join pass. Public (a player is not joined yet), limited per address and per minute in JoinPassService.
+            // Replies never repeat anything the caller sent.
+            if (method == "POST" && path == "/api/v1/identity/token")
+            {
+                var callerAddress = req.RemoteEndPoint?.Address?.ToString() ?? "";
+                if (_joinPass is null)
+                {
+                    await WriteJsonAsync(res, 503, new { error = "unavailable" });
+                    return;
+                }
+                IdentityTokenRequest? idReq = null;
+                try
+                {
+                    var idBody = await ReadShortBodyAsync(req, maxBytes: 8192, ct).ConfigureAwait(false);
+                    idReq = JsonSerializer.Deserialize<IdentityTokenRequest>(idBody, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                        PropertyNameCaseInsensitive = true,
+                    });
+                }
+                catch (BodyTooLargeException) { idReq = null; }
+                catch (JsonException) { idReq = null; }
+                var passResult = await _joinPass.RequestAsync(callerAddress, idReq?.SteamId, idReq?.Ticket, ct).ConfigureAwait(false);
+                switch (passResult.Outcome)
+                {
+                    case JoinPassOutcome.Issued:
+                        await WriteJsonAsync(res, 200, new { pass = passResult.Pass, expires_in_seconds = passResult.ExpiresInSeconds });
+                        break;
+                    case JoinPassOutcome.BadRequest:
+                        await WriteJsonAsync(res, 400, new { error = "bad request" });
+                        break;
+                    case JoinPassOutcome.RateLimited:
+                        await WriteJsonAsync(res, 429, new { error = "rate limited" });
+                        break;
+                    case JoinPassOutcome.Refused:
+                        await WriteJsonAsync(res, 403, new { error = "refused" });
+                        break;
+                    default:
+                        await WriteJsonAsync(res, 503, new { error = "unavailable" });
+                        break;
+                }
                 return;
             }
 
@@ -939,6 +990,7 @@ public sealed class BeaconHttpService : BackgroundService
         if (!VerifySignature(_authKey, method, path, ts, sigHeader, bodySha))
         {
             SourceGuard.Failure(source, SourceGuard.NowMs());
+            if (SourceGuard.TakeNotice() is { } tableNotice) _log.LogWarning("{Notice}", tableNotice);
             return false;
         }
         if (!TryRegisterSignature(sigHeader, ts, now)) return false;
@@ -1013,7 +1065,7 @@ public sealed class BeaconHttpService : BackgroundService
         if (method == "OPTIONS") return RequestPool.Public;
         if (method == "GET" && (PublicGetPaths.Contains(path) || path.StartsWith("/map/", StringComparison.Ordinal)))
             return RequestPool.Public;
-        if (method == "POST" && (path == "/api/v1/chat/player" || path == "/api/v1/map/position"))
+        if (method == "POST" && (path == "/api/v1/chat/player" || path == "/api/v1/map/position" || path == "/api/v1/identity/token"))
             return RequestPool.Public;
         if (hasBody && (contentLength < 0 || contentLength > SmallBodyMaxBytes))
             return RequestPool.Upload;
@@ -1241,6 +1293,8 @@ public sealed class BeaconHttpService : BackgroundService
     }
 
     private sealed class BodyTooLargeException : Exception { }
+
+    private sealed record IdentityTokenRequest(string? SteamId, string? Ticket);
 
     /// <summary>
     /// Best-effort one-shot of

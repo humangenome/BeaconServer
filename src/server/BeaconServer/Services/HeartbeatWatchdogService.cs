@@ -38,6 +38,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
     private DateTimeOffset _lastFailClosedWarnAt = DateTimeOffset.MinValue;
     private DateTimeOffset _lastPasswordInactiveWarnAt = DateTimeOffset.MinValue;
     internal static readonly TimeSpan PasswordInactiveWarnEvery = TimeSpan.FromMinutes(15);
+    private DateTimeOffset _lastIdentityInactiveWarnAt = DateTimeOffset.MinValue;
 
     public HeartbeatWatchdogService(
         ILogger<HeartbeatWatchdogService> log,
@@ -85,6 +86,7 @@ public sealed class HeartbeatWatchdogService : BackgroundService
             CheckHeartbeatStale();
             CheckDeadGameAfterFatal();
             CheckServerPasswordReady();
+            CheckIdentityCheckReady();
             CheckBeaconAuthLuaReady();
         }
         catch (Exception ex)
@@ -413,6 +415,90 @@ public sealed class HeartbeatWatchdogService : BackgroundService
                 conn.InstanceId, conn.PluginPid, (int)age.TotalSeconds);
         }
     }
+
+    // Steam identity check at join (0.3.140+): the plugin's login hook must be installed on every server. When it is
+    // not (heartbeat field 0 after the grace window), joins are not checked at all. Identity:HookFailure decides:
+    //   "warn"              - CRITICAL log every 15 minutes; /api/v1/health says identity_check "not_active".
+    //   "stop-open-servers" - (default) stop the game when the server has no join password (nothing else guards it),
+    //                         warn as above when it has one.
+    //   "stop-all"          - stop the game on every server.
+    // Any other value counts as "stop-all" (fail closed). A stop goes through the same path as the password fail-close.
+    private void CheckIdentityCheckReady()
+    {
+        var conn = _state.Connection;
+        if (conn is null) return;
+        if (_now() - conn.ConnectedAt < AuthGraceWindow) return;
+        if (_state.LastIdentityCheckReady != 0) return;
+
+        var mode = IdentityHookFailureMode(_opts.Identity.HookFailure);
+        var hasPassword = !string.IsNullOrEmpty(_opts.BeaconAuthPassword);
+        var stop = mode == "stop-all" || (mode == "stop-open-servers" && !hasPassword);
+        var now = _now();
+        if (!stop)
+        {
+            if (now - _lastIdentityInactiveWarnAt <= PasswordInactiveWarnEvery) return;
+            _lastIdentityInactiveWarnAt = now;
+            _log.LogCritical(
+                "The game-side Steam identity check is not active: joins are NOT being checked. The plugin log says why " +
+                "(beacon-plugin.log, 'hook NOT READY'), or the plugin is older than 0.3.140.");
+            return;
+        }
+
+        if (now - _lastIdentityInactiveWarnAt > TimeSpan.FromSeconds(15))
+        {
+            _lastIdentityInactiveWarnAt = now;
+            _log.LogCritical(
+                "FAIL-CLOSED: the game-side Steam identity check is not active (Identity:HookFailure={Mode}, join " +
+                "password {Password}); stopping Subnautica 2. The plugin log says why (beacon-plugin.log, 'hook NOT READY').",
+                mode, hasPassword ? "set" : "not set");
+        }
+        WriteIdentityStopMarker(mode, hasPassword);
+        try
+        {
+            _coordinator.KillSn2(TimeSpan.FromSeconds(10));
+            TryKillByPluginPid(conn.PluginPid);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "FAIL-CLOSED: KillSn2 / KillByPluginPid threw");
+        }
+    }
+
+    /// <summary>
+    /// The file the panel reads before any automatic restart: while it exists, the panel leaves this server stopped
+    /// and says why in its log instead of starting it again every few minutes (2026-11-06). Beside the
+    /// game's pid file (the server's Logs folder); the panel removes it when the owner or staff press Start.
+    /// </summary>
+    internal static string? IdentityStopMarkerPath(BeaconServerOptions opts)
+    {
+        if (string.IsNullOrWhiteSpace(opts.Sn2PidFile)) return null;
+        var dir = Path.GetDirectoryName(opts.Sn2PidFile);
+        return string.IsNullOrEmpty(dir) ? null : Path.Combine(dir, IdentityStopMarkerName);
+    }
+
+    internal const string IdentityStopMarkerName = "identity-check-stopped.txt";
+
+    private void WriteIdentityStopMarker(string mode, bool hasPassword)
+    {
+        var path = IdentityStopMarkerPath(_opts);
+        if (path is null || File.Exists(path)) return;
+        try
+        {
+            File.WriteAllText(path, $"{_now():yyyy-MM-ddTHH:mm:ssZ} identity check not active; HookFailure={mode}; " +
+                                    $"join password {(hasPassword ? "set" : "not set")}; stopped by BeaconServer\n");
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "FAIL-CLOSED: could not write {Marker}", IdentityStopMarkerName);
+        }
+    }
+
+    internal static string IdentityHookFailureMode(string? value) => (value ?? "").Trim().ToLowerInvariant() switch
+    {
+        "" or "stop-open-servers" => "stop-open-servers",
+        "warn" => "warn",
+        _ => "stop-all",
+    };
 
     private void CheckServerPasswordReady()
     {

@@ -21,12 +21,14 @@ public class HeartbeatWatchdogServiceTests
     }
 
     private static (HeartbeatWatchdogService Watchdog, PipeServerState State, CapturingLogger Log, Func<DateTimeOffset> Clock, Action<TimeSpan> Advance)
-        Create(string password = "secret")
+        Create(string password = "secret", string? hookFailure = null, string? pidFile = null)
     {
         var now = DateTimeOffset.UtcNow;
         var log = new CapturingLogger();
         var state = new PipeServerState(NullLogger<PipeServerState>.Instance);
-        var opts = Options.Create(new BeaconServerOptions { BeaconAuthPassword = password });
+        var o = new BeaconServerOptions { BeaconAuthPassword = password, Sn2PidFile = pidFile ?? "" };
+        if (hookFailure is not null) o.Identity.HookFailure = hookFailure;
+        var opts = Options.Create(o);
         var coordinator = new Sn2RestartCoordinator(NullLogger<Sn2RestartCoordinator>.Instance, opts);
         Func<DateTimeOffset> clock = () => now;
         var watchdog = new HeartbeatWatchdogService(log, state, coordinator, opts, clock);
@@ -256,5 +258,109 @@ public class HeartbeatWatchdogServiceTests
         advance(TimeSpan.FromMinutes(5));
         watchdog.RunChecks();
         DeadGame(log).Should().BeEmpty();
+    }
+
+    // ---------- Steam identity check not active (Security 12104, 2026-11-06: option 2) ----------
+
+    private static List<string> IdentityStops(CapturingLogger log) =>
+        log.Entries.Where(e => e.Level == LogLevel.Critical && e.Message.Contains("FAIL-CLOSED: the game-side Steam identity check")).Select(e => e.Message).ToList();
+
+    private static List<string> IdentityWarnings(CapturingLogger log) =>
+        log.Entries.Where(e => e.Level == LogLevel.Critical && e.Message.StartsWith("The game-side Steam identity check is not active")).Select(e => e.Message).ToList();
+
+    private static string TempPidFile()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "beacon-idstop-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "sn2.pid");
+    }
+
+    [Theory]
+    [InlineData(null, "stop-open-servers")]
+    [InlineData("", "stop-open-servers")]
+    [InlineData("Stop-Open-Servers", "stop-open-servers")]
+    [InlineData("warn", "warn")]
+    [InlineData("stop-all", "stop-all")]
+    [InlineData("typo", "stop-all")]
+    public void Hook_failure_setting_defaults_to_stopping_open_servers_and_unknown_fails_closed(string? value, string expected)
+    {
+        HeartbeatWatchdogService.IdentityHookFailureMode(value).Should().Be(expected);
+    }
+
+    [Fact]
+    public void An_open_server_whose_identity_check_is_not_active_is_stopped_and_left_a_marker()
+    {
+        var pid = TempPidFile();
+        try
+        {
+            var (watchdog, state, log, _, advance) = Create("", pidFile: pid);
+            state.SetConnection(Connection());
+            advance(TimeSpan.FromSeconds(25));
+            watchdog.RunChecks();
+            IdentityStops(log).Should().ContainSingle().Which.Should().Contain("join password not set");
+            var marker = Path.Combine(Path.GetDirectoryName(pid)!, HeartbeatWatchdogService.IdentityStopMarkerName);
+            File.Exists(marker).Should().BeTrue("the panel reads it and does not restart the server in a loop");
+            File.ReadAllText(marker).Should().Contain("identity check not active");
+            state.SetConnection(null);
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(pid)!, recursive: true); }
+    }
+
+    [Fact]
+    public void A_passworded_server_keeps_running_and_warns_once_per_window()
+    {
+        var pid = TempPidFile();
+        try
+        {
+            var (watchdog, state, log, _, advance) = Create("secret", pidFile: pid);
+            state.SetConnection(Connection());
+            state.LastServerPasswordConfigured = 1;
+            state.LastServerPasswordHookReady = 1;
+            advance(TimeSpan.FromSeconds(25));
+            watchdog.RunChecks();
+            advance(TimeSpan.FromSeconds(60));
+            watchdog.RunChecks();
+            IdentityStops(log).Should().BeEmpty();
+            IdentityWarnings(log).Should().ContainSingle();
+            File.Exists(Path.Combine(Path.GetDirectoryName(pid)!, HeartbeatWatchdogService.IdentityStopMarkerName)).Should().BeFalse();
+            state.SetConnection(null);
+        }
+        finally { Directory.Delete(Path.GetDirectoryName(pid)!, recursive: true); }
+    }
+
+    [Fact]
+    public void Stop_all_stops_a_passworded_server_too_and_warn_stops_nothing()
+    {
+        var (all, allState, allLog, _, allAdvance) = Create("secret", hookFailure: "stop-all");
+        allState.SetConnection(Connection());
+        allState.LastServerPasswordConfigured = 1;
+        allState.LastServerPasswordHookReady = 1;
+        allAdvance(TimeSpan.FromSeconds(25));
+        all.RunChecks();
+        IdentityStops(allLog).Should().ContainSingle();
+        allState.SetConnection(null);
+
+        var (warn, warnState, warnLog, _, warnAdvance) = Create("", hookFailure: "warn");
+        warnState.SetConnection(Connection());
+        warnAdvance(TimeSpan.FromSeconds(25));
+        warn.RunChecks();
+        IdentityStops(warnLog).Should().BeEmpty();
+        IdentityWarnings(warnLog).Should().ContainSingle();
+        warnState.SetConnection(null);
+    }
+
+    [Fact]
+    public void An_active_identity_check_or_the_grace_window_stops_nothing()
+    {
+        var (watchdog, state, log, _, advance) = Create("");
+        state.SetConnection(Connection());
+        watchdog.RunChecks();                       // inside the grace window
+        IdentityStops(log).Should().BeEmpty();
+        state.LastIdentityCheckReady = 1;
+        advance(TimeSpan.FromSeconds(25));
+        watchdog.RunChecks();
+        IdentityStops(log).Should().BeEmpty();
+        IdentityWarnings(log).Should().BeEmpty();
+        state.SetConnection(null);
     }
 }

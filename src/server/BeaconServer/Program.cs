@@ -1,6 +1,8 @@
 using BeaconServer.Configuration;
 using BeaconServer.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -46,6 +48,15 @@ public static class Program
             builder.Services.AddSingleton<HmacKeyService>();
             builder.Services.AddSingleton<PipeServerState>();
             builder.Services.AddSingleton<Sn2RestartCoordinator>();
+            // Steam identity check at join: the anonymous Steam game-server login starts with the first resolve (the web
+            // service below asks for JoinPassService at startup).
+            builder.Services.AddSingleton<ISteamTicketVerifier, SteamGameServerTicketVerifier>();
+            builder.Services.AddSingleton<JoinPassService>(sp => new JoinPassService(
+                sp.GetRequiredService<IOptions<BeaconServerOptions>>(),
+                sp.GetRequiredService<PipeServerState>(),
+                sp.GetRequiredService<InstanceIdentityProvider>(),
+                sp.GetRequiredService<ISteamTicketVerifier>(),
+                sp.GetRequiredService<ILogger<JoinPassService>>()));
 
             builder.Services.AddSingleton<SaveOrchestratorService>();
             builder.Services.AddSingleton<ChatService>();

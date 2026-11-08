@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.140] - unreleased
+
+### Changed
+
+- The server checks with Steam that each joining player is who they say they are, and refuses a join it cannot confirm. Players on the Epic or Xbox copy can join only servers that have a join password.
+
 ## [0.3.139] - 2026-11-05
 
 ### Fixed

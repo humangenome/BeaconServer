@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Reflection;
 using Beacon.Rcon;
 using FluentAssertions;
 using Xunit;
@@ -70,5 +72,77 @@ public sealed class SourceGuardTests : IDisposable
         guard.TryOpen("203.0.113.78").Should().BeTrue("another address has its own share");
         guard.Close(Ip);
         guard.TryOpen(Ip).Should().BeTrue();
+    }
+
+    // The failure table holds 4096 addresses before it makes room and 65536 at most.
+    private const int TableLimit = 4096;
+    private const int TableCeiling = 65536;
+
+    private static string Addr(int i) => $"10.{(i >> 16) & 255}.{(i >> 8) & 255}.{i & 255}";
+
+    private static void BlockNow(string source, long t)
+    {
+        for (var i = 0; i < SourceGuard.FailuresBeforeBlock; i++) SourceGuard.Failure(source, t);
+    }
+
+    private static int TrackedSources()
+    {
+        var field = typeof(SourceGuard).GetField("Fails", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return ((ICollection)field.GetValue(null)!).Count;
+    }
+
+    [Fact]
+    public void A_flood_of_new_addresses_never_lifts_an_active_block()
+    {
+        const long t = 1_000_000;
+        BlockNow(Ip, t);
+        for (var i = 0; i < TableLimit * 3; i++) SourceGuard.Failure(Addr(i), t + 1);
+
+        SourceGuard.BlockedSeconds(Ip, t + 2).Should().Be(60, "wrong tries from many new addresses must not lift a block");
+        TrackedSources().Should().BeLessThanOrEqualTo(TableLimit, "addresses that are not blocked make room for new ones");
+    }
+
+    [Fact]
+    public void The_longest_quiet_addresses_that_are_not_blocked_make_room_first()
+    {
+        const long t = 1_000_000;
+        for (var i = 0; i < TableLimit - 1; i++) SourceGuard.Failure(Addr(i), t);
+        for (var i = 0; i < SourceGuard.FailuresBeforeBlock - 1; i++) SourceGuard.Failure(Ip, t + 5_000);
+
+        SourceGuard.Failure(Addr(TableLimit), t + 5_001);
+        SourceGuard.Failure(Ip, t + 5_002).Should().BeTrue("the newest guesser keeps its count; the oldest rows go");
+    }
+
+    [Fact]
+    public void A_table_full_of_blocks_keeps_every_block_until_the_ceiling_then_drops_the_one_nearest_to_running_out()
+    {
+        const long t = 1_000_000;
+        BlockNow(Ip, t);
+        for (var i = 0; i < TableCeiling - 1; i++) BlockNow(Addr(i), t + 1_000);
+
+        TrackedSources().Should().Be(TableCeiling, "every block is kept while the table grows");
+        SourceGuard.BlockedSeconds(Ip, t + 2_000).Should().BeGreaterThan(0);
+        SourceGuard.BlockedSeconds(Addr(0), t + 2_000).Should().BeGreaterThan(0);
+
+        const string newcomer = "198.51.100.9";
+        BlockNow(newcomer, t + 2_000);
+        TrackedSources().Should().Be(TableCeiling, "the table never grows past its ceiling");
+        SourceGuard.BlockedSeconds(newcomer, t + 2_000).Should().BeGreaterThan(0);
+        SourceGuard.BlockedSeconds(Ip, t + 2_000).Should().Be(0, "at the ceiling the block nearest to running out makes way");
+        SourceGuard.BlockedSeconds(Addr(0), t + 2_000).Should().BeGreaterThan(0);
+        SourceGuard.BlockedSeconds(Addr(TableCeiling - 2), t + 2_000).Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void A_table_full_of_blocks_logs_one_line_with_no_address_in_it()
+    {
+        const long t = 1_000_000;
+        for (var i = 0; i < TableLimit; i++) BlockNow(Addr(i), t);
+        SourceGuard.TakeNotice().Should().BeNull("the table is full but has not had to grow yet");
+
+        for (var i = TableLimit; i < TableLimit + 600; i++) BlockNow(Addr(i), t);
+        SourceGuard.TakeNotice().Should().Be(
+            "auth table full: all 4096 tracked addresses are blocked; every block is kept (up to 65536)");
+        SourceGuard.TakeNotice().Should().BeNull("one line, not one per address");
     }
 }

@@ -70,6 +70,8 @@ Routes, all under `/api/v1` unless noted:
 **Public (no signature):**
 
 - `GET /health`: instance, version, ports, player count, plugin status, and `chat_gate`: `"ok"`, or `"no_connections_seen"` when players have been on for 10 minutes but no game connection could be read from the game log (player chat and the live map then refuse everyone; `chat_gate_since_unix` says since when, otherwise `null`). Stopgap while it reads `no_connections_seen`: `Beacon:Chat:PublicRead` and `Beacon:Map:Public`.
+- `GET /health` also reports `identity_check` (`on` or `not_active`; see "Steam identity check" in `docs/RUNTIME.md`).
+- `POST /identity/token`: the app trades a Steam session ticket for a join pass (6 requests per address per minute, 60 per minute in total)
 - `GET /players`: connected players as JSON
 - `GET /manifest`: the server's mod manifest
 - `GET /chat/motd`: the MOTD

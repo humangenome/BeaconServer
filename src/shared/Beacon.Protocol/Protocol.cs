@@ -33,6 +33,9 @@ public enum FrameType : byte
     PlayerListSnapshot = 12,
     JoinTicketRequest = 20,
     JoinTicketResponse = 21,
+    // plugin -> server: the per-boot key BeaconServer signs join passes with (Steam identity check, 0.3.140).
+    // Made in the game process, kept in memory only on both sides, never logged.
+    IdentityKey = 22,
     RconCommand = 30,
     RconResult = 31,
     BroadcastChat = 32,
@@ -97,7 +100,18 @@ public record HeartbeatMessage(
     // 1 = native ApproveLogin hook installed and ready to gate joins,
     // 0 = native hook failed to install OR legacy 3-field heartbeat.
     // Server fails closed (stop SN2) when Configured=1 && HookReady=0.
-    [property: Key(4)] int ServerPasswordHookReady = 0);
+    [property: Key(4)] int ServerPasswordHookReady = 0,
+    // 1 = the native login hook is installed with the Steam identity check on (0.3.140+),
+    // 0 = not installed, or an older plugin that does not send this field.
+    [property: Key(5)] int IdentityCheckReady = 0);
+
+/// <summary>
+/// The key BeaconServer signs join passes with: 32 random bytes as 64 lowercase hex characters, made by
+/// Beacon.dll once per game process. Memory only on both sides; never logged.
+/// </summary>
+[MessagePackObject]
+public record IdentityKeyMessage(
+    [property: Key(0)] string KeyHex);
 
 [MessagePackObject]
 public record LogForwardMessage(

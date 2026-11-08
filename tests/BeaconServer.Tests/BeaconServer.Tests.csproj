@@ -3,6 +3,8 @@
     <RootNamespace>BeaconServer.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- SteamGameServerExportsTests hands the verifier real native entry points (UnmanagedCallersOnly) as fake Steam exports. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

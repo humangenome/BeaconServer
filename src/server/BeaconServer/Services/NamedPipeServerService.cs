@@ -236,6 +236,24 @@ public sealed class NamedPipeServerService : BackgroundService
                     _state.LastReportedPlayerCount = hb.InGamePlayerCount;
                     _state.LastServerPasswordConfigured = hb.ServerPasswordConfigured;
                     _state.LastServerPasswordHookReady = hb.ServerPasswordHookReady;
+                    if (connection is not null) _state.LastIdentityCheckReady = hb.IdentityCheckReady;
+                    return connection;
+                }
+
+            case FrameType.IdentityKey:
+                {
+                    // Only from an accepted connection. The key itself is never logged.
+                    if (connection is null) return connection;
+                    var ik = codec.DeserializePayload<IdentityKeyMessage>(payload);
+                    var key = JoinPassService.TryParseKeyHex(ik.KeyHex);
+                    if (key is null)
+                    {
+                        _log.LogWarning("Identity: the plugin sent a join-pass key of the wrong shape; ignored");
+                        return connection;
+                    }
+                    var first = _state.IdentityKeyCopy() is null;
+                    _state.SetIdentityKey(key);
+                    if (first) _log.LogInformation("Identity: join-pass key received from the game");
                     return connection;
                 }
 

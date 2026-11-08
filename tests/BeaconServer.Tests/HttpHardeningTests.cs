@@ -31,6 +31,7 @@ public class HttpHardeningTests
     [InlineData("GET", "/map/index.html", false, 0, "Public")]
     [InlineData("POST", "/api/v1/chat/player", true, 100, "Public")]
     [InlineData("POST", "/api/v1/map/position", true, 100, "Public")]
+    [InlineData("POST", "/api/v1/identity/token", true, 600, "Public")]
     [InlineData("OPTIONS", "/api/v1/snapshots", false, 0, "Public")]
     [InlineData("GET", "/api/v1/snapshots", false, 0, "Signed")]
     [InlineData("POST", "/api/v1/chat/say", true, 200, "Signed")]
