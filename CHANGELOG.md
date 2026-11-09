@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.141] - 2026-11-09
+
+### Changed
+
+- No server changes. This version keeps the server in step with Beacon 0.3.141.
+
 ## [0.3.140] - 2026-11-08
 
 ### Changed
