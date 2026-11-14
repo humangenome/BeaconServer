@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.142] - 2026-11-14
+
+### Fixed
+
+- Server backup fixes.
+
 ## [0.3.141] - 2026-11-09
 
 ### Changed
