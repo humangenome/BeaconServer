@@ -61,6 +61,9 @@ public static class Program
             builder.Services.AddSingleton<SaveOrchestratorService>();
             builder.Services.AddSingleton<ChatService>();
             builder.Services.AddSingleton<CommandDispatchService>();
+            builder.Services.AddSingleton<GameSaveSignals>();
+            builder.Services.AddSingleton<IHostCommandRunner, ModKitHostCommandRunner>();
+            builder.Services.AddSingleton<WorldSaveService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SaveOrchestratorService>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatService>());
             builder.Services.AddHostedService(sp => sp.GetRequiredService<CommandDispatchService>());
@@ -72,6 +75,9 @@ public static class Program
             builder.Services.AddHostedService<Sn2LogTailService>();
             builder.Services.AddHostedService<BeaconHttpService>();
             builder.Services.AddHostedService<RosterFileWatcherService>();
+            // Last, so it stops first: its save before a stop needs the game, the log tail and the
+            // command queue still running.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<WorldSaveService>());
 
             var host = builder.Build();
 

@@ -26,7 +26,7 @@ public sealed class RconServer : IDisposable
 {
     private readonly TcpListener _listener;
     private readonly string _password;
-    private readonly Func<string, Task<string>> _commandExecutor;
+    private readonly Func<string, string, Task<string>> _commandExecutor;
     private readonly ILogger? _log;
     private CancellationTokenSource? _cts;
     private Task? _acceptLoop;
@@ -34,6 +34,11 @@ public sealed class RconServer : IDisposable
     private readonly SourceGuard _guard = new(maxPerSource: 3);
 
     public RconServer(int port, string password, Func<string, Task<string>> commandExecutor, ILogger? log = null)
+        : this(port, password, (command, _) => commandExecutor(command), log) { }
+
+    /// <param name="commandExecutor">Runs one command: (command text, the caller's address as
+    /// <see cref="SourceGuard.SourceOf"/> gives it).</param>
+    public RconServer(int port, string password, Func<string, string, Task<string>> commandExecutor, ILogger? log = null)
     {
         _listener = new TcpListener(IPAddress.Any, port);
         _password = password;
@@ -135,7 +140,7 @@ public sealed class RconServer : IDisposable
 
                     if (type == 2)
                     {
-                        var output = await _commandExecutor(body).ConfigureAwait(false);
+                        var output = await _commandExecutor(body, source).ConfigureAwait(false);
                         await WritePacketAsync(stream, id, 0, output, ct).ConfigureAwait(false);
                     }
                     else

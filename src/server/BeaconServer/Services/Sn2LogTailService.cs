@@ -100,11 +100,15 @@ public sealed class Sn2LogTailService : BackgroundService
     // True once the existing log has been read (lines after that count as live). Tests wait on it instead of a fixed delay.
     internal bool TailReadyForPlayerEvents => _tailReadyForPlayerEvents;
 
-    public Sn2LogTailService(ILogger<Sn2LogTailService> log, IOptions<BeaconServerOptions> opts, PipeServerState state)
+    private readonly GameSaveSignals? _saves;
+
+    public Sn2LogTailService(ILogger<Sn2LogTailService> log, IOptions<BeaconServerOptions> opts, PipeServerState state,
+        GameSaveSignals? saves = null)
     {
         _log = log;
         _opts = opts.Value;
         _state = state;
+        _saves = saves;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -198,6 +202,10 @@ public sealed class Sn2LogTailService : BackgroundService
             _log.LogCritical("[Subnautica 2] the game hit a fatal error; health now reads it as down: {Line}",
                 line.Length > 300 ? line[..300] : line);
         }
+
+        // The game's finished-save line comes from its analytics category, which is not passed
+        // through below; the world-save service needs every one. Live lines only.
+        if (trackPlayerEvents && _saves is not null) _saves.Observe(line, Clock());
 
         // Existing logs can survive game updates, so keep the newest build
         // banner seen during the initial catch-up pass instead of pinning the

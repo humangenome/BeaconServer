@@ -130,6 +130,12 @@ public sealed class CommandDispatchService : BackgroundService
         if (string.IsNullOrEmpty(name)) return null;
         if (!_registry.TryGetValue(name, out var adminOnly)) return null;  // not a mod command
 
+        // BeaconServer's own world-save commands: never queued for a player, an RCON user or
+        // anyone else (the mod refuses them too). RCON has "save world", which goes through
+        // BeaconServer's rules.
+        if (IsHostOnly(name) && caller.Kind != "host")
+            return $"refused: /{name} is for BeaconServer itself";
+
         if (adminOnly && !caller.IsAdmin)
             return $"not authorized: /{name} is admin-only";
 
@@ -168,6 +174,11 @@ public sealed class CommandDispatchService : BackgroundService
         _log.LogDebug("No reply for /{Name} after re-queue (ids {Id1},{Id2})", name, id, retryId);
         return "(no response from mod)";
     }
+
+    /// <summary>Commands only BeaconServer itself may send (the BeaconWorldSave server mod's).</summary>
+    public static bool IsHostOnly(string? name) =>
+        string.Equals(name, WorldSaveService.SaveCommand, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, WorldSaveService.AutosaveCommand, StringComparison.OrdinalIgnoreCase);
 
     // ---------- test seams (InternalsVisibleTo BeaconServer.Tests) ----------
 
@@ -444,7 +455,7 @@ public static class SlashCommand
 /// </summary>
 public sealed class CallerInfo
 {
-    public string Kind { get; init; } = "unknown";   // "rcon" | "chat" | "http" | "console"
+    public string Kind { get; init; } = "unknown";   // "rcon" | "chat" | "http" | "console" | "host"
     public string? Name { get; init; }
     public string? SteamId { get; init; }
     public bool IsAdmin { get; init; }
@@ -454,4 +465,11 @@ public sealed class CallerInfo
 
     public static CallerInfo Chat(string sender, string? steamId, bool isAdmin) =>
         new() { Kind = "chat", Name = sender, SteamId = steamId, IsAdmin = isAdmin };
+
+    /// <summary>
+    /// BeaconServer itself. Only BeaconServer writes the command queue, so a mod can trust this kind: the
+    /// world-save module's commands answer it and refuse every other caller, RCON and chat included.
+    /// </summary>
+    public static CallerInfo Host() =>
+        new() { Kind = "host", Name = "BeaconServer", IsAdmin = true };
 }

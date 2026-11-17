@@ -635,9 +635,9 @@ public sealed class BeaconHttpService : BackgroundService
                 }
                 var peer = ResolvePositionPeer(posPeers, posReq.Id, posReq.Name);
                 if (peer is not null)
-                    _pipeState.UpsertClientPosition(peer.Id, peer.Name, posReq.X, posReq.Y, posReq.Z);
+                    _pipeState.UpsertClientPosition(peer.Id, peer.Name, posReq.X, posReq.Y, posReq.Z, posReq.Heading);
                 else if (posPeers.Count == 0 && posLocal)
-                    _pipeState.UpsertClientPosition(posReq.Id, posReq.Name ?? posReq.Id, posReq.X, posReq.Y, posReq.Z);
+                    _pipeState.UpsertClientPosition(posReq.Id, posReq.Name ?? posReq.Id, posReq.X, posReq.Y, posReq.Z, posReq.Heading);
                 else
                 {
                     await WriteJsonAsync(res, 403, new { error = "position is not for a player at this address" });
@@ -1427,6 +1427,9 @@ public sealed class BeaconHttpService : BackgroundService
     /// fast path) and movement (via active-engine tick when a player is
     /// in-world), so we co-locate position publishing with it.
     /// </summary>
+    // Every row carries "heading" (MapHeading: whole degrees 0-359, the way the
+    // player looks), null when it is not known: a roster-only player (no app
+    // position, so no body to read) or an app that does not send one yet.
     internal static object[] MergeMapPlayers(
         IReadOnlyList<PipeServerState.ClientPosition> clientPositions,
         IReadOnlyList<PlayerSnapshot> roster)
@@ -1437,13 +1440,13 @@ public sealed class BeaconHttpService : BackgroundService
         {
             var name = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name;
             placed.Add(name);
-            rows.Add(new { id = p.Id, name, x = p.X, y = p.Y, z = p.Z, biome = "" });
+            rows.Add(new { id = p.Id, name, x = p.X, y = p.Y, z = p.Z, biome = "", heading = p.Heading });
         }
         foreach (var p in roster)
         {
             var name = string.IsNullOrEmpty(p.DisplayName) ? p.BeaconUserId : p.DisplayName;
             if (placed.Contains(name)) continue;
-            rows.Add(new { id = p.BeaconUserId, name, x = p.PosX, y = p.PosY, z = p.PosZ, biome = "" });
+            rows.Add(new { id = p.BeaconUserId, name, x = p.PosX, y = p.PosY, z = p.PosZ, biome = "", heading = (int?)null });
         }
         return rows.ToArray();
     }
@@ -1558,6 +1561,8 @@ public sealed class BeaconHttpService : BackgroundService
         public double X { get; set; }
         public double Y { get; set; }
         public double Z { get; set; }
+        /// <summary>Yaw in degrees, any range; stored as MapHeading (0-359). Absent or null = not known.</summary>
+        public double? Heading { get; set; }
     }
 
     private static async Task<string> ReadShortBodyAsync(HttpListenerRequest req, int maxBytes, CancellationToken ct)

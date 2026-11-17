@@ -148,6 +148,38 @@ public sealed class BeaconServerOptions
 
     /// <summary>Live web map. See protocol/map-v1.md.</summary>
     public MapOptions Map { get; set; } = new();
+
+    /// <summary>World saves made by Beacon itself: before a stop, and optionally in place of the game's autosave.</summary>
+    public SavesOptions Saves { get; set; } = new();
+}
+
+public sealed class SavesOptions
+{
+    /// <summary>
+    /// 0 (default) leaves the game's own autosave (every 2 minutes) alone. A number of minutes (5-60) hands
+    /// saving to Beacon once the game has autosaved by itself: Beacon saves the world once, and only when that
+    /// save lands does it switch the game's autosave off. From then on Beacon saves every this many minutes
+    /// while players have been on, after players leave, and before every stop. If one of Beacon's saves does
+    /// not land, the game's autosave is switched back on for the rest of the run. A crash can lose up to this
+    /// many minutes of play instead of up to 2.
+    /// </summary>
+    public int HostSaveEveryMinutes { get; set; } = 0;
+
+    /// <summary>
+    /// How the game's autosave is switched off and on: "console" (default; the game's ToggleAutoSave command,
+    /// sent only right after the game has just autosaved, so it is known to be on) or "setting" (the game's
+    /// debug autosave setting, set and read back).
+    /// </summary>
+    public string AutosaveSwitch { get; set; } = "console";
+
+    /// <summary>
+    /// How long a stop waits for its world save, 5-20 seconds (RCON "save world" without a number, and
+    /// BeaconServer's own stop).
+    /// </summary>
+    public int SaveBeforeStopTimeoutSeconds { get; set; } = 20;
+
+    /// <summary>A save that has not landed after this many seconds counts as failed.</summary>
+    public int SaveConfirmSeconds { get; set; } = 60;
 }
 
 public sealed class IdentityOptions

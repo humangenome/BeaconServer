@@ -3,6 +3,14 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.143] - 2026-11-17
+
+### Added
+
+- RCON `save world` saves the world now and answers once the save is on disk, for example `world saved in 1.4 s`. `save status` tells you when the world was last saved.
+- When BeaconServer stops the game, it saves the world first. A stop used to keep only the game's last autosave.
+- The live map's player list says which way each player is looking, for map tools that draw an arrow. It needs players on this version of the app.
+
 ## [0.3.142] - 2026-11-14
 
 ### Fixed

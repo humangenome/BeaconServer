@@ -76,6 +76,33 @@ public class RconTests
         }
     }
 
+    // The command runner is told where the caller is: "save world" holds an owner (from outside the
+    // machine) to one save per 30 s and lets a hosting panel on the machine itself save before a stop.
+    [Fact]
+    public async Task The_command_runner_is_told_the_caller_s_address()
+    {
+        string? seen = null;
+        using var server = new RconServer(0, "secret", (cmd, source) => { seen = source; return Task.FromResult("ok"); });
+        server.Start(CancellationToken.None);
+        try
+        {
+            using var client = new TcpClient();
+            await client.ConnectAsync("127.0.0.1", server.BoundPort);
+            var stream = client.GetStream();
+            await WritePacketAsync(stream, 1, 3, "secret");
+            (await ReadPacketAsync(stream)).Should().NotBeNull();
+            (await ReadPacketAsync(stream))!.Value.id.Should().Be(1);
+            await WritePacketAsync(stream, 2, 2, "save world 20");
+            (await ReadPacketAsync(stream))!.Value.body.Should().Be("ok");
+            seen.Should().Be("127.0.0.1");
+            SourceGuard.IsLoopback(seen!).Should().BeTrue();
+        }
+        finally
+        {
+            await server.StopAsync();
+        }
+    }
+
     [Fact]
     public async Task Wrong_password_closes_connection_with_neg1()
     {

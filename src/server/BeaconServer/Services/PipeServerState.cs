@@ -301,11 +301,12 @@ public sealed class PipeServerState
     // ── Client-reported map positions ──────────────────────────────────────
     // A headless SN2 server can't read a remote player's world position (the
     // player is simulated client-side), so each connected launcher pushes its
-    // own {id, name, x, y, z} to POST /api/v1/map/position. The live web map
-    // reads these via /api/v1/map/state. Entries expire so a disconnected
-    // client drops off the map.
+    // own {id, name, x, y, z, heading} to POST /api/v1/map/position. The live
+    // web map reads these via /api/v1/map/state. Entries expire so a
+    // disconnected client drops off the map. Heading is the way the player
+    // looks (MapHeading: whole degrees 0-359), null when the app sent none.
     public readonly record struct ClientPosition(
-        string Id, string Name, double X, double Y, double Z, long UnixMs);
+        string Id, string Name, double X, double Y, double Z, long UnixMs, int? Heading = null);
     private readonly Dictionary<string, ClientPosition> _clientPositions =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly object _clientPosGate = new();
@@ -319,7 +320,7 @@ public sealed class PipeServerState
     private const int MaxPositionNameLength = 64;
     private static readonly long PositionFloodTtlMs = (long)TimeSpan.FromSeconds(30).TotalMilliseconds;
 
-    public void UpsertClientPosition(string id, string name, double x, double y, double z)
+    public void UpsertClientPosition(string id, string name, double x, double y, double z, double? heading = null)
     {
         if (string.IsNullOrWhiteSpace(id) || id.Length > MaxPositionIdLength) return;
         if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z)) return;
@@ -339,7 +340,8 @@ public sealed class PipeServerState
                     _clientPositions.Remove(key);
                 if (_clientPositions.Count >= MaxClientPositions) return;
             }
-            _clientPositions[id] = new ClientPosition(id, name ?? "", x, y, z, now);
+            _clientPositions[id] = new ClientPosition(id, name ?? "", x, y, z, now,
+                MapHeading.Normalize(heading));
         }
     }
 

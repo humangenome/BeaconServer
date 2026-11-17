@@ -20,6 +20,7 @@ public sealed class RconHostedService : IHostedService
     private readonly SaveOrchestratorService _saves;
     private readonly ChatService _chat;
     private readonly CommandDispatchService _commands;
+    private readonly WorldSaveService? _worldSaves;
     private RconServer? _server;
 
     public RconHostedService(
@@ -28,7 +29,8 @@ public sealed class RconHostedService : IHostedService
         PipeServerState state,
         SaveOrchestratorService saves,
         ChatService chat,
-        CommandDispatchService commands)
+        CommandDispatchService commands,
+        WorldSaveService? worldSaves = null)
     {
         _log = log;
         _opts = opts.Value;
@@ -36,6 +38,7 @@ public sealed class RconHostedService : IHostedService
         _saves = saves;
         _chat = chat;
         _commands = commands;
+        _worldSaves = worldSaves;
     }
 
     public Task StartAsync(CancellationToken ct)
@@ -45,7 +48,7 @@ public sealed class RconHostedService : IHostedService
             _log.LogWarning("RCON disabled (no password set in Beacon:RconPassword)");
             return Task.CompletedTask;
         }
-        _server = new RconServer(_opts.RconPort, _opts.RconPassword, ExecuteAsync, _log);
+        _server = new RconServer(_opts.RconPort, _opts.RconPassword, (command, source) => ExecuteAsync(command, source), _log);
         _server.Start(ct);
         _log.LogInformation("RCON listening on TCP {Port}", _server.BoundPort);
         return Task.CompletedTask;
@@ -56,7 +59,9 @@ public sealed class RconHostedService : IHostedService
         if (_server is not null) await _server.StopAsync().ConfigureAwait(false);
     }
 
-    private async Task<string> ExecuteAsync(string command)
+    // source: the caller's address. A caller on this machine (a hosting panel before a stop) is not
+    // held to the owner's one-save-per-30-s gap; one from outside is.
+    private async Task<string> ExecuteAsync(string command, string source)
     {
         var trimmed = command.Trim();
         if (string.IsNullOrEmpty(trimmed)) return "";
@@ -78,12 +83,12 @@ public sealed class RconHostedService : IHostedService
 
         switch (head)
         {
-            case "help":     return "commands: status, players, ping, save snapshot, save list, say <msg>, announce <msg>, motd [msg], /<modcmd> [args]";
+            case "help":     return "commands: status, players, ping, save world [seconds], save status, save snapshot, save list, say <msg>, announce <msg>, motd [msg], /<modcmd> [args]";
             case "status":   return BuildStatus();
             case "players":  return BuildPlayers();
             case "ping":     return "pong";
-            case "save":     return await HandleSaveAsync(rest).ConfigureAwait(false);
-            case "snapshot": return await HandleSaveAsync("snapshot").ConfigureAwait(false);
+            case "save":     return await HandleSaveAsync(rest, source).ConfigureAwait(false);
+            case "snapshot": return await HandleSaveAsync("snapshot", source).ConfigureAwait(false);
             case "say":      return HandleChat(rest, "system");
             case "announce": return HandleChat(rest, "admin");
             case "motd":     return HandleMotd(rest);
@@ -129,7 +134,7 @@ public sealed class RconHostedService : IHostedService
         return _chat.SetMotd(trimmed) ? "motd updated" : "motd update failed (check log)";
     }
 
-    private async Task<string> HandleSaveAsync(string sub)
+    private async Task<string> HandleSaveAsync(string sub, string source)
     {
         var arg = sub.Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(arg) || arg == "snapshot")
@@ -145,6 +150,14 @@ public sealed class RconHostedService : IHostedService
                 ? "snapshot failed (check beacon log; save dir likely missing)"
                 : $"snapshot ok: {rec.SnapshotId} ({rec.SizeBytes} bytes, sha={rec.Sha256Hex[..16]})";
         }
+        if (arg == "world" || arg.StartsWith("world ", StringComparison.Ordinal))
+        {
+            return await HandleWorldSaveAsync(arg[5..].Trim(), !Beacon.Rcon.SourceGuard.IsLoopback(source)).ConfigureAwait(false);
+        }
+        if (arg == "status")
+        {
+            return _worldSaves is null ? "world saves are not available in this build" : await _worldSaves.StatusAsync().ConfigureAwait(false);
+        }
         if (arg == "list")
         {
             var snaps = _saves.Database.ListSnapshots(20);
@@ -154,7 +167,46 @@ public sealed class RconHostedService : IHostedService
                 sb.AppendLine($"{s.SnapshotId}  {s.SizeBytes}B  age={(DateTimeOffset.UtcNow.ToUnixTimeSeconds() - s.TakenUnix)}s  sha={s.Sha256Hex[..16]}");
             return sb.ToString().TrimEnd();
         }
-        return "usage: save snapshot | save list";
+        return "usage: save world [seconds] | save status | save snapshot | save list";
+    }
+
+    // "save world [seconds]": the game saves the world now, and the reply comes once the save has
+    // landed. A hosting panel sends it before it stops the game; the reply starts with
+    // "world saved" only when the save was confirmed (or one landed less than 30 s ago).
+    private async Task<string> HandleWorldSaveAsync(string secondsArg, bool ownerAsked)
+    {
+        if (_worldSaves is null) return "world save not confirmed: world saves are not available in this build";
+        var (seconds, note) = WorldSaveSeconds(secondsArg, _opts.Saves?.SaveBeforeStopTimeoutSeconds ?? 20);
+        var outcome = await _worldSaves.SaveNowAsync("save world (RCON)", TimeSpan.FromSeconds(seconds), ownerAsked: ownerAsked).ConfigureAwait(false);
+        return FormatWorldSave(outcome) + note;
+    }
+
+    /// <summary>The wait for "save world [seconds]": 5-20 s; anything else is held to that and the reply says so.</summary>
+    internal static (int Seconds, string Note) WorldSaveSeconds(string arg, int configured)
+    {
+        var dflt = Math.Clamp(configured, MinWorldSaveSeconds, MaxWorldSaveSeconds);
+        arg = (arg ?? "").Trim();
+        if (arg.Length == 0) return (dflt, "");
+        if (!int.TryParse(arg, out var asked)) return (dflt, $" (not a number of seconds, used {dflt} s)");
+        var used = Math.Clamp(asked, MinWorldSaveSeconds, MaxWorldSaveSeconds);
+        return used == asked ? (used, "") : (used, $" (asked {asked} s, used {used} s: the wait is {MinWorldSaveSeconds}-{MaxWorldSaveSeconds} s)");
+    }
+
+    internal const int MinWorldSaveSeconds = 5;
+    internal const int MaxWorldSaveSeconds = 20;
+
+    internal static string FormatWorldSave(SaveOutcome outcome)
+    {
+        switch (outcome.Kind)
+        {
+            case SaveOutcomeKind.Recent:
+                return $"world saved {Math.Max(0, (int)Math.Round((outcome.Ago ?? TimeSpan.Zero).TotalSeconds))} s ago (one save on request per 30 s, so no new save)";
+            case SaveOutcomeKind.TooSoon:
+                return $"world save skipped: {outcome.How}; ask again in {Math.Max(1, (int)Math.Ceiling((outcome.NextIn ?? TimeSpan.Zero).TotalSeconds))} s";
+        }
+        if (outcome.Saved) return $"world saved in {outcome.Took.TotalSeconds:0.0} s ({outcome.How})";
+        if (outcome.How == "the game is not running") return "world save skipped: the game is not running";
+        return $"world save not confirmed: {outcome.How}";
     }
 
     private string BuildStatus()

@@ -126,6 +126,85 @@ public class CommandDispatchServiceTests : IDisposable
         _svc.RegistryForTest.Should().BeEmpty();
     }
 
+    // ---- BeaconServer's own world-save commands (Security terms, 2026-11-13) ----
+
+    [Theory]
+    [InlineData("beacon_world_save")]
+    [InlineData("beacon_autosave")]
+    [InlineData("BEACON_AUTOSAVE")]
+    public async Task Host_only_commands_from_RCON_are_refused_and_nothing_is_queued(string name)
+    {
+        WriteCommandsFile(("beacon_world_save", true), ("beacon_autosave", true));
+        var reply = await _svc.DispatchAsync(name, new[] { "off" }, name + " off", CallerInfo.Rcon());
+        reply.Should().StartWith("refused: /").And.Contain("is for BeaconServer itself");
+        File.Exists(_svc.QueuePathForTest).Should().BeFalse("a refused command never reaches the mod");
+    }
+
+    [Theory]
+    [InlineData("beacon_world_save", "")]
+    [InlineData("beacon_autosave", "toggle")]
+    [InlineData("beacon_autosave", "on")]
+    [InlineData("beacon_autosave", "off")]
+    public async Task Host_only_commands_from_a_players_chat_are_refused_even_for_an_admin(string name, string arg)
+    {
+        WriteCommandsFile(("beacon_world_save", true), ("beacon_autosave", true));
+        var reply = await _svc.DispatchAsync(name, arg.Length == 0 ? Array.Empty<string>() : new[] { arg },
+            ("/" + name + " " + arg).Trim(), CallerInfo.Chat("Drew", "76561198000000000", isAdmin: true));
+        reply.Should().StartWith("refused: /");
+        File.Exists(_svc.QueuePathForTest).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Host_only_commands_from_BeaconServer_reach_the_mod_as_caller_kind_host()
+    {
+        WriteCommandsFile(("beacon_world_save", true), ("beacon_autosave", true));
+        string? kind = null;
+        // One "ModKit" pass that reads the entry it drains (no second reader racing it for the file).
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var mod = Task.Run(async () =>
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                try
+                {
+                    if (File.Exists(_svc.QueuePathForTest))
+                    {
+                        var doc = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(_svc.QueuePathForTest));
+                        if (doc.TryGetProperty("queue", out var q) && q.ValueKind == JsonValueKind.Array && q.GetArrayLength() > 0)
+                        {
+                            foreach (var e in q.EnumerateArray())
+                            {
+                                kind = e.GetProperty("caller").GetProperty("kind").GetString();
+                                var id = e.GetProperty("id").GetString() ?? "";
+                                File.WriteAllText(Path.Combine(_svc.RepliesDirForTest, id + ".json"),
+                                    JsonSerializer.Serialize(new { id, reply = "ok", error = (string?)null, ts = 1L }));
+                            }
+                            File.WriteAllText(_svc.QueuePathForTest, "{\"version\":1,\"queue\":[]}");
+                            return;
+                        }
+                    }
+                }
+                catch (IOException) { }
+                catch (JsonException) { }
+                try { await Task.Delay(10, cts.Token); } catch (OperationCanceledException) { return; }
+            }
+        });
+        var reply = await _svc.DispatchAsync("beacon_autosave", new[] { "status" }, "beacon_autosave status", CallerInfo.Host());
+        await mod;
+        reply.Should().Be("ok");
+        kind.Should().Be("host");
+    }
+
+    [Fact]
+    public void Only_the_world_save_mods_commands_are_host_only()
+    {
+        CommandDispatchService.IsHostOnly("beacon_world_save").Should().BeTrue();
+        CommandDispatchService.IsHostOnly("beacon_autosave").Should().BeTrue();
+        CommandDispatchService.IsHostOnly("say").Should().BeFalse();
+        CommandDispatchService.IsHostOnly("players").Should().BeFalse();
+        CommandDispatchService.IsHostOnly(null).Should().BeFalse();
+    }
+
     // ---- admin lookup ----
 
     [Fact]
