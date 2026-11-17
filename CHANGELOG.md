@@ -7,7 +7,7 @@ versioning is [SemVer](https://semver.org/).
 
 ### Fixed
 
-- Server backup fixes.
+- Server backups now skip linked folders, so a backup only holds files from the server's own save folder. If you host your own server, update to 0.3.142.
 
 ## [0.3.141] - 2026-11-09
 
