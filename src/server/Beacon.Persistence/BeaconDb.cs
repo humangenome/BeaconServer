@@ -208,6 +208,13 @@ public sealed class BeaconDb
             """, new { lim = limit }).ToList();
     }
 
+    /// <summary>Remove a snapshot's row (its zip was removed, or was already gone).</summary>
+    public void DeleteSnapshot(string snapshotId)
+    {
+        using var c = Open();
+        c.Execute("DELETE FROM save_snapshots WHERE snapshot_id = @id;", new { id = snapshotId });
+    }
+
     // ── Audit ─────────────────────────────────────────────────────────────
 
     public void Audit(string actor, string action, string? target, string? detailJson, long unixSeconds)

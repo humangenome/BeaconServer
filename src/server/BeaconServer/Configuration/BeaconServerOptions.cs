@@ -31,6 +31,36 @@ public sealed class BeaconServerOptions
     /// </summary>
     public long MaxUploadBytes { get; set; } = 2L * 1024 * 1024 * 1024;
 
+    /// <summary>
+    /// What a world zip (restore, import, migrate) may unpack to, checked before the game is stopped and before
+    /// anything is written: all entries together, the number of entries, any one entry, and the free space the
+    /// unpack must leave on the disk. A small zip can unpack to far more than its upload size. A real Subnautica 2
+    /// save folder is far below these (the largest seen in November 2026 was under 50 MB zipped, a few dozen
+    /// files); 4 GB is twice <see cref="MaxUploadBytes"/>.
+    /// </summary>
+    public long MaxRestoreUnpackedBytes { get; set; } = 4L * 1024 * 1024 * 1024;
+
+    /// <summary>See <see cref="MaxRestoreUnpackedBytes"/>.</summary>
+    public int MaxRestoreEntries { get; set; } = 10_000;
+
+    /// <summary>See <see cref="MaxRestoreUnpackedBytes"/>.</summary>
+    public long MaxRestoreEntryBytes { get; set; } = 2L * 1024 * 1024 * 1024;
+
+    /// <summary>See <see cref="MaxRestoreUnpackedBytes"/>. 0 turns the free-space check off.</summary>
+    public long RestoreFreeSpaceFloorBytes { get; set; } = 2L * 1024 * 1024 * 1024;
+
+    /// <summary>
+    /// Room for stored world backups in <see cref="SaveDir"/> (backups taken here, the copy each restore takes
+    /// first, and uploads): the newest <see cref="MaxSnapshotsKept"/> are kept while they fit in
+    /// <see cref="MaxSnapshotBytes"/> together, counted from the newest, and older ones are removed. 30 days
+    /// still removes any. The newest one, and one a restore is reading, are always kept. 0 turns that limit
+    /// off. Applied after every backup, upload and restore.
+    /// </summary>
+    public int MaxSnapshotsKept { get; set; } = 20;
+
+    /// <summary>See <see cref="MaxSnapshotsKept"/>.</summary>
+    public long MaxSnapshotBytes { get; set; } = 4L * 1024 * 1024 * 1024;
+
     public string RconPassword { get; set; } = "";
 
     /// <summary>

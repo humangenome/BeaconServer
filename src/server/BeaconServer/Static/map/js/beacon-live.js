@@ -239,20 +239,40 @@
     setStatus(null);
   }
 
+  // One check at a time. A slow answer (a server busy or far away, or a
+  // hosting panel's relay waiting on a stopped machine) used to let the next
+  // 2-second check start beside it, so checks piled up for as long as the map
+  // stayed open. Now the next check waits until the last one has answered; a
+  // quick answer changes nothing. A check that has not answered after 10 s is
+  // given up and counts as a missed check, so one answer that never comes
+  // cannot stop the map (a browser without AbortController simply waits).
+  var CHECK_LIMIT_MS = 10000;
+  var asking = false;
   function poll() {
-    fetch(dataUrl, { cache: 'no-store', mode: 'cors' })
+    if (asking) return;
+    asking = true;
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var limit = ctrl ? setTimeout(function () { ctrl.abort(); }, CHECK_LIMIT_MS) : null;
+    function done() {
+      asking = false;
+      if (limit !== null) { clearTimeout(limit); limit = null; }
+    }
+    var opts = { cache: 'no-store', mode: 'cors' };
+    if (ctrl) opts.signal = ctrl.signal;
+    fetch(dataUrl, opts)
       .then(function (r) {
         if (r.status === 401 || r.status === 403) return REFUSED;
         return r.ok ? r.json() : null;
       })
       .then(function (s) {
+        done();
         if (s === REFUSED) { refused(); return; }
         if (!s || !Array.isArray(s.players)) { missed(); return; }
         misses = 0;
         var drawn = apply(s.players);
         setStatus(s.players.length ? playersStatus(s.players.length, drawn) : { label: 'No one online' });
       })
-      .catch(missed);
+      .catch(function () { done(); missed(); });
   }
 
   // Smoothly interpolate each dot from its last position to its newest one over

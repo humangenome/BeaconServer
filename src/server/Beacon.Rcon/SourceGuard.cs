@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 
 namespace Beacon.Rcon;
@@ -69,9 +70,16 @@ public sealed class SourceGuard
         }
     }
 
+    /// <summary>A block that has just started: how long it lasts and which block this is for that address.</summary>
+    public readonly record struct BlockStart(string Source, long BlockMs, long UntilMs, int Strike);
+
     /// <summary>Records a failed login; true when this failure starts a block.</summary>
-    public static bool Failure(string source, long nowMs)
+    public static bool Failure(string source, long nowMs) => Failure(source, nowMs, out _);
+
+    /// <summary>Records a failed login; true (and the block) when this failure starts a block.</summary>
+    public static bool Failure(string source, long nowMs, out BlockStart blockStart)
     {
+        blockStart = default;
         if (IsLoopback(source)) return false;
         lock (FailLock)
         {
@@ -98,9 +106,92 @@ public sealed class SourceGuard
             state.Strikes++;
             state.Failures = 0;
             state.WindowStartMs = nowMs;
+            blockStart = new BlockStart(source, block, state.BlockedUntilMs, state.Strikes);
             return true;
         }
     }
+
+    // At most this many block lines a minute, both doors together. A flood from many addresses
+    // (the case the table-full notice is for) would otherwise write one line per address with no
+    // size limit on the log file. Blocks over the limit are counted and the count rides the next
+    // line that is written.
+    public const int BlockLinesPerMinute = 60;
+    private static long _lineMinuteStartMs = -1;
+    private static int _linesThisMinute;
+    private static int _notListed;
+    private static long _notListedSinceMs;
+
+    /// <summary>
+    /// An address for a log line with its last part hidden: 203.0.113.x for IPv4, the first four
+    /// groups (the network half) for IPv6. Never the whole address.
+    /// </summary>
+    public static string MaskSource(string source)
+    {
+        if (!IPAddress.TryParse(source, out var address)) return "?";
+        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
+        var bytes = address.GetAddressBytes();
+        if (bytes.Length == 4) return $"{bytes[0]}.{bytes[1]}.{bytes[2]}.x";
+        var groups = new string[4];
+        for (var i = 0; i < 4; i++) groups[i] = ((bytes[2 * i] << 8) | bytes[2 * i + 1]).ToString("x");
+        return string.Join(':', groups) + ":x:x:x:x";
+    }
+
+    /// <summary>
+    /// Records a failed login at one door ("RCON" or "HTTP API") and hands that door's log the
+    /// lines it must write: one per block that starts (when, which door, the address with its last
+    /// part hidden, how long), and the table-full notice. Never the password, the signature or the
+    /// packet. True when this failure starts a block.
+    /// </summary>
+    public static bool RecordFailure(string door, string source, long nowMs, Action<string> log)
+    {
+        var started = Failure(source, nowMs, out var block);
+        if (started && BlockLine(door, block, nowMs) is { } line) log(line);
+        if (TakeNotice() is { } notice) log($"{door}: {notice}");
+        return started;
+    }
+
+    /// <summary>
+    /// The line for a block that has just started, or null when this minute's lines are used up
+    /// (the block is counted and the count is added to the next line written).
+    /// </summary>
+    public static string? BlockLine(string door, BlockStart block, long nowMs)
+    {
+        lock (FailLock)
+        {
+            if (_lineMinuteStartMs < 0 || nowMs < _lineMinuteStartMs || nowMs - _lineMinuteStartMs >= 60_000)
+            {
+                _lineMinuteStartMs = nowMs;
+                _linesThisMinute = 0;
+            }
+            if (_linesThisMinute > BlockLinesPerMinute)
+            {
+                if (_notListed++ == 0) _notListedSinceMs = nowMs;
+                return null;
+            }
+            _linesThisMinute++;
+            if (_linesThisMinute > BlockLinesPerMinute)
+            {
+                _notListed = 1;
+                _notListedSinceMs = nowMs;
+                return $"login blocks: more than {BlockLinesPerMinute} in a minute; the rest of this minute's " +
+                       "blocks are counted, and the count is added to the next block line";
+            }
+
+            var until = Utc(block.UntilMs);
+            var line = $"{door} login block: {MaskSource(block.Source)} is turned away from RCON and the HTTP API " +
+                       $"for {block.BlockMs / 1000} s, until {until}Z ({FailuresBeforeBlock} failed logins " +
+                       $"within {FailureWindowMs / 60_000} minutes; block {block.Strike} for this address)";
+            if (_notListed > 0)
+            {
+                line += $"; {_notListed} more block{(_notListed == 1 ? "" : "s")} not listed since {Utc(_notListedSinceMs)}Z";
+                _notListed = 0;
+            }
+            return line;
+        }
+    }
+
+    private static string Utc(long ms) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
     public static void Success(string source)
     {
@@ -217,6 +308,10 @@ public sealed class SourceGuard
             _lookAgainMs = long.MaxValue;
             _allBlockedNoted = false;
             _notice = null;
+            _lineMinuteStartMs = -1;
+            _linesThisMinute = 0;
+            _notListed = 0;
+            _notListedSinceMs = 0;
         }
     }
 }

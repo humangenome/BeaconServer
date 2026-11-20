@@ -3,6 +3,14 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.144] - 2026-11-20
+
+### Changed
+
+- A world zip with no world in it, or one that would unpack past the server's limits or nearly fill its disk, is now refused before the server stops, so the world keeps running.
+- The server now keeps at most the newest 20 snapshots, up to 4 GB in all (still none older than 30 days). MaxSnapshotsKept and MaxSnapshotBytes in appsettings.json change that.
+- BeaconServer now logs each login block on RCON or the HTTP API, with the address's last part hidden.
+
 ## [0.3.143] - 2026-11-17
 
 ### Added

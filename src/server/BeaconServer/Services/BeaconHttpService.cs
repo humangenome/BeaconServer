@@ -764,6 +764,9 @@ public sealed class BeaconHttpService : BackgroundService
                 _saves.Database.RecordSnapshot(record);
                 _saves.Database.Audit("http-api", "snapshot.upload", snapshotId,
                     $"{{\"bytes\":{record.SizeBytes}}}", record.TakenUnix);
+                // Uploads count toward the snapshot room too (MaxSnapshotsKept / MaxSnapshotBytes); this one is
+                // the newest, so it stays.
+                _saves.RotateOldSnapshots();
 
                 await WriteJsonAsync(res, 200, new
                 {
@@ -989,8 +992,7 @@ public sealed class BeaconHttpService : BackgroundService
         if (SourceGuard.BlockedSeconds(source, SourceGuard.NowMs()) > 0) return false;
         if (!VerifySignature(_authKey, method, path, ts, sigHeader, bodySha))
         {
-            SourceGuard.Failure(source, SourceGuard.NowMs());
-            if (SourceGuard.TakeNotice() is { } tableNotice) _log.LogWarning("{Notice}", tableNotice);
+            SourceGuard.RecordFailure("HTTP API", source, SourceGuard.NowMs(), line => _log.LogWarning("{Line}", line));
             return false;
         }
         if (!TryRegisterSignature(sigHeader, ts, now)) return false;

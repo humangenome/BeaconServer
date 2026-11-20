@@ -145,4 +145,85 @@ public sealed class SourceGuardTests : IDisposable
             "auth table full: all 4096 tracked addresses are blocked; every block is kept (up to 65536)");
         SourceGuard.TakeNotice().Should().BeNull("one line, not one per address");
     }
+
+    // Block lines (Security 11/16, option c): one line per block that starts, naming the door, the
+    // address with its last part hidden and the block's length; one line for a full table. Never the
+    // password, the signature or the packet, and never the whole address.
+
+    [Fact]
+    public void A_block_that_starts_writes_one_line_with_the_door_the_hidden_address_and_its_length()
+    {
+        const long t = 1_000_000; // 00:16:40Z
+        var lines = new List<string>();
+        for (var i = 0; i < SourceGuard.FailuresBeforeBlock - 1; i++)
+            SourceGuard.RecordFailure("RCON", Ip, t, lines.Add).Should().BeFalse();
+        lines.Should().BeEmpty("a wrong password on its own is not logged");
+
+        SourceGuard.RecordFailure("RCON", Ip, t, lines.Add).Should().BeTrue();
+        lines.Should().Equal(
+            "RCON login block: 203.0.113.x is turned away from RCON and the HTTP API for 60 s, until 00:17:40Z " +
+            "(5 failed logins within 10 minutes; block 1 for this address)");
+        lines.Should().NotContain(l => l.Contains(Ip));
+
+        var next = t + SourceGuard.FirstBlockMs + 1;
+        for (var i = 0; i < SourceGuard.FailuresBeforeBlock; i++) SourceGuard.RecordFailure("HTTP API", Ip, next, lines.Add);
+        lines.Should().HaveCount(2);
+        lines[1].Should().StartWith("HTTP API login block: 203.0.113.x is turned away from RCON and the HTTP API for 120 s, until ");
+        lines[1].Should().EndWith("block 2 for this address)");
+    }
+
+    [Fact]
+    public void Loopback_never_writes_a_block_line()
+    {
+        var lines = new List<string>();
+        for (var i = 0; i < 50; i++) SourceGuard.RecordFailure("RCON", "127.0.0.1", 1_000_000, lines.Add);
+        lines.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("203.0.113.77", "203.0.113.x")]
+    [InlineData("::ffff:198.51.100.9", "198.51.100.x")]
+    [InlineData("2001:db8:1:2:3:4:5:6", "2001:db8:1:2:x:x:x:x")]
+    [InlineData("2001:db8::1", "2001:db8:0:0:x:x:x:x")]
+    [InlineData("?", "?")]
+    [InlineData("", "?")]
+    public void An_address_in_a_line_keeps_only_its_network_part(string source, string shown)
+    {
+        SourceGuard.MaskSource(source).Should().Be(shown);
+    }
+
+    [Fact]
+    public void A_flood_of_blocks_writes_at_most_its_minute_of_lines_and_counts_the_rest()
+    {
+        const long t = 1_000_000;
+        var lines = new List<string>();
+        const int blocks = SourceGuard.BlockLinesPerMinute + 10;
+        for (var a = 0; a < blocks; a++)
+            for (var i = 0; i < SourceGuard.FailuresBeforeBlock; i++)
+                SourceGuard.RecordFailure("RCON", Addr(a), t + 1_000, lines.Add);
+
+        lines.Should().HaveCount(SourceGuard.BlockLinesPerMinute + 1);
+        lines.Take(SourceGuard.BlockLinesPerMinute).Should().OnlyContain(l => l.StartsWith("RCON login block: 10.0.0.x "));
+        lines[^1].Should().Be("login blocks: more than 60 in a minute; the rest of this minute's blocks are counted, " +
+                              "and the count is added to the next block line");
+
+        for (var i = 0; i < SourceGuard.FailuresBeforeBlock; i++)
+            SourceGuard.RecordFailure("RCON", Ip, t + 1_000 + 60_000, lines.Add);
+        lines.Should().HaveCount(SourceGuard.BlockLinesPerMinute + 2);
+        lines[^1].Should().EndWith("; 10 more blocks not listed since 00:16:41Z");
+    }
+
+    [Fact]
+    public void A_full_table_writes_its_one_line_through_the_door_and_the_flood_stays_small()
+    {
+        const long t = 1_000_000;
+        var lines = new List<string>();
+        for (var a = 0; a < TableLimit + 600; a++)
+            for (var i = 0; i < SourceGuard.FailuresBeforeBlock; i++)
+                SourceGuard.RecordFailure("HTTP API", Addr(a), t, lines.Add);
+
+        lines.Where(l => l.Contains("auth table full")).Should().Equal(
+            "HTTP API: auth table full: all 4096 tracked addresses are blocked; every block is kept (up to 65536)");
+        lines.Should().HaveCount(SourceGuard.BlockLinesPerMinute + 2, "60 block lines, the limit line and the table line");
+    }
 }

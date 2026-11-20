@@ -31,6 +31,10 @@ public sealed class Sn2RestartCoordinator
     private readonly ILogger<Sn2RestartCoordinator> _log;
     private readonly BeaconServerOptions _opts;
     private readonly SemaphoreSlim _restoreGate = new(1, 1);
+    private int _killRequests;
+
+    /// <summary>How many times <see cref="KillSn2"/> was called (tests: it does nothing off Windows).</summary>
+    internal int KillRequests => Volatile.Read(ref _killRequests);
 
     public Sn2RestartCoordinator(ILogger<Sn2RestartCoordinator> log, IOptions<BeaconServerOptions> opts)
     {
@@ -59,6 +63,7 @@ public sealed class Sn2RestartCoordinator
     /// </summary>
     public void KillSn2(TimeSpan waitForExit)
     {
+        Interlocked.Increment(ref _killRequests);
         if (!OperatingSystem.IsWindows()) return;
 
         var installRoot = RootForOwnership();
