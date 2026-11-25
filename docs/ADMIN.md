@@ -33,7 +33,7 @@ Beacon listens on a [Source-protocol RCON](https://developer.valvesoftware.com/w
 |---|---|---|
 | `help` | The built-in command list | Quick reference. |
 | `status` | `instance=<id> plugin=connected pid=<n> version=<v> players=<n>` (or `plugin=disconnected`) | Confirms the in-game plugin is connected, reports the player count. |
-| `players` | `<n> player(s) online`, or `no players online` | Quick "is anyone on" check. |
+| `players` | `<n> of <max> players online`, then one line per player, or `no players online` | Quick "is anyone on" check. |
 | `ping` | `pong` | RCON heartbeat / connectivity test. |
 | `save world [seconds]` | `world saved in <n> s`, or `world save not confirmed: <reason>` | The game saves the world now, and the reply comes once the save has landed. The wait is 5-20 s. |
 | `save status` | `<who saves>; last save <when>; game: <report>` | Who keeps the world saved right now and what the game itself reports. Changes nothing. |
