@@ -154,3 +154,16 @@ jobs:
           gh release download "$TAG" -R "${{ github.repository }}" -p "$ASSET" -D verify --clobber
           python3 scripts/verify-server-bundle.py "verify/$ASSET"
           python3 scripts/check-cet-compat.py "verify/$ASSET!BeaconServer/BeaconServer.exe"
+
+  # Last job: scan the release this run just published. It is created with the
+  # workflow's own token, which starts no other workflow, so the release-event
+  # scan would not run for it; the daily scan in artifact-scan.yml stays as well
+  # (Security 2026-11-25). Read-only and given no secrets.
+  scan:
+    name: Scan the published release
+    needs: [build, verify-bundle]
+    permissions:
+      contents: read
+    uses: ./.github/workflows/artifact-scan.yml
+    with:
+      tag: ${{ github.ref_name }}
