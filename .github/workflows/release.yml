@@ -5,13 +5,16 @@ on:
     tags:
       - 'v*.*.*'
 
+# Read-only by default; only the build job, which creates this repo's release, may write contents.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     name: Build BeaconServer (windows-latest)
     runs-on: windows-latest
+    permissions:
+      contents: write
     timeout-minutes: 20
     # The tag reaches the shell only through this variable, always quoted. Git
     # allows $, ( ), ;, & and backticks in a tag name, so the tag is never
@@ -83,13 +86,12 @@ jobs:
           $body | Out-File -FilePath release-body.md -Encoding utf8
 
       - name: Create GitHub release (BeaconServer)
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          # HUMANGENOME_PAT so the release object is authored by the account,
-          # not github-actions[bot]. Falls back to GITHUB_TOKEN if the secret
-          # is ever removed — the release still publishes, only the author
-          # byline degrades.
-          token: ${{ secrets.HUMANGENOME_PAT || secrets.GITHUB_TOKEN }}
+          # The release is created in this repo, so the workflow's own token is enough
+          # (this job has permissions: contents: write). No account token on this step
+          # (Security 2026-11-25), so the release page names github-actions[bot] as author.
+          token: ${{ secrets.GITHUB_TOKEN }}
           body_path: release-body.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
