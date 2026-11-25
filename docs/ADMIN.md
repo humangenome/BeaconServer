@@ -15,7 +15,7 @@ Restore and import stop the Subnautica 2 process, take a pre-restore snapshot (s
 
 Restore and import need BeaconServer to start the game itself (`SnInstallRoot` or `SnExecutablePath` set), because only then does the world come back up after the swap. A server whose game is started by a hosting panel answers both with HTTP 409 and reports `"world_restore": false` in `/api/v1/health`; use the host's own backups there. Downloading snapshots works on both.
 
-Snapshots are also taken automatically on every game auto-save (Subnautica 2 auto-saves about once a minute; Beacon debounces to at most one snapshot per ~45 seconds) while `SnapshotsEnabled` is on, and are rotated out after 30 days. You usually don't need to snapshot manually before normal play.
+Snapshots are also taken automatically on every game auto-save (Subnautica 2 auto-saves about every 2 minutes; Beacon debounces to at most one snapshot per ~45 seconds) while `SnapshotsEnabled` is on, and are rotated out after 30 days. You usually don't need to snapshot manually before normal play.
 
 ## RCON commands
 
@@ -35,6 +35,8 @@ Beacon listens on a [Source-protocol RCON](https://developer.valvesoftware.com/w
 | `status` | `instance=<id> plugin=connected pid=<n> version=<v> players=<n>` (or `plugin=disconnected`) | Confirms the in-game plugin is connected, reports the player count. |
 | `players` | `<n> player(s) online`, or `no players online` | Quick "is anyone on" check. |
 | `ping` | `pong` | RCON heartbeat / connectivity test. |
+| `save world [seconds]` | `world saved in <n> s`, or `world save not confirmed: <reason>` | The game saves the world now, and the reply comes once the save has landed. The wait is 5-20 s. |
+| `save status` | `<who saves>; last save <when>; game: <report>` | Who keeps the world saved right now and what the game itself reports. Changes nothing. |
 | `save snapshot` | `snapshot ok: <id> (<bytes> bytes, sha=<short>)` | Force a save snapshot right now. |
 | `save list` | One snapshot per line (id, size, age, sha) | List the 20 most recent snapshots. |
 | `say <message>` | `chat ok (system): <message>` | Broadcast a system message to every player's chat overlay. |

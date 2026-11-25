@@ -31,7 +31,7 @@ Backs up the world at every autosave and whenever you ask. A restore backs up th
 Server lists, monitoring tools and Discord bots can read its name, map, player count and player list.
 
 ### 🖥 Server console
-RCON with `help`, `status`, `players`, `ping`, `save snapshot`, `save list`, `say`, `announce` and `motd`, plus the commands server mods add.
+RCON with `help`, `status`, `players`, `ping`, `save world`, `save status`, `save snapshot`, `save list`, `say`, `announce` and `motd`, plus the commands server mods add.
 
 ### 🔐 Admin API
 An HTTP API for world backups, save uploads, health, the player list, the mod list, chat and the live map. Admin routes are signed with a key made from the RCON password.
@@ -132,6 +132,8 @@ help
 status
 players
 ping
+save world [seconds]
+save status
 save snapshot
 save list
 say <message>
@@ -178,7 +180,7 @@ BeaconServer writes `steam_appid.txt` itself, so the part left to you is the Ste
 Tracked at [HumanGenome/Beacon#8](https://github.com/HumanGenome/Beacon/issues/8).
 
 ### Players can't join after a Subnautica 2 update
-After a Subnautica 2 update, players on the new build can fail to join an older server, or join and then get disconnected when they reach something the update changed. Update the server's game files whenever the game updates.
+After a Subnautica 2 update, players on the new build can fail to join an older server, or join and then get disconnected when they reach something the update changed. Update the server's game files whenever the game updates. Some updates also need a new BeaconServer release: if players still can't join, wait for it.
 
 ## Releases
 
