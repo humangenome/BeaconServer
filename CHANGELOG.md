@@ -8,6 +8,7 @@ versioning is [SemVer](https://semver.org/).
 ### Changed
 
 - Server list queries now ask for Valve's standard challenge first, and each address gets a limited number of replies a second.
+- Only automatic backups are removed to make room. They now share up to 512 MB, or less on a nearly full drive, with no limit on how many. Backups you make or upload never count toward it. A new backup is refused if it would leave less than 2 GB free on the drive.
 
 ### Fixed
 
