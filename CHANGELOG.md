@@ -3,6 +3,16 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 versioning is [SemVer](https://semver.org/).
 
+## [0.3.145] - 2026-11-26
+
+### Changed
+
+- Server list queries now ask for Valve's standard challenge first, and each address gets a limited number of replies a second.
+
+### Fixed
+
+- World backups you make or upload are no longer deleted after 30 days. Neither are the copies made before a restore, or any backup you already have.
+
 ## [0.3.144] - 2026-11-20
 
 ### Changed

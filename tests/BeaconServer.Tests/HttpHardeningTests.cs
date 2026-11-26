@@ -189,20 +189,25 @@ public class HttpHardeningTests
         public readonly ChatService Chat;
         public readonly int Port;
         public readonly byte[] Key = SHA256.HashData(Encoding.UTF8.GetBytes("secret"));
+        public readonly string SaveDir;
         private readonly string _dir;
 
-        public Harness(bool mapPublic = false, string mapKey = "k1", Func<DateTimeOffset>? clock = null)
+        // selfHosted: BeaconServer starts the game itself (a game folder is set), so on Windows the
+        // routes kept for that case (restore, import, upload) are open. Off, the host starts the game,
+        // as on our rented servers, and those routes answer 409.
+        public Harness(bool mapPublic = false, string mapKey = "k1", Func<DateTimeOffset>? clock = null, bool selfHosted = false)
         {
             _dir = Path.Combine(Path.GetTempPath(), "beacon-http-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(_dir, "data"));
             Port = FreePort();
+            SaveDir = Path.Combine(_dir, "Saves");
             var opts = new BeaconServerOptions
             {
                 HttpPort = Port,
                 RconPassword = "secret",
-                SaveDir = Path.Combine(_dir, "Saves"),
+                SaveDir = SaveDir,
                 HmacKeyPath = Path.Combine(_dir, "data", "hmac.key"),
-                SnInstallRoot = "",
+                SnInstallRoot = selfHosted ? Path.Combine(_dir, "game") : "",
                 SnUserDir = "",
                 Map = new MapOptions { Enabled = true, Public = mapPublic, AccessKey = mapKey },
             };

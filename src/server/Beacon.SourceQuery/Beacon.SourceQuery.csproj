@@ -3,5 +3,6 @@
     <RootNamespace>Beacon.SourceQuery</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Beacon.Integration.Tests" />
   </ItemGroup>
 </Project>

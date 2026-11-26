@@ -1,17 +1,11 @@
 namespace BeaconServer.Services;
 
 /// <summary>
-/// How much room stored world backups (snapshots) may take.
+/// Which automatic backups to remove to fit their room. The caller hands it automatic backups and nothing else,
+/// so no backup an owner made, and none of unknown kind, is ever removed or counted.
 /// <para>
-/// Snapshots pile up from three places: a backup the owner asks for, the copy every restore takes of the world it
-/// replaces, and every zip the owner uploads (up to the upload cap each). Until 2026-11-18 only age removed them
-/// (30 days), and only after a new backup was taken, so uploads and pre-restore copies could fill the disk every
-/// server on the machine shares. Now the newest <c>maxCount</c> are kept, as long as they fit in <c>maxBytes</c>
-/// together, counted from the newest; the rest go, oldest first. Age still removes them too.
-/// </para>
-/// <para>
-/// Two are never removed, whatever the limits say: the newest snapshot (the latest pre-restore copy or upload),
-/// and any snapshot a restore is reading at that moment.
+/// The newest is kept while the rest fit, counted from the newest; the others go, oldest first, and age removes
+/// them too. Two are never removed, whatever the limits say: the newest, and any a restore is reading right now.
 /// </para>
 /// <para>The sibling servers carry the same file; keep them in step.</para>
 /// </summary>

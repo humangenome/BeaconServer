@@ -288,6 +288,9 @@ public sealed class BeaconHttpService : BackgroundService
         var path = req.Url?.AbsolutePath ?? "";
         var method = req.HttpMethod.ToUpperInvariant();
 
+        // A signed route's body on disk. Each route disposes it; the finally below disposes it
+        // again (a no-op then), so a route that throws never leaves the upload in the temp folder.
+        BufferedBody? signedBody = null;
         try
         {
             res.Headers["X-Beacon-Instance"] = _identity.InstanceId;
@@ -653,6 +656,7 @@ public sealed class BeaconHttpService : BackgroundService
             // no base64-via-header round trip (used to triple the memory
             // footprint per upload).
             var auth = await AuthorizeAndBufferAsync(req, ct).ConfigureAwait(false);
+            signedBody = auth.Body;
             if (auth.Status != 200 || auth.Body is null)
             {
                 auth.Body?.Dispose();
@@ -740,6 +744,15 @@ public sealed class BeaconHttpService : BackgroundService
 
             if (method == "POST" && path == "/api/v1/snapshots")
             {
+                // Refused where the host starts the game, as restore and import are: no app sends an upload
+                // there, and an upload is kept, so one server's admin password could otherwise fill a drive
+                // that other servers on the machine share.
+                if (!SnProcessSupervisorService.SupervisesGame(_opts))
+                {
+                    body.Dispose();
+                    await WriteJsonAsync(res, 409, new { ok = false, error = NoRelaunchMessage });
+                    return;
+                }
                 if (body.SizeBytes == 0)
                 {
                     body.Dispose();
@@ -749,23 +762,41 @@ public sealed class BeaconHttpService : BackgroundService
                 // The body is already on disk as a temp file. Just rename
                 // it into SaveDir under the canonical snapshot name.
                 Directory.CreateDirectory(_opts.SaveDir);
+                if (!_saves.HasRoomForBackup(body.SizeBytes))
+                {
+                    body.Dispose();
+                    await WriteJsonAsync(res, 507, new { error = SaveOrchestratorService.BackupNoRoomWords });
+                    return;
+                }
                 var snapshotId = $"upload-{DateTimeOffset.UtcNow:yyyyMMddTHHmmssZ}-{Guid.NewGuid():N}".Substring(0, 36);
                 var finalPath = Path.Combine(_opts.SaveDir, $"{snapshotId}.zip");
                 File.Move(body.TempPath, finalPath);
                 body.MarkConsumed(); // disposal won't try to delete the moved file
 
-                var record = new Beacon.Persistence.SnapshotRecord(
-                    SnapshotId: snapshotId,
-                    TakenUnix: DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                    FilePath: finalPath,
-                    SizeBytes: new FileInfo(finalPath).Length,
-                    Sha256Hex: body.Sha256Hex,
-                    RetentionDays: 30);
-                _saves.Database.RecordSnapshot(record);
+                Beacon.Persistence.SnapshotRecord record;
+                try
+                {
+                    record = new Beacon.Persistence.SnapshotRecord(
+                        SnapshotId: snapshotId,
+                        TakenUnix: DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                        FilePath: finalPath,
+                        SizeBytes: new FileInfo(finalPath).Length,
+                        Sha256Hex: body.Sha256Hex,
+                        RetentionDays: 30);
+                    _saves.Database.RecordSnapshot(record);
+                }
+                catch
+                {
+                    // Not in the backup list, so rotation would never see it and the upload (up to MaxUploadBytes)
+                    // would stay in the save folder for good, for example when the list can't be written on a full
+                    // disk. Remove the one file this request just moved there (File.Delete removes a link itself,
+                    // never what it points to), then answer 500 as before.
+                    try { File.Delete(finalPath); } catch { }
+                    throw;
+                }
                 _saves.Database.Audit("http-api", "snapshot.upload", snapshotId,
                     $"{{\"bytes\":{record.SizeBytes}}}", record.TakenUnix);
-                // Uploads count toward the snapshot room too (MaxSnapshotsKept / MaxSnapshotBytes); this one is
-                // the newest, so it stays.
+                // An upload is the owner's: it is never removed and takes none of the automatic backups' room.
                 _saves.RotateOldSnapshots();
 
                 await WriteJsonAsync(res, 200, new
@@ -790,7 +821,13 @@ public sealed class BeaconHttpService : BackgroundService
                     return;
                 }
                 var id = path["/api/v1/snapshots/".Length..^"/restore".Length];
-                var ok = await _saves.RestoreSnapshotAsync(id, "http-api", ct).ConfigureAwait(false);
+                var noRoom = false;
+                var ok = await _saves.RestoreSnapshotAsync(id, "http-api", ct, () => noRoom = true).ConfigureAwait(false);
+                if (noRoom)
+                {
+                    await WriteJsonAsync(res, 507, new { ok, error = SaveOrchestratorService.RestoreNoRoomWords });
+                    return;
+                }
                 await WriteJsonAsync(res, ok ? 200 : 500, new { ok });
                 return;
             }
@@ -809,9 +846,15 @@ public sealed class BeaconHttpService : BackgroundService
                     await WriteJsonAsync(res, 400, new { error = "empty body" });
                     return;
                 }
+                var noRoom = false;
                 var ok = await _saves.RestoreFromZipPathAsync(
-                    body.TempPath, "http-api", "snapshot.import_restore", ct).ConfigureAwait(false);
+                    body.TempPath, "http-api", "snapshot.import_restore", ct, () => noRoom = true).ConfigureAwait(false);
                 body.Dispose();
+                if (noRoom)
+                {
+                    await WriteJsonAsync(res, 507, new { ok, error = SaveOrchestratorService.RestoreNoRoomWords });
+                    return;
+                }
                 await WriteJsonAsync(res, ok ? 200 : 500, new { ok });
                 return;
             }
@@ -863,6 +906,7 @@ public sealed class BeaconHttpService : BackgroundService
         }
         finally
         {
+            signedBody?.Dispose();
             try { res.Close(); } catch { }
         }
     }

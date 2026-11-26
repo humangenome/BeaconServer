@@ -46,20 +46,22 @@ public sealed class BeaconServerOptions
     /// <summary>See <see cref="MaxRestoreUnpackedBytes"/>.</summary>
     public long MaxRestoreEntryBytes { get; set; } = 2L * 1024 * 1024 * 1024;
 
-    /// <summary>See <see cref="MaxRestoreUnpackedBytes"/>. 0 turns the free-space check off.</summary>
+    /// <summary>
+    /// The free space a restore's unpack and any new backup or upload must leave on the drive. One that would
+    /// leave less is refused, and nothing is removed for it. 0 turns the free-space check off.
+    /// </summary>
     public long RestoreFreeSpaceFloorBytes { get; set; } = 2L * 1024 * 1024 * 1024;
 
     /// <summary>
-    /// Room for stored world backups in <see cref="SaveDir"/> (backups taken here, the copy each restore takes
-    /// first, and uploads): the newest <see cref="MaxSnapshotsKept"/> are kept while they fit in
-    /// <see cref="MaxSnapshotBytes"/> together, counted from the newest, and older ones are removed. 30 days
-    /// still removes any. The newest one, and one a restore is reading, are always kept. 0 turns that limit
-    /// off. Applied after every backup, upload and restore.
+    /// Room in <see cref="SaveDir"/> for automatic backups alone: <see cref="MaxSnapshotBytes"/>, or a tenth of
+    /// the drive's free space when that is less, counted from the newest. Older automatic ones are removed, and
+    /// any past 30 days. Backups asked for, uploads, copies taken before a restore and backups whose kind cannot
+    /// be told are never removed and take none of this room. 0 turns a limit off; the count is off by default.
     /// </summary>
-    public int MaxSnapshotsKept { get; set; } = 20;
+    public int MaxSnapshotsKept { get; set; } = 0;
 
     /// <summary>See <see cref="MaxSnapshotsKept"/>.</summary>
-    public long MaxSnapshotBytes { get; set; } = 4L * 1024 * 1024 * 1024;
+    public long MaxSnapshotBytes { get; set; } = 512L * 1024 * 1024;
 
     public string RconPassword { get; set; } = "";
 

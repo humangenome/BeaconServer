@@ -79,6 +79,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     {
         _log.LogInformation("Save orchestrator ready; db={Path}, save_dir={Dir}, snapshots_enabled={Enabled}",
             _dbPath, _opts.SaveDir, _opts.SnapshotsEnabled);
+        _foundBackupsListing = Task.Run(() => ListBackupsFoundOnDiskAsync(DateTime.UtcNow));
         TryNormalizeSaveSlots();
         if (_opts.SnapshotsEnabled)
         {
@@ -180,7 +181,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             if (now - _lastAutoSnapshotUtc < AutoSnapshotDebounce) return;
             // Wait briefly for Subnautica 2 to finish its write
             await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
-            var rec = await SnapshotAsync(requestedBy: "auto:filewatcher", CancellationToken.None).ConfigureAwait(false);
+            var rec = await SnapshotAsync(requestedBy: AutomaticRequester, CancellationToken.None).ConfigureAwait(false);
             if (rec is not null)
             {
                 _lastAutoSnapshotUtc = now;
@@ -202,10 +203,15 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     /// Invoked from RCON ("save snapshot"), the FileSystemWatcher when Subnautica 2 auto-saves,
     /// or a scheduled timer.
     /// </summary>
-    public async Task<SnapshotRecord?> SnapshotAsync(string requestedBy, CancellationToken ct = default)
+    public async Task<SnapshotRecord?> SnapshotAsync(string requestedBy, CancellationToken ct = default, Action? noRoom = null)
     {
-        var snapshotId = $"snap-{DateTimeOffset.UtcNow:yyyyMMddTHHmmssZ}-{Guid.NewGuid():N}".Substring(0, 36);
+        // The stamp is the id's first part, set here only: no request can choose it.
+        var kind = requestedBy == AutomaticRequester ? AutomaticIdPrefix : "snap-";
+        var snapshotId = $"{kind}{DateTimeOffset.UtcNow:yyyyMMddTHHmmssZ}-{Guid.NewGuid():N}".Substring(0, 36);
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        // The file this call wrote that is not in the list yet: removed if the call fails, because rotation only
+        // knows listed snapshots and would never remove it.
+        string? unlisted = null;
 
         try
         {
@@ -223,13 +229,22 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
                 return null;
             }
 
+            if (!HasRoomForLiveSaves(sourceDir))
+            {
+                _log.LogWarning("Snapshot {Id} failed", snapshotId);
+                noRoom?.Invoke();
+                return null;
+            }
+
             var snapshotPath = Path.Combine(_opts.SaveDir, $"{snapshotId}.zip");
             var tmpPath = snapshotPath + ".tmp";
+            unlisted = tmpPath;
             var linksLeftOut = CreateSaveGamesZip(sourceDir, tmpPath, FolderRule(_opts.SnUserDir));
             if (linksLeftOut.Count > 0)
                 _log.LogWarning("Snapshot {Id}: {Count} link(s) in the save folder were left out, not followed: {Links}",
                     snapshotId, linksLeftOut.Count, string.Join(", ", linksLeftOut.Take(10)));
             File.Move(tmpPath, snapshotPath);
+            unlisted = snapshotPath;
 
             var size = new FileInfo(snapshotPath).Length;
             var hash = await Sha256OfAsync(snapshotPath, ct).ConfigureAwait(false);
@@ -242,6 +257,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
                 Sha256Hex: hash,
                 RetentionDays: 30);
             _db.RecordSnapshot(record);
+            unlisted = null;
             _db.Audit(requestedBy, "save.snapshot", target: snapshotId,
                 detailJson: $"{{\"path\":\"{snapshotPath}\",\"bytes\":{size}}}", unixSeconds: now);
 
@@ -252,15 +268,115 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         catch (Exception ex)
         {
             _log.LogError(ex, "Snapshot {Id} failed", snapshotId);
+            if (unlisted is not null) TryRemoveSnapshotFile(unlisted);
             return null;
         }
     }
 
+    /// <summary>What an owner is told, word for word, when a backup is refused for room.</summary>
+    internal const string BackupNoRoomWords = "Your other backups are safe. This one wasn't saved because the server's drive is almost full. Free up space, or ask your host.";
+
+    /// <summary>What an owner is told, word for word, when a restore, upload or world copy is refused for room.</summary>
+    internal const string RestoreNoRoomWords = "Your world is safe. It wasn't replaced because the server's drive is too full to back it up first. Free up space, or ask your host.";
+
     /// <summary>
-    /// Remove the snapshots past the room they may take, oldest first (<see cref="SnapshotBudget"/>: the newest
-    /// <c>MaxSnapshotsKept</c> within <c>MaxSnapshotBytes</c>, and 30 days). Runs after every snapshot, the
-    /// pre-restore copy included, and after every upload. The newest snapshot and one a restore is reading stay.
-    /// A zip is removed only when it sits directly in <c>SaveDir</c>, and its row goes with it.
+    /// False when writing this many bytes would leave less than <c>RestoreFreeSpaceFloorBytes</c> free on the
+    /// drive backups are kept on, the floor a restore's unpack keeps too. Nothing is removed to make room. An
+    /// unreadable drive and a floor of 0 refuse nothing, as in that check.
+    /// </summary>
+    internal bool HasRoomForBackup(long bytes)
+    {
+        var floor = _opts.RestoreFreeSpaceFloorBytes;
+        return floor <= 0 || FreeSpaceProbe(_opts.SaveDir) is not long free || free - bytes >= floor;
+    }
+
+    // The most a backup of the live saves can take: its files' own sizes, before packing.
+    private bool HasRoomForLiveSaves(string sourceDir)
+    {
+        if (_opts.RestoreFreeSpaceFloorBytes <= 0) return true;
+        var files = SnapshotWalk.PlainFiles(sourceDir, new List<string>(), out _, rule: FolderRule(_opts.SnUserDir));
+        return HasRoomForBackup(files.Sum(file => new FileInfo(file).Length));
+    }
+
+    private bool NoRoomForPreRestoreCopy()
+    {
+        var liveSaves = Path.Combine(_opts.SnUserDir, "Saved", "SaveGames");
+        try
+        {
+            return Directory.Exists(liveSaves) && !HasRoomForLiveSaves(liveSaves);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A save folder the walk refuses or can't read is answered by the copy below, as before.
+            return false;
+        }
+    }
+
+    private Task? _foundBackupsListing;
+
+    // At a start, a backup zip in SaveDir that the list doesn't have (a server moved to another machine, a list
+    // that was lost, a zip put there by hand) is listed as one of unknown kind: its id never reads as automatic, so
+    // it is never removed. Only plain files are taken, and only ones older than this start.
+    private async Task ListBackupsFoundOnDiskAsync(DateTime startedUtc)
+    {
+        try
+        {
+            var folder = new DirectoryInfo(_opts.SaveDir);
+            if (!folder.Exists) return;
+            var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var rows = _db.ListSnapshots(int.MaxValue);
+            var paths = rows.Select(r => Path.GetFullPath(r.FilePath)).ToHashSet(comparer);
+            var ids = rows.Select(r => r.SnapshotId).ToHashSet(StringComparer.Ordinal);
+            foreach (var file in folder.EnumerateFiles("*.zip"))
+            {
+                if (!string.Equals(file.Extension, ".zip", StringComparison.OrdinalIgnoreCase)) continue;
+                if ((file.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+                if (file.LastWriteTimeUtc >= startedUtc || paths.Contains(file.FullName)) continue;
+                var nameHash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(file.FullName));
+                var id = ("found-" + Convert.ToHexString(nameHash).ToLowerInvariant()).Substring(0, 36);
+                if (!ids.Add(id)) continue;
+                try
+                {
+                    var hash = await Sha256OfAsync(file.FullName, CancellationToken.None).ConfigureAwait(false);
+                    // 100 years: an older build expires every row by this field, and would take the owner's file with it.
+                    _db.RecordSnapshot(new SnapshotRecord(id, new DateTimeOffset(file.LastWriteTimeUtc).ToUnixTimeSeconds(),
+                        file.FullName, file.Length, hash, 36_500));
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // In use or unreadable: it stays where it is and is tried again at the next start.
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Listing only. It must never stop a start, and it changes no file.
+        }
+    }
+
+    private const string AutomaticRequester = "auto:filewatcher";
+    private const string AutomaticIdPrefix = "auto-";
+
+    // Only a backup stamped as automatic when it was taken may be removed. One asked for, an upload, a copy taken
+    // before a restore, and any whose kind cannot be told (every one stored before the stamp) is never removed and
+    // takes none of the automatic ones' room: it may be the only copy of that world, and a removal has no undo.
+    private static bool IsAutomatic(SnapshotRecord s) =>
+        s.SnapshotId.StartsWith(AutomaticIdPrefix, StringComparison.Ordinal) &&
+        string.Equals(Path.GetFileName(s.FilePath), s.SnapshotId + ".zip", StringComparison.Ordinal);
+
+    // MaxSnapshotBytes, or a tenth of the drive's free space when that is less. 0 turns the room off.
+    private long AutomaticRoomBytes()
+    {
+        var room = _opts.MaxSnapshotBytes;
+        if (room <= 0) return 0;
+        return FreeSpaceProbe(_opts.SaveDir) is long free ? Math.Max(1, Math.Min(room, free / 10)) : room;
+    }
+
+    /// <summary>
+    /// Remove automatic backups past their room, oldest first (<see cref="SnapshotBudget"/>), and those past 30
+    /// days. Runs after every snapshot and upload. No other backup is removed or counted. The newest automatic one
+    /// and one a restore is reading stay. A zip is removed only when it sits directly in <c>SaveDir</c>, and its
+    /// row goes with it.
     /// </summary>
     internal void RotateOldSnapshots()
     {
@@ -269,10 +385,11 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             string? reading;
             lock (_restoreSourceGate) reading = _restoreSource;
             var items = _db.ListSnapshots(int.MaxValue)
+                .Where(IsAutomatic)
                 .Select(s => new SnapshotBudget.Item(s.SnapshotId, s.TakenUnix, s.SizeBytes, s.RetentionDays, s.FilePath));
             var keep = reading is null ? Array.Empty<string>() : new[] { reading };
             foreach (var s in SnapshotBudget.ToRemove(items, DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                         _opts.MaxSnapshotsKept, _opts.MaxSnapshotBytes, keep))
+                         _opts.MaxSnapshotsKept, AutomaticRoomBytes(), keep))
             {
                 // The row stays while its zip does; the next pass tries again.
                 if (!TryRemoveSnapshotFile(s.FilePath)) continue;
@@ -364,7 +481,8 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     /// SaveGames, extracts the target snapshot zip, then releases the gate
     /// so the supervisor relaunches Subnautica 2 with the restored world.
     /// </summary>
-    public async Task<bool> RestoreSnapshotAsync(string snapshotId, string requestedBy, CancellationToken ct = default)
+    public async Task<bool> RestoreSnapshotAsync(string snapshotId, string requestedBy, CancellationToken ct = default,
+        Action? noRoom = null)
     {
         var snap = _db.ListSnapshots(int.MaxValue).FirstOrDefault(s => s.SnapshotId == snapshotId);
         if (snap is null)
@@ -377,7 +495,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             _log.LogWarning("Restore failed: snapshot file missing {Path}", snap.FilePath);
             return false;
         }
-        return await RestoreFromZipPathAsync(snap.FilePath, requestedBy, $"restore:{snapshotId}", ct).ConfigureAwait(false);
+        return await RestoreFromZipPathAsync(snap.FilePath, requestedBy, $"restore:{snapshotId}", ct, noRoom).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -388,7 +506,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     /// and releases the supervisor gate.
     /// </summary>
     public async Task<bool> RestoreFromZipPathAsync(
-        string zipPath, string requestedBy, string auditAction, CancellationToken ct = default)
+        string zipPath, string requestedBy, string auditAction, CancellationToken ct = default, Action? noRoom = null)
     {
         if (!File.Exists(zipPath))
         {
@@ -414,8 +532,12 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
             }
             // The directory first (cheap), then one read of the data, writing nothing; the read is bounded by the
             // caps the first check just held the stated sizes to.
-            var why = RestoreZipLimits.CheckBeforeUnpack(probe, RestoreCaps, RestoreFreeBytes())
-                ?? RestoreZipLimits.CheckStatedSizesHold(probe);
+            var why = RestoreZipLimits.CheckBeforeUnpack(probe, RestoreCaps, RestoreFreeBytes());
+            // On a drive that is nearly full the unpack's check answers first. When only room stopped it and the copy
+            // of the live world has no room either, that is the reason the owner is given.
+            if (why is not null && RestoreZipLimits.CheckBeforeUnpack(probe, RestoreCaps, null) is null && NoRoomForPreRestoreCopy())
+                noRoom?.Invoke();
+            why ??= RestoreZipLimits.CheckStatedSizesHold(probe);
             if (why is not null)
             {
                 _log.LogWarning("Restore refused before stopping the game: zip {Path} {Why}", zipPath, why);
@@ -441,7 +563,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         lock (_restoreSourceGate) _restoreSource = Path.GetFullPath(zipPath);
         try
         {
-            return await StopAndSwapAsync(zipPath, requestedBy, auditAction, rule, realSaved, saveGamesDir, ct)
+            return await StopAndSwapAsync(zipPath, requestedBy, auditAction, rule, realSaved, saveGamesDir, ct, noRoom)
                 .ConfigureAwait(false);
         }
         finally
@@ -453,8 +575,16 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
     }
 
     private async Task<bool> StopAndSwapAsync(string zipPath, string requestedBy, string auditAction,
-        SecondDriveRule rule, string realSaved, string saveGamesDir, CancellationToken ct)
+        SecondDriveRule rule, string realSaved, string saveGamesDir, CancellationToken ct, Action? noRoom)
     {
+        // No room for the copy taken before the swap: refused while the game still runs.
+        if (NoRoomForPreRestoreCopy())
+        {
+            _log.LogWarning("Restore aborted: pre-restore snapshot failed");
+            noRoom?.Invoke();
+            return false;
+        }
+
         // 1. Stop Subnautica 2 first. Taking a snapshot BEFORE the kill would
         // capture whatever state Subnautica 2 was mid-writing — which on a save
         // tick is half a savegame_0.sav. Kill, wait for exit, then snap.
@@ -467,7 +597,7 @@ public sealed class SaveOrchestratorService : IHostedService, IDisposable
         }
 
         // 2. Snapshot the now-stable state so a bad restore is reversible.
-        var pre = await SnapshotAsync($"pre-restore:{requestedBy}", ct).ConfigureAwait(false);
+        var pre = await SnapshotAsync($"pre-restore:{requestedBy}", ct, noRoom).ConfigureAwait(false);
         if (pre is null)
         {
             _log.LogWarning("Restore aborted: pre-restore snapshot failed");

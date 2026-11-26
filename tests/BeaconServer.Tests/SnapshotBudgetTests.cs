@@ -96,16 +96,16 @@ public sealed class SnapshotBudgetTests : IDisposable
     private string[] RowIds() => _s.Service.Database.ListSnapshots(int.MaxValue).Select(r => r.SnapshotId).OrderBy(i => i).ToArray();
 
     [Fact]
-    public void Rotation_removes_the_oldest_uploads_with_their_rows()
+    public void Rotation_removes_the_oldest_automatic_ones_with_their_rows()
     {
         _s.Options.MaxSnapshotsKept = 20;
-        var paths = Enumerable.Range(0, 25).Select(i => Stored($"upload-{i:D2}", _now - 1000 + i, KiB)).ToList();
+        var paths = Enumerable.Range(0, 25).Select(i => Stored($"auto-{i:D2}", _now - 1000 + i, KiB)).ToList();
 
         _s.Service.RotateOldSnapshots();
 
         Assert.All(paths.Take(5), p => Assert.False(File.Exists(p)));
         Assert.All(paths.Skip(5), p => Assert.True(File.Exists(p)));
-        Assert.Equal(Enumerable.Range(5, 20).Select(i => $"upload-{i:D2}").ToArray(), RowIds());
+        Assert.Equal(Enumerable.Range(5, 20).Select(i => $"auto-{i:D2}").ToArray(), RowIds());
     }
 
     [Fact]
@@ -113,45 +113,45 @@ public sealed class SnapshotBudgetTests : IDisposable
     {
         _s.Options.MaxSnapshotsKept = 20;
         _s.Options.MaxSnapshotBytes = 500 * KiB;
-        var older = Enumerable.Range(0, 3).Select(i => Stored($"upload-{i:D2}", _now - 1000 + i, 200 * KiB)).ToList();
-        var newest = Stored("upload-99", _now, 600 * KiB);
+        var older = Enumerable.Range(0, 3).Select(i => Stored($"auto-{i:D2}", _now - 1000 + i, 200 * KiB)).ToList();
+        var newest = Stored("auto-99", _now, 600 * KiB);
 
         _s.Service.RotateOldSnapshots();
 
         Assert.True(File.Exists(newest));
         Assert.All(older, p => Assert.False(File.Exists(p)));
-        Assert.Equal(new[] { "upload-99" }, RowIds());
+        Assert.Equal(new[] { "auto-99" }, RowIds());
     }
 
     [Fact]
     public void Rotation_never_removes_a_file_outside_the_snapshot_folder()
     {
         var live = Path.Combine(_s.Tree, RestoreTestServer.LiveFile);
-        Stored("upload-01", _now - 40 * 86_400, 10, path: live);
-        Stored("upload-02", _now, KiB);
+        Stored("auto-01", _now - 40 * 86_400, 10, path: live);
+        Stored("auto-02", _now, KiB);
 
         _s.Service.RotateOldSnapshots();
 
         Assert.Equal("live world", File.ReadAllText(live));
-        Assert.Contains("upload-01", RowIds());
+        Assert.Contains("auto-01", RowIds());
     }
 
     [Fact]
     public async Task Restoring_the_oldest_of_a_full_set_keeps_it_while_it_is_read()
     {
-        _s.Options.MaxSnapshotsKept = 20;
+        _s.Options.MaxSnapshotsKept = 19;
         var paths = new List<string>();
         for (var i = 0; i < 20; i++)
         {
             var zip = _s.Zip($"w{i:D2}.zip", withWorld: true);
-            var stored = Path.Combine(_s.SaveDir, $"upload-{i:D2}.zip");
+            var stored = Path.Combine(_s.SaveDir, $"auto-{i:D2}.zip");
             Directory.CreateDirectory(_s.SaveDir);
             File.Move(zip, stored);
-            paths.Add(Stored($"upload-{i:D2}", _now - 1000 + i, new FileInfo(stored).Length, stored));
+            paths.Add(Stored($"auto-{i:D2}", _now - 1000 + i, new FileInfo(stored).Length, stored));
         }
 
-        // The restore's own pre-restore copy makes 21; the rotation it runs must not take the zip being restored.
-        Assert.True(await _s.Service.RestoreSnapshotAsync("upload-00", "test"));
+        // The rotation the restore runs must not take the zip being restored. The pre-restore copy takes no room here.
+        Assert.True(await _s.Service.RestoreSnapshotAsync("auto-00", "test"));
 
         Assert.Equal("restored world", _s.RestoredText());
         Assert.True(File.Exists(paths[0]), "the zip being restored stayed");
